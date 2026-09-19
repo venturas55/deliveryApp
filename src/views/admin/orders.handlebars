@@ -1,0 +1,24 @@
+{{> admin/login}}
+<template id="ordersView">
+  <section>
+    <h2>Pedidos</h2>
+    <label for="orderFilter">Mostrar pedidos</label>
+    <select id="orderFilter" aria-describedby="filterHelp">
+      <option value="all">Todos</option>
+      <option value="pending">Pendientes</option>
+      <option value="in_progress">En curso</option>
+      <option value="delivered">Entregados</option>
+      <option value="cancelled">Cancelados</option>
+    </select>
+    <p id="filterHelp">Pendientes: sin aceptar. En curso: desde la aceptación hasta la entrega.</p>
+    <p id="orderCount" role="status"></p>
+    <p>Gestiona la preparación y solicita el reparto cuando el pedido esté listo.
+      En el reparto simulado, usa los botones para avanzar hasta la entrega.</p>
+    <p id="adminError" role="alert"></p>
+    <div id="orders"></div>
+  </section>
+  <aside id="orderDetail" class="card">
+    <h2>Detalle del pedido</h2>
+    <p>Selecciona «Productos e historial» para ver su contenido y evolución.</p>
+  </aside>
+</template>

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}}</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  {{> header}}
+  {{#if adminArea}}{{> admin/navigation}}{{/if}}
+  {{#if clientArea}}{{> client/navigation}}{{/if}}
+  <main{{#if mainId}} id="{{mainId}}"{{/if}}>
+    {{{body}}}
+  </main>
+  {{#if adminArea}}<script src="/admin-navigation.js"></script>{{/if}}
+  {{#if clientArea}}<script src="/customer.js"></script>{{/if}}
+  {{#if script}}<script src="{{script}}"></script>{{/if}}
+</body>
+</html>

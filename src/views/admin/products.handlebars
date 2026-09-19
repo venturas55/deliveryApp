@@ -1,0 +1,21 @@
+<section>
+  <div class="toolbar"><h2>Carta del restaurante</h2><button id="newProduct">Nuevo artículo</button></div>
+  <p>Los artículos disponibles aparecen en la tienda. Puedes ocultarlos temporalmente o eliminarlos.</p>
+  <p id="productMessage" role="status" aria-live="polite"></p>
+  <div id="products"></div>
+</section>
+<aside class="card">
+  <h2 id="editorTitle">Nuevo artículo</h2>
+  <form id="productForm">
+    <fieldset id="productFields">
+      <label>Nombre<input name="name" maxlength="120" required></label>
+      <label>Descripción<textarea name="description" maxlength="255"></textarea></label>
+      <label>Categoría<input name="category" maxlength="80" value="Pizzas" required></label>
+      <label>Precio (€)<input name="price" type="number" min="0" max="21474836.47" step="0.01" required></label>
+      <label>Orden en la categoría<input name="sort_order" type="number" min="0" max="2147483647" step="1" value="0" required></label>
+      <label><input name="active" type="checkbox" checked> Disponible en la tienda</label>
+      <button type="submit">Guardar artículo</button>
+      <button type="button" id="cancelEdit">Cancelar edición</button>
+    </fieldset>
+  </form>
+</aside>

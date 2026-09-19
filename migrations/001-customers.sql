@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS customers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  email VARCHAR(190) NOT NULL UNIQUE,
+  password_hash VARCHAR(255),
+  google_sub VARCHAR(255) UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id INT NULL;
+CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id,created_at);

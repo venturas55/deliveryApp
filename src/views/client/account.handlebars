@@ -1,0 +1,16 @@
+<section class="card">
+  <h2>Mis datos y dirección habitual</h2>
+  <p>Usaremos estos datos al preparar tus pedidos. Podrás cambiarlos para una entrega concreta.</p>
+  <form id="accountForm">
+    <fieldset id="accountFields" disabled>
+      <label>Email de acceso<input id="accountEmail" type="email" readonly></label>
+      <label>Nombre<input name="name" maxlength="120" autocomplete="name" required></label>
+      <label>Teléfono<input name="phone" type="tel" maxlength="40" autocomplete="tel"></label>
+      <label>Dirección completa (calle, número, piso, código postal y localidad)<textarea name="delivery_address" maxlength="500" autocomplete="street-address"></textarea></label>
+      <label>Indicaciones de entrega<textarea name="delivery_notes" maxlength="500"></textarea></label>
+      <button>Guardar datos</button>
+    </fieldset>
+  </form>
+  <p id="accountMessage" role="status"></p>
+  <a href="/">Volver a la carta</a>
+</section>

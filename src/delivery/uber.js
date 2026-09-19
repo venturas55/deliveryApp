@@ -37,6 +37,7 @@ function addressObject(address) {
 }
 
 export const uberDelivery = {
+  name: "uber",
   async quote(order) {
     const token = await getToken();
     const pickup = {

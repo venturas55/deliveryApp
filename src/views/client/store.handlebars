@@ -1,0 +1,20 @@
+<section>
+  <div id="menu"></div>
+</section>
+<aside class="cart">
+  <h2>Tu pedido</h2>
+  <div id="cart"></div>
+  <p>Usamos tus datos habituales. Puedes modificarlos solo para este pedido o guardarlos en <a href="/client/account">Mi cuenta</a>.</p>
+  <form id="checkout">
+    <input name="customer_name" placeholder="Nombre" maxlength="120" autocomplete="name" required>
+    <input name="customer_phone" placeholder="Teléfono" required>
+    <textarea name="delivery_address" placeholder="Dirección completa" required></textarea>
+    <textarea name="delivery_notes" placeholder="Indicaciones para el repartidor (opcional)"></textarea>
+    <select name="payment_method">
+      <option value="cash">Efectivo</option>
+      <option value="card_on_delivery">Tarjeta al entregar</option>
+    </select>
+    <button>Confirmar pedido</button>
+  </form>
+  <div id="result"></div>
+</aside>
