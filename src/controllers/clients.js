@@ -2,6 +2,7 @@ import {query,transaction} from "../db.js";
 import {getRestaurant} from "../services/restaurants.js";
 import {logEvent} from "../services/order-events.js";
 import {httpError} from "../services/http-error.js";
+import {cleanAddress,validateAddress} from "../services/geocoding.js";
 
 export async function menu(req){
   const r=await getRestaurant(req.query.slug||"demo"); if(!r)throw httpError(404,"Restaurante no encontrado");
@@ -11,11 +12,17 @@ export async function menu(req){
 }
 
 export async function createOrder(req){
-  const profiles=await query("SELECT name,phone,delivery_address,delivery_notes FROM customers WHERE id=?",[req.customer.sub]);
+  const profiles=await query("SELECT name,phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,delivery_apartment,delivery_patio FROM customers WHERE id=?",[req.customer.sub]);
   if(!profiles.length)throw httpError(401,"Cuenta no disponible");
   const profile=profiles[0];
-  const {slug="demo",customer_name=profile.name,customer_phone=profile.phone,delivery_address=profile.delivery_address,delivery_notes=profile.delivery_notes,payment_method="cash",items=[]}=req.body||{};
-  for(const [value,max] of [[customer_name,120],[customer_phone,40],[delivery_address,500],[delivery_notes,500]]){
+  const body=req.body||{};
+  let addressData=body.delivery_address_data;
+  if(typeof addressData==="string"){try{addressData=JSON.parse(addressData)}catch{addressData=null}}
+  if(!addressData&&profile.delivery_place_id)addressData={formatted_address:profile.delivery_formatted_address,street:profile.delivery_street,number:profile.delivery_number,city:profile.delivery_city,province:profile.delivery_province,postal_code:profile.delivery_postal_code,country:profile.delivery_country,latitude:profile.delivery_latitude,longitude:profile.delivery_longitude,place_id:profile.delivery_place_id};
+  const {slug="demo",customer_name=profile.name,customer_phone=profile.phone,delivery_notes=profile.delivery_notes,delivery_apartment=profile.delivery_apartment||"",delivery_patio=profile.delivery_patio||"",payment_method="cash",items=[]}=body;
+  const addressError=validateAddress(addressData);if(addressError)throw httpError(400,addressError);
+  const address=cleanAddress(addressData),delivery_address=address.formatted_address;
+  for(const [value,max] of [[customer_name,120],[customer_phone,40],[delivery_address,500],[delivery_notes,500],[delivery_apartment,120],[delivery_patio,120]]){
     if(typeof value!=="string"||value.length>max)throw httpError(400,"Revisa los datos de entrega");
   }
   if(!customer_name.trim()||!customer_phone.trim()||!delivery_address.trim())throw httpError(400,"Completa tu nombre, telefono y direccion de entrega en Mi cuenta o en el pedido");
@@ -34,8 +41,8 @@ export async function createOrder(req){
   const delivery=subtotal>=Number(process.env.FREE_DELIVERY_FROM_CENTS||3000)?0:Number(process.env.DELIVERY_BASE_CENTS||399);
   const total=subtotal+delivery;
   const orderId=await transaction(async c=>{
-    const result=await c.query(`INSERT INTO orders(customer_id,restaurant_id,customer_name,customer_phone,delivery_address,delivery_notes,payment_method,status,subtotal_cents,delivery_cents,total_cents) VALUES(?,?,?,?,?,?,?, 'new',?,?,?)`,
-      [req.customer.sub,r.id,customer_name,customer_phone,delivery_address,delivery_notes,payment_method,subtotal,delivery,total]);
+    const result=await c.query(`INSERT INTO orders(customer_id,restaurant_id,customer_name,customer_phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,delivery_apartment,delivery_patio,payment_method,status,subtotal_cents,delivery_cents,total_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'new',?,?,?)`,
+      [req.customer.sub,r.id,customer_name,customer_phone,delivery_address,delivery_notes,address.formatted_address,address.street,address.number,address.city,address.province,address.postal_code,address.country,address.latitude,address.longitude,address.place_id,delivery_apartment,delivery_patio,payment_method,subtotal,delivery,total]);
     const id=Number(result.insertId);
     for(const i of normalized)await c.query("INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price_cents) VALUES(?,?,?,?,?)",[id,i.product_id,i.product_name,i.quantity,i.unit_price_cents]);
     await logEvent(c,id,"order.created",{status:"new"});

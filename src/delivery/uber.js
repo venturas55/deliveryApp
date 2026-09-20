@@ -7,9 +7,21 @@ function required(settings,name){
 }
 
 function addressObject(address,settings={}){
+  if(address&&typeof address==="object")return JSON.stringify({street_address:[address.street,address.number].filter(Boolean).join(" "),city:address.city,state:address.province||address.city,zip_code:address.postal_code,country:address.country||"ES"});
   return JSON.stringify({street_address:[address],city:settings.city||"Valencia",state:settings.state||"Valencia",zip_code:settings.postcode||"",country:settings.country||"ES"});
 }
+function orderAddress(order){
+  return {street:order.delivery_street,number:order.delivery_number,city:order.delivery_city,province:order.delivery_province,postal_code:order.delivery_postal_code,country:order.delivery_country||"ES"};
+}
 function apiBase(settings){return (settings.apiBaseUrl||"https://api.uber.com").replace(/\/$/,"")}
+
+function phoneNumber(value,name){
+  const phone=String(value||"").replace(/[\s().-]/g,"");
+  if(/^34\d{9}$/.test(phone))return `+${phone}`;
+  if(/^\d{9}$/.test(phone))return `+34${phone}`;
+  if(/^\+\d{8,15}$/.test(phone))return phone;
+  throw new Error(`Configuración Uber inválida: ${name} debe usar formato internacional, por ejemplo +34963510732`);
+}
 
 async function getToken(config){
   const {clientId,clientSecret}=config.credentials||{};
@@ -35,7 +47,7 @@ async function uberFetch(config,path,options={}){
 
 function pickup(config){
   const settings=config.settings||{};
-  return {address:addressObject(required(settings,"pickupAddress"),settings),name:required(settings,"pickupName"),phone_number:required(settings,"pickupPhone"),...(settings.pickupLat?{latitude:Number(settings.pickupLat)}:{}),...(settings.pickupLng?{longitude:Number(settings.pickupLng)}:{})};
+  return {address:addressObject(required(settings,"pickupAddress"),settings),name:required(settings,"pickupName"),phone_number:phoneNumber(settings.pickupPhone,"pickupPhone"),...(settings.pickupLat?{latitude:Number(settings.pickupLat)}:{}),...(settings.pickupLng?{longitude:Number(settings.pickupLng)}:{})};
 }
 
 export function createUberDelivery(config){
@@ -45,11 +57,11 @@ export function createUberDelivery(config){
     async testConnection(){await getToken(config);return {provider:"uber",ok:true}},
     async quote(order){
       const settings=config.settings||{};
-      const data=await uberFetch(config,`/v1/customers/${encodeURIComponent(customerId)}/delivery_quotes`,{method:"POST",body:JSON.stringify({pickup_address:pickup(config).address,dropoff_address:addressObject(order.delivery_address,settings),...(settings.pickupLat&&settings.pickupLng?{pickup_latitude:Number(settings.pickupLat),pickup_longitude:Number(settings.pickupLng)}:{})})});
+      const data=await uberFetch(config,`/v1/customers/${encodeURIComponent(customerId)}/delivery_quotes`,{method:"POST",body:JSON.stringify({pickup_address:pickup(config).address,dropoff_address:addressObject(orderAddress(order),settings),...(order.delivery_latitude!=null&&order.delivery_longitude!=null?{dropoff_latitude:Number(order.delivery_latitude),dropoff_longitude:Number(order.delivery_longitude)}:{}),...(settings.pickupLat&&settings.pickupLng?{pickup_latitude:Number(settings.pickupLat),pickup_longitude:Number(settings.pickupLng)}:{})})});
       return {provider:"uber",quoteId:data.id,feeCents:Number(data.fee||0),etaMinutes:data.duration?Math.round(Number(data.duration)/60):null,expiresAt:data.expires?Date.parse(data.expires):null,raw:data};
     },
     async create(order,quote){
-      const settings=config.settings||{},data=await uberFetch(config,`/v1/customers/${encodeURIComponent(customerId)}/deliveries`,{method:"POST",body:JSON.stringify({quote_id:quote.quoteId,pickup_address:pickup(config).address,pickup_name:required(settings,"pickupName"),pickup_phone_number:required(settings,"pickupPhone"),dropoff_address:addressObject(order.delivery_address,settings),dropoff_name:order.customer_name,dropoff_phone_number:order.customer_phone,manifest_items:order.items.map(item=>({name:item.product_name,quantity:item.quantity,size:"small"}))})});
+      const settings=config.settings||{},dropoffNotes=[order.delivery_patio&&`Patio: ${order.delivery_patio}`,order.delivery_apartment&&`Piso/puerta: ${order.delivery_apartment}`,order.delivery_notes].filter(Boolean).join(". "),data=await uberFetch(config,`/v1/customers/${encodeURIComponent(customerId)}/deliveries`,{method:"POST",body:JSON.stringify({quote_id:quote.quoteId,pickup_address:pickup(config).address,pickup_name:required(settings,"pickupName"),pickup_phone_number:phoneNumber(settings.pickupPhone,"pickupPhone"),dropoff_address:addressObject(orderAddress(order),settings),dropoff_name:order.customer_name,dropoff_phone_number:phoneNumber(order.customer_phone,"customer_phone"),dropoff_notes:dropoffNotes,...(order.delivery_latitude!=null&&order.delivery_longitude!=null?{dropoff_latitude:Number(order.delivery_latitude),dropoff_longitude:Number(order.delivery_longitude)}:{}),manifest_items:order.items.map(item=>({name:item.product_name,quantity:item.quantity,size:"small"}))})});
       return {provider:"uber",providerOrderId:data.id,providerStatus:data.status||"pending",trackingUrl:data.tracking_url,raw:data};
     }
   };

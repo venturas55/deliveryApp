@@ -53,7 +53,7 @@
           <legend>Datos de integración</legend>
           {{#if (eq provider "uber")}}
             <div class="field-grid"><label>Customer ID<input name="settings[customerId]" value="{{settings.customerId}}" required></label><label>URL base<input name="settings[apiBaseUrl]" value="{{settings.apiBaseUrl}}" placeholder="https://api.uber.com"></label></div>
-            <div class="field-grid"><label>Nombre de recogida<input name="settings[pickupName]" value="{{settings.pickupName}}" required></label><label>Teléfono de recogida<input name="settings[pickupPhone]" value="{{settings.pickupPhone}}" required></label></div>
+            <div class="field-grid"><label>Nombre de recogida<input name="settings[pickupName]" value="{{settings.pickupName}}" required></label><label>Teléfono de recogida<input name="settings[pickupPhone]" value="{{settings.pickupPhone}}" placeholder="+34963510732" required></label></div>
             <label>Dirección de recogida<input name="settings[pickupAddress]" value="{{settings.pickupAddress}}" required></label>
             <div class="field-grid"><label>Latitud<input name="settings[pickupLat]" value="{{settings.pickupLat}}"></label><label>Longitud<input name="settings[pickupLng]" value="{{settings.pickupLng}}"></label></div>
           {{else if (eq provider "glovo")}}

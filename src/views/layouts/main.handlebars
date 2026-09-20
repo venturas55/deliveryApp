@@ -12,6 +12,7 @@
   {{#if adminArea}}{{#if adminLoggedIn}}{{> admin/navigation}}{{/if}}{{/if}}
   <main>{{{body}}}</main>
   <script src="/page-behavior.js" defer></script>
+  <script src="/address-picker.js?v=2" defer></script>
   {{#if googleEnabled}}<script src="/google-login.js" defer></script>{{/if}}
 </body>
 </html>

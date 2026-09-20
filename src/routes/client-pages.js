@@ -6,8 +6,10 @@ import * as accounts from "../controllers/accounts.js";
 import {httpError} from "../services/http-error.js";
 import {presentOrder} from "../services/order-presenter.js";
 import {requireCustomer,setSession,clearSession,safeNext,readCart,writeCart} from "../services/web-session.js";
+import {searchAddresses} from "../services/geocoding.js";
 const router=Router();
 const loginLimit=rateLimit({windowMs:15*60*1000,max:30});
+const addressLimit=rateLimit({windowMs:60*1000,max:30});
 
 router.get(["/","/index.html"],async(req,res)=>{
   const data=await clients.menu({query:{slug:"demo"}});
@@ -21,7 +23,8 @@ router.get(["/","/index.html"],async(req,res)=>{
   const subtotal=cart.reduce((sum,item)=>sum+item.lineTotal,0);
   const delivery=cart.length&&subtotal<Number(process.env.FREE_DELIVERY_FROM_CENTS||3000)?Number(process.env.DELIVERY_BASE_CENTS||399):0;
   const profile=req.customer?await accounts.customerProfile(req.customer.sub):null;
-  res.render("client/store",{title:"Carta",cartActive:true,categories:[...groups].map(([name,products])=>({name,products})),cart,subtotal,delivery,total:subtotal+delivery,profile});
+  if(profile)profile.addressData={formatted_address:profile.delivery_formatted_address,street:profile.delivery_street,number:profile.delivery_number,city:profile.delivery_city,province:profile.delivery_province,postal_code:profile.delivery_postal_code,country:profile.delivery_country,latitude:profile.delivery_latitude,longitude:profile.delivery_longitude,place_id:profile.delivery_place_id};
+  res.render("client/store",{title:"Carta",cartActive:true,categories:[...groups].map(([name,products])=>({name,products})),cart,subtotal,delivery,total:subtotal+delivery,profile,addressData:profile?.addressData});
 });
 router.post("/cart",async(req,res)=>{
   const id=Number(req.body.product_id),action=req.body.action;
@@ -42,6 +45,10 @@ router.post("/checkout",requireCustomer,async(req,res)=>{
   const order=await clients.createOrder(req);
   writeCart(res,[]);res.redirect(303,"/tracking?id="+order.id);
 });
+router.get("/client/address-search",requireCustomer,addressLimit,async(req,res)=>{
+  try{return res.json(await searchAddresses(req.query.q))}
+  catch(error){return res.status(502).json({error:"No se pudo consultar el buscador de direcciones"})}
+});
 router.get("/client/login",(req,res)=>res.render("client/login",{title:"Acceso de clientes",loginActive:true,next:safeNext(req.query.next,"/client/orders"),googleEnabled:!!process.env.GOOGLE_CLIENT_ID}));
 router.post("/client/login",loginLimit,async(req,res)=>{
   const customer=await accounts.loginCustomer(req.body);setSession(res,"customer",signCustomer(customer));
@@ -52,7 +59,11 @@ router.post("/client/register",loginLimit,async(req,res)=>{
   res.redirect(303,safeNext(req.body.next,"/client/orders"));
 });
 router.post("/client/logout",(req,res)=>{clearSession(res,"customer");writeCart(res,[]);res.redirect(303,"/")});
-router.get("/client/account",requireCustomer,async(req,res)=>res.render("client/account",{title:"Mi cuenta",accountActive:true,profile:await accounts.customerProfile(req.customer.sub),saved:req.query.saved==="1"}));
+router.get("/client/account",requireCustomer,async(req,res)=>{
+  const profile=await accounts.customerProfile(req.customer.sub);
+  profile.addressData={formatted_address:profile.delivery_formatted_address,street:profile.delivery_street,number:profile.delivery_number,city:profile.delivery_city,province:profile.delivery_province,postal_code:profile.delivery_postal_code,country:profile.delivery_country,latitude:profile.delivery_latitude,longitude:profile.delivery_longitude,place_id:profile.delivery_place_id};
+  res.render("client/account",{title:"Mi cuenta",accountActive:true,profile,addressData:profile.addressData,saved:req.query.saved==="1"});
+});
 router.post("/client/account",requireCustomer,async(req,res)=>{await accounts.updateProfile(req.customer.sub,req.body);res.redirect(303,"/client/account?saved=1")});
 router.get("/client/orders",requireCustomer,async(req,res)=>{
   const orders=await clients.customerOrders(req);

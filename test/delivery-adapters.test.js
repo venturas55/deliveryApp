@@ -13,8 +13,8 @@ test("Uber Direct adapter uses current OAuth and delivery endpoints",async()=>{
     return new Response(JSON.stringify({id:"delivery-1",status:"pending",tracking_url:"https://track.example/1"}),{status:200});
   };
   try{
-    const provider=createUberDelivery({credentials:{clientId:"client",clientSecret:"secret"},settings:{customerId:"customer",pickupName:"Store",pickupPhone:"+34123",pickupAddress:"Pickup"}});
-    const order={delivery_address:"Dropoff",customer_name:"Customer",customer_phone:"+34456",items:[{product_name:"Pizza",quantity:1}]};
+    const provider=createUberDelivery({credentials:{clientId:"client",clientSecret:"secret"},settings:{customerId:"customer",pickupName:"Store",pickupPhone:"+34963510732",pickupAddress:"Pickup"}});
+    const order={delivery_address:"Dropoff",customer_name:"Customer",customer_phone:"612345678",items:[{product_name:"Pizza",quantity:1}]};
     const quote=await provider.quote(order);
     const delivery=await provider.create(order,quote);
     assert.equal(quote.feeCents,550);

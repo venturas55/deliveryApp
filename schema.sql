@@ -1,5 +1,7 @@
-CREATE DATABASE IF NOT EXISTS deliveryApp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE deliveryApp;
+-- INSTALACION DESDE CERO: elimina deliveryapp y todos sus datos.
+DROP DATABASE IF EXISTS deliveryapp;
+CREATE DATABASE deliveryapp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE deliveryapp;
 
 CREATE TABLE IF NOT EXISTS restaurants (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -47,6 +49,7 @@ CREATE TABLE IF NOT EXISTS delivery_zones (
 
 CREATE TABLE IF NOT EXISTS orders (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  customer_id INT NULL,
   restaurant_id INT NOT NULL,
   customer_name VARCHAR(120) NOT NULL,
   customer_phone VARCHAR(40) NOT NULL,
@@ -60,10 +63,23 @@ CREATE TABLE IF NOT EXISTS orders (
   provider VARCHAR(40),
   provider_order_id VARCHAR(160),
   provider_status VARCHAR(80),
+  delivery_formatted_address VARCHAR(500) NULL,
+  delivery_street VARCHAR(180) NULL,
+  delivery_number VARCHAR(40) NULL,
+  delivery_city VARCHAR(120) NULL,
+  delivery_province VARCHAR(120) NULL,
+  delivery_postal_code VARCHAR(20) NULL,
+  delivery_country VARCHAR(2) NULL,
+  delivery_latitude DECIMAL(10,7) NULL,
+  delivery_longitude DECIMAL(10,7) NULL,
+  delivery_place_id VARCHAR(255) NULL,
+  delivery_apartment VARCHAR(120) NULL,
+  delivery_patio VARCHAR(120) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_restaurant_status (restaurant_id,status),
   INDEX idx_restaurant_created (restaurant_id,created_at),
+  INDEX idx_orders_customer (customer_id,created_at),
   FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
 
@@ -137,11 +153,20 @@ CREATE TABLE IF NOT EXISTS customers (
   email VARCHAR(190) NOT NULL UNIQUE,
   password_hash VARCHAR(255),
   google_sub VARCHAR(255) UNIQUE,
+  phone VARCHAR(40) NOT NULL DEFAULT '',
+  delivery_address VARCHAR(500) NOT NULL DEFAULT '',
+  delivery_notes VARCHAR(500) NOT NULL DEFAULT '',
+  delivery_formatted_address VARCHAR(500) NOT NULL DEFAULT '',
+  delivery_street VARCHAR(180) NOT NULL DEFAULT '',
+  delivery_number VARCHAR(40) NOT NULL DEFAULT '',
+  delivery_city VARCHAR(120) NOT NULL DEFAULT '',
+  delivery_province VARCHAR(120) NOT NULL DEFAULT '',
+  delivery_postal_code VARCHAR(20) NOT NULL DEFAULT '',
+  delivery_country VARCHAR(2) NOT NULL DEFAULT '',
+  delivery_latitude DECIMAL(10,7) NULL,
+  delivery_longitude DECIMAL(10,7) NULL,
+  delivery_place_id VARCHAR(255) NOT NULL DEFAULT '',
+  delivery_apartment VARCHAR(120) NOT NULL DEFAULT '',
+  delivery_patio VARCHAR(120) NOT NULL DEFAULT '',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id INT NULL;
-CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id,created_at);
-
-ALTER TABLE customers ADD COLUMN IF NOT EXISTS phone VARCHAR(40) NOT NULL DEFAULT '';
-ALTER TABLE customers ADD COLUMN IF NOT EXISTS delivery_address VARCHAR(500) NOT NULL DEFAULT '';
-ALTER TABLE customers ADD COLUMN IF NOT EXISTS delivery_notes VARCHAR(500) NOT NULL DEFAULT '';

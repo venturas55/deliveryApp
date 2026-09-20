@@ -35,12 +35,12 @@ export function createJustEatJetGoDelivery(config){
     async testConnection(){await getToken(config);return {provider:"just_eat_jet_go",ok:true}},
     async quote(order){
       const settings=config.settings||{},token=await getToken(config);
-      const data=await request(config,required(settings.quotePath,"quotePath"),{method:"POST",headers:headers(token),body:JSON.stringify({accountId:settings.accountId,pickup:{name:settings.pickupName,phone:settings.pickupPhone,address:settings.pickupAddress,latitude:settings.pickupLat?Number(settings.pickupLat):undefined,longitude:settings.pickupLng?Number(settings.pickupLng):undefined},dropoff:{address:order.delivery_address,name:order.customer_name,phone:order.customer_phone}})});
+      const data=await request(config,required(settings.quotePath,"quotePath"),{method:"POST",headers:headers(token),body:JSON.stringify({accountId:settings.accountId,pickup:{name:settings.pickupName,phone:settings.pickupPhone,address:settings.pickupAddress,latitude:settings.pickupLat?Number(settings.pickupLat):undefined,longitude:settings.pickupLng?Number(settings.pickupLng):undefined},dropoff:{address:order.delivery_formatted_address,latitude:Number(order.delivery_latitude),longitude:Number(order.delivery_longitude),name:order.customer_name,phone:order.customer_phone}})});
       return {provider:"just_eat_jet_go",quoteId:data.quoteId||data.id,feeCents:Number(data.feeCents??data.fee??0),etaMinutes:Number(data.etaMinutes??data.durationMinutes??0)||null,expiresAt:data.expiresAt?Date.parse(data.expiresAt):null,raw:data};
     },
     async create(order,quote){
       const settings=config.settings||{},token=await getToken(config);
-      const data=await request(config,required(settings.createPath,"createPath"),{method:"POST",headers:headers(token),body:JSON.stringify({accountId:settings.accountId,quoteId:quote.quoteId,pickup:{name:settings.pickupName,phone:settings.pickupPhone,address:settings.pickupAddress},dropoff:{address:order.delivery_address,name:order.customer_name,phone:order.customer_phone},items:order.items.map(item=>({name:item.product_name,quantity:item.quantity}))})});
+      const data=await request(config,required(settings.createPath,"createPath"),{method:"POST",headers:headers(token),body:JSON.stringify({accountId:settings.accountId,quoteId:quote.quoteId,pickup:{name:settings.pickupName,phone:settings.pickupPhone,address:settings.pickupAddress},dropoff:{address:order.delivery_formatted_address,latitude:Number(order.delivery_latitude),longitude:Number(order.delivery_longitude),name:order.customer_name,phone:order.customer_phone,apartment:order.delivery_apartment, instructions:order.delivery_notes},items:order.items.map(item=>({name:item.product_name,quantity:item.quantity}))})});
       return {provider:"just_eat_jet_go",providerOrderId:data.deliveryId||data.orderId||data.id,providerStatus:data.status||"created",trackingUrl:data.trackingUrl,raw:data};
     }
   };

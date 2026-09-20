@@ -20,7 +20,8 @@ app.engine("handlebars",engine({
     money:value=>(Number(value||0)/100).toLocaleString("es-ES",{style:"currency",currency:"EUR"}),
     decimal:value=>value===undefined?"":(Number(value)/100).toFixed(2),
     multiply:(a,b)=>Number(a)*Number(b),
-    date:value=>new Date(value).toLocaleString("es-ES")
+    date:value=>new Date(value).toLocaleString("es-ES"),
+    json:value=>JSON.stringify(value||{})
   },
   layoutsDir:path.join(viewsDir,"layouts"),
   partialsDir:path.join(viewsDir,"partials")

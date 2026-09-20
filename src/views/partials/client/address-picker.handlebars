@@ -1,0 +1,23 @@
+<div class="address-picker" data-address-picker data-search-url="/client/address-search">
+  <label>Buscar dirección
+    <input class="address-search" type="search" value="{{#unless addressData.formatted_address}}{{profile.delivery_address}}{{/unless}}" autocomplete="street-address" placeholder="Calle Alcalá 123 Madrid" data-address-search>
+  </label>
+  <div class="address-suggestions" data-address-suggestions role="listbox" aria-label="Sugerencias de dirección" hidden></div>
+  <input type="hidden" name="delivery_address_data" value="{{#if addressData.formatted_address}}{{json addressData}}{{/if}}" data-address-data>
+  <section class="address-confirmation" data-address-confirmation{{#unless addressData.formatted_address}} hidden{{/unless}}>
+    <p class="address-confirmation-title">¿Es correcta esta dirección?</p>
+    <strong data-address-street>{{addressData.street}}{{#if addressData.number}} {{addressData.number}}{{/if}}</strong>
+    <span data-address-formatted>{{addressData.formatted_address}}</span>
+    <small data-address-location>{{addressData.city}}{{#if addressData.postal_code}} · {{addressData.postal_code}}{{/if}}{{#if addressData.country}} · {{addressData.country}}{{/if}}</small>
+    <button type="button" class="address-confirm-button" data-address-confirm>Dirección seleccionada</button>
+  </section>
+  <label>Patio
+    <input name="delivery_patio" value="{{profile.delivery_patio}}" maxlength="120" placeholder="Patio interior o acceso">
+  </label>
+  <label>Piso / puerta / apartamento
+    <input name="delivery_apartment" value="{{profile.delivery_apartment}}" maxlength="120" autocomplete="address-line2" placeholder="3º B">
+  </label>
+  <label>Instrucciones al repartidor
+    <textarea name="delivery_notes" maxlength="500" placeholder="Llamar al telefonillo...">{{profile.delivery_notes}}</textarea>
+  </label>
+</div>

@@ -1,6 +1,7 @@
 import {query} from "../db.js";
 import {hashPassword,checkPassword} from "../auth.js";
 import {httpError} from "../services/http-error.js";
+import {cleanAddress,validateAddress} from "../services/geocoding.js";
 
 export const emailValue=value=>typeof value==="string"?value.trim().toLowerCase():"";
 export const validEmail=value=>value.length<=190&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -28,16 +29,27 @@ export async function loginAdmin(body={}){
   return rows[0];
 }
 export async function customerProfile(id){
-  const rows=await query("SELECT id,name,email,phone,delivery_address,delivery_notes FROM customers WHERE id=?",[id]);
+  const rows=await query("SELECT id,name,email,phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,delivery_apartment,delivery_patio FROM customers WHERE id=?",[id]);
   if(!rows.length)throw httpError(401,"Cuenta no disponible");
   return rows[0];
 }
 export async function updateProfile(id,body={}){
-  const fields={name:120,phone:40,delivery_address:500,delivery_notes:500},data={};
+  const fields={name:120,phone:40,delivery_notes:500,delivery_apartment:120,delivery_patio:120},data={};
   for(const [key,max] of Object.entries(fields)){
     const value=body[key];if(value===undefined)continue;
     if(typeof value!=="string"||value.trim().length>max||(key==="name"&&!value.trim()))throw httpError(400,`Revisa el campo ${key} (máximo ${max} caracteres)`);
     data[key]=value.trim();
+  }
+  const rawAddress=body.delivery_address_data??body.delivery_address;
+  if(rawAddress!==undefined&&String(rawAddress).trim()!==""&&String(rawAddress).trim()!=="{}"){
+    if(typeof rawAddress==="string"&&rawAddress.trim().startsWith("{")){
+      try{body.delivery_address_data=JSON.parse(rawAddress)}catch{throw httpError(400,"Dirección seleccionada inválida")}
+    }
+    if(body.delivery_address_data&&typeof body.delivery_address_data==="object"){
+      const error=validateAddress(body.delivery_address_data);if(error)throw httpError(400,error);
+      const address=cleanAddress(body.delivery_address_data);
+      Object.assign(data,{delivery_address:address.formatted_address,delivery_formatted_address:address.formatted_address,delivery_street:address.street,delivery_number:address.number,delivery_city:address.city,delivery_province:address.province,delivery_postal_code:address.postal_code,delivery_country:address.country,delivery_latitude:address.latitude,delivery_longitude:address.longitude,delivery_place_id:address.place_id});
+    }else throw httpError(400,"Selecciona una dirección de las sugerencias");
   }
   if(!Object.keys(data).length)throw httpError(400,"No hay datos que guardar");
   await customerProfile(id);

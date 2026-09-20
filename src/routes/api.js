@@ -12,7 +12,7 @@ import {loginAdmin} from "../controllers/accounts.js";
 import {deliveryWebhook} from "../controllers/webhooks.js";
 const router=Router();
 router.use((req,res,next)=>{
-  if(req.is("application/x-www-form-urlencoded"))return res.status(415).json({error:"Use application/json"});
+  if(req.is("application/x-www-form-urlencoded")&&req.path!=="/setup-admin")return res.status(415).json({error:"Use application/json"});
   next();
 });
 const apiLimit=rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false});

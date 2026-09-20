@@ -89,7 +89,10 @@ export async function deliveryQuote(req){
       }catch(error){return {provider:provider.name,error:error.message}}
     }));
     const quotes=results.filter(result=>!result.error),errors=results.filter(result=>result.error);
-    if(!quotes.length)throw orderError(502,"Ningún proveedor pudo cotizar el reparto");
+    if(!quotes.length){
+      const details=errors.map(item=>`${item.provider}: ${item.error}`).join(" | ");
+      throw orderError(422,`Ningún proveedor pudo cotizar el reparto. Revisa la configuración: ${details}`);
+    }
     const payload={quotes,errors};
     await logEvent(c,order.id,"delivery.quoted",payload);
     return process.env.DELIVERY_PROVIDER==="mock"?quotes[0]:payload;
@@ -166,7 +169,11 @@ export async function saveAdminDeliveryProvider(req){
   if(!names)throw orderError(400,"Proveedor no válido");
   const credentials=req.body.credentials||Object.fromEntries(names.credentials.map(name=>[name,req.body[`credentials[${name}]`]]).filter(([,value])=>value!==undefined));
   const settings=req.body.settings||Object.fromEntries(names.settings.map(name=>[name,req.body[`settings[${name}]`]]).filter(([,value])=>value!==undefined));
-  return saveDeliveryProvider(req.user.restaurant_id,provider,{...req.body,credentials,settings});
+  try{return await saveDeliveryProvider(req.user.restaurant_id,provider,{...req.body,credentials,settings})}
+  catch(error){
+    if(error.message.includes("DELIVERY_CREDENTIALS_KEY"))throw orderError(400,"Configura DELIVERY_CREDENTIALS_KEY en el archivo .env antes de guardar credenciales");
+    throw error;
+  }
 }
 
 export async function testAdminDeliveryProvider(req){

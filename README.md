@@ -1,3 +1,15 @@
+
+## Direcciones y geocodificación
+
+El checkout y **Mi cuenta** requieren seleccionar una sugerencia del buscador de
+direcciones. El servidor consulta el geocodificador configurado y guarda la
+dirección estructurada, coordenadas y `place_id`; una cadena escrita manualmente
+no se acepta como dirección definitiva. El piso/puerta y las instrucciones se
+guardan aparte y nunca se usan para calcular coordenadas.
+
+Por defecto se usa Nominatim server-side. En producción configura
+`GEOCODER_BASE_URL` y un `GEOCODER_USER_AGENT` identificable, respetando los
+límites y condiciones del proveedor elegido.
 # Pizzería Delivery Platform — V0.2
 
 Esta versión evoluciona el MVP hacia una pequeña plataforma profesional/multi-restaurante.
@@ -26,11 +38,21 @@ Esta versión evoluciona el MVP hacia una pequeña plataforma profesional/multi-
 
 ## Instalación
 
-1. Crear BD:
+1. Crear BD desde cero:
 
 ```bash
 mysql -u root -p < schema.sql
 ```
+
+`schema.sql` es autosuficiente para una instalación nueva o una reconstrucción:
+elimina y crea `deliveryapp`, y después crea todas las tablas, columnas, índices
+y datos demo. **Es destructivo** y no necesitas ejecutar `npm run migrate` después.
+Las migraciones siguen disponibles únicamente para actualizar instalaciones que
+ya contienen datos.
+
+Haz una copia de seguridad antes de ejecutarlo si la base actual contiene datos.
+Las migraciones siguen disponibles únicamente para actualizar instalaciones que
+ya contienen datos sin eliminarlos.
 
 2. Copiar configuración:
 
@@ -41,9 +63,14 @@ cp .env.example .env
 3. Cambiar al menos:
 
 - DB_*
+- ADMIN_EMAIL
 - ADMIN_PASSWORD
 - JWT_SECRET
 - DELIVERY_CREDENTIALS_KEY: clave base64 de 32 bytes para cifrar credenciales
+
+Genera la clave con `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
+y copia el resultado en `DELIVERY_CREDENTIALS_KEY` dentro de `.env`. No la guardes
+en Git ni la cambies después de cifrar credenciales sin un procedimiento de rotación.
 
 4. Instalar:
 
@@ -60,8 +87,26 @@ npm start
 6. Crear el primer administrador:
 
 ```bash
-curl -X POST http://localhost:3000/api/setup-admin
+curl -X POST http://localhost:7007/api/setup-admin
 ```
+
+El endpoint lee `ADMIN_EMAIL` y `ADMIN_PASSWORD` desde `.env` y crea el
+administrador para el restaurante demo. En Windows PowerShell puedes usar:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:7007/api/setup-admin -ContentType "application/json" -Body "{}"
+```
+
+Después entra en `http://localhost:7007/admin/login` con ese email y contraseña.
+Cuando el acceso funcione, añade esta variable a `.env` y reinicia el servidor:
+
+```env
+SETUP_DISABLED=true
+```
+
+Así `/api/setup-admin` queda deshabilitado y no puede volver a utilizarse para
+crear administradores. Si el email ya existe, el endpoint no cambia la contraseña
+y devuelve que el administrador ya está creado.
 
 Luego acceder a:
 
@@ -266,7 +311,9 @@ La prueba hace únicamente:
 
 **No crea ningún pedido/reparto real.**
 
-Configura `.env`:
+Esta prueba independiente no forma parte de la configuración normal del
+restaurante. Si necesitas ejecutarla, proporciona temporalmente estas variables
+solo para ese proceso (PowerShell: `$env:NOMBRE=valor`), sin guardarlas en `.env`:
 
 ```env
 GLOVO_API_BASE_URL=<URL DE STAGING O PRODUCCION INDICADA POR GLOVO>

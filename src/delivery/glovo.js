@@ -24,6 +24,7 @@ export function createGlovoDelivery(config){
     async quote(order){
       const token=await getToken(config),settings=config.settings||{},path=settings.quotePath||"/v2/laas/quotes";
       const payload={pickupDetails:{...(settings.addressBookId?{addressBook:{id:settings.addressBookId}}:{}),pickupTime:new Date(Date.now()+15*60*1000).toISOString()},deliveryAddress:{rawAddress:order.delivery_address}};
+      payload.deliveryAddress={rawAddress:order.delivery_formatted_address,coordinates:{latitude:Number(order.delivery_latitude),longitude:Number(order.delivery_longitude)},details:order.delivery_apartment||order.delivery_notes||""};
       const data=await glovoFetch(config,path,{method:"POST",headers:{Authorization:`Bearer ${token}`},body:JSON.stringify(payload)});
       return {provider:"glovo",quoteId:data.quoteId||data.id,feeCents:Number(data.quotePrice||data.fee||0),etaMinutes:data.estimatedTimeOfDelivery?Math.round((Date.parse(data.estimatedTimeOfDelivery)-Date.now())/60000):null,expiresAt:data.expiresAt?Date.parse(data.expiresAt):null,raw:data};
     },

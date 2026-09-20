@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test test/order-flow.test.js test/delivery-credentials.test.js test/delivery-adapters.test.js",
+    "test": "node --test test/order-flow.test.js test/delivery-credentials.test.js test/delivery-adapters.test.js test/geocoding.test.js",
     "migrate": "node scripts/migrate.js",
     "glovo:test": "node scripts/test-glovo.js"
   },
