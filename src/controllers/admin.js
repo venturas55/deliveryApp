@@ -171,7 +171,7 @@ export async function saveAdminDeliveryProvider(req){
 
 export async function testAdminDeliveryProvider(req){
   const providerName=req.params.provider;
-  const provider=await getConfiguredDeliveryProvider(req.user.restaurant_id,providerName);
+  const provider=await getConfiguredDeliveryProvider(req.user.restaurant_id,providerName,true);
   try{
     const result=await provider.testConnection();
     await query("UPDATE delivery_providers SET last_test_status='ok',last_test_error=NULL,last_tested_at=CURRENT_TIMESTAMP WHERE restaurant_id=? AND provider=?",[req.user.restaurant_id,providerName]);

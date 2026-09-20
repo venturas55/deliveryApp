@@ -1,36 +1,83 @@
-<section>
-  <h1>Proveedores de reparto</h1>
-  <p>Las credenciales se guardan cifradas y no se muestran después de guardar.</p>
-  {{#each deliveryProviders}}
-  <article class="card">
-    <h2>{{provider}}</h2>
-    <p>{{#if configured}}Credenciales configuradas{{else}}Sin credenciales{{/if}} · {{#if enabled}}Activo{{else}}Desactivado{{/if}}</p>
-    {{#if lastTestStatus}}<p>Última prueba: {{lastTestStatus}}{{#if lastTestError}} · {{lastTestError}}{{/if}}</p>{{/if}}
-    <form method="post" action="/admin/providers/{{provider}}">
-      {{> csrf}}
-      <label><input class="checkbox" name="enabled" value="1" type="checkbox"{{#if enabled}} checked{{/if}}> Activar {{provider}}</label>
-      <h3>Credenciales</h3>
-      <label>Client ID<input name="credentials[clientId]" autocomplete="off"></label>
-      <label>Client secret<input name="credentials[clientSecret]" type="password" autocomplete="new-password"></label>
-      <h3>Configuración</h3>
-      {{#if (eq provider "uber")}}
-        <label>Customer ID<input name="settings[customerId]" value="{{settings.customerId}}" required></label>
-        <label>Nombre de recogida<input name="settings[pickupName]" value="{{settings.pickupName}}" required></label>
-        <label>Teléfono de recogida<input name="settings[pickupPhone]" value="{{settings.pickupPhone}}" required></label>
-        <label>Dirección de recogida<input name="settings[pickupAddress]" value="{{settings.pickupAddress}}" required></label>
-        <label>Latitud<input name="settings[pickupLat]" value="{{settings.pickupLat}}"></label>
-        <label>Longitud<input name="settings[pickupLng]" value="{{settings.pickupLng}}"></label>
-      {{else}}
-        <label>URL base indicada por Glovo<input name="settings[apiBaseUrl]" value="{{settings.apiBaseUrl}}" required></label>
-        <label>Address book ID<input name="settings[addressBookId]" value="{{settings.addressBookId}}"></label>
-        <label>Vendor ID<input name="settings[vendorId]" value="{{settings.vendorId}}"></label>
-        <label>Ruta de quote contratada<input name="settings[quotePath]" value="{{settings.quotePath}}"></label>
-        <label>Ruta de creación contratada<input name="settings[createPath]" value="{{settings.createPath}}"></label>
-      {{/if}}
-      <label>Secreto de webhook<input name="webhookSecret" type="password" autocomplete="new-password"></label>
-      <button>Guardar configuración</button>
-    </form>
-    <form method="post" action="/admin/providers/{{provider}}/test">{{> csrf}}<button>Probar conexión</button></form>
-  </article>
-  {{/each}}
+<section class="providers-page">
+  <div class="providers-heading">
+    <div>
+      <p class="eyebrow">OPERACIONES</p>
+      <h1>Proveedores de reparto</h1>
+      <p class="providers-lede">Configura tus conexiones de reparto por restaurante y controla su disponibilidad desde un único lugar.</p>
+    </div>
+    <div class="providers-lock" aria-label="Credenciales cifradas"><span aria-hidden="true">●</span><span>Credenciales cifradas</span></div>
+  </div>
+
+  <div class="provider-tabs" data-provider-tabs>
+    <div class="provider-tablist" role="tablist" aria-label="Proveedores de reparto">
+      {{#each deliveryProviders}}
+      <button class="provider-tab{{#if @first}} is-active{{/if}}" id="provider-tab-{{provider}}" type="button" role="tab" aria-controls="provider-panel-{{provider}}" aria-selected="{{#if @first}}true{{else}}false{{/if}}" data-provider-tab="{{provider}}">
+        <span class="provider-tab-icon" aria-hidden="true">{{#if (eq provider "uber")}}U{{else if (eq provider "glovo")}}G{{else}}J{{/if}}</span>
+        <span class="provider-tab-copy"><strong>{{#if (eq provider "uber")}}Uber Direct{{else if (eq provider "glovo")}}Glovo On-Demand{{else}}Just Eat JET Go{{/if}}</strong><small>{{#if enabled}}Activo{{else}}Desactivado{{/if}}</small></span>
+        <span class="provider-status-dot{{#if enabled}} is-on{{/if}}" aria-hidden="true"></span>
+      </button>
+      {{/each}}
+    </div>
+
+    {{#each deliveryProviders}}
+    <section class="provider-panel{{#if @first}} is-active{{/if}}" id="provider-panel-{{provider}}" role="tabpanel" aria-labelledby="provider-tab-{{provider}}" data-provider-panel="{{provider}}"{{#unless @first}} hidden{{/unless}}>
+      <div class="provider-panel-header">
+        <div>
+          <p class="provider-kicker">CONEXIÓN {{#if (eq provider "uber")}}UBER{{else if (eq provider "glovo")}}GLOVO{{else}}JUST EAT{{/if}}</p>
+          <h2>{{#if (eq provider "uber")}}Uber Direct{{else if (eq provider "glovo")}}Glovo On-Demand{{else}}Just Eat JET Go{{/if}}</h2>
+        </div>
+        <div class="provider-state-group">
+          <span class="state-pill{{#if enabled}} is-active{{/if}}"><span aria-hidden="true"></span>{{#if enabled}}Activo{{else}}Desactivado{{/if}}</span>
+          <span class="credential-state"><span aria-hidden="true">{{#if configured}}✓{{else}}!{{/if}}</span>{{#if configured}}Credenciales configuradas{{else}}Credenciales pendientes{{/if}}</span>
+        </div>
+      </div>
+      {{#if lastTestStatus}}<div class="provider-alert{{#if (eq lastTestStatus "ok")}} is-success{{/if}}"><strong>Última comprobación: {{lastTestStatus}}</strong>{{#if lastTestError}}<span>{{lastTestError}}</span>{{/if}}</div>{{/if}}
+
+      <form class="provider-form" method="post" action="/admin/providers/{{provider}}">
+        {{> csrf}}
+        <div class="provider-form-grid">
+          <fieldset class="provider-section">
+            <legend>Estado de conexión</legend>
+            <label class="toggle-row"><span><strong>Usar este proveedor</strong><small>Podrá recibir cotizaciones para pedidos listos.</small></span><input class="toggle-input" name="enabled" value="1" type="checkbox"{{#if enabled}} checked{{/if}}><span class="toggle-track" aria-hidden="true"></span></label>
+          </fieldset>
+          <fieldset class="provider-section">
+            <legend>Credenciales</legend>
+            <p class="field-hint">Deja los secretos vacíos para conservar los actuales.</p>
+            <label>Client ID<input name="credentials[clientId]" autocomplete="off" placeholder="Introduce el client ID"></label>
+            <label>Client secret<input name="credentials[clientSecret]" type="password" autocomplete="new-password" placeholder="No se muestra por seguridad"></label>
+            {{#if (eq provider "just_eat_jet_go")}}<label>API key<input name="credentials[apiKey]" type="password" autocomplete="new-password" placeholder="Opcional si JET Go usa API key"></label>{{/if}}
+          </fieldset>
+        </div>
+
+        <fieldset class="provider-section provider-details">
+          <legend>Datos de integración</legend>
+          {{#if (eq provider "uber")}}
+            <div class="field-grid"><label>Customer ID<input name="settings[customerId]" value="{{settings.customerId}}" required></label><label>URL base<input name="settings[apiBaseUrl]" value="{{settings.apiBaseUrl}}" placeholder="https://api.uber.com"></label></div>
+            <div class="field-grid"><label>Nombre de recogida<input name="settings[pickupName]" value="{{settings.pickupName}}" required></label><label>Teléfono de recogida<input name="settings[pickupPhone]" value="{{settings.pickupPhone}}" required></label></div>
+            <label>Dirección de recogida<input name="settings[pickupAddress]" value="{{settings.pickupAddress}}" required></label>
+            <div class="field-grid"><label>Latitud<input name="settings[pickupLat]" value="{{settings.pickupLat}}"></label><label>Longitud<input name="settings[pickupLng]" value="{{settings.pickupLng}}"></label></div>
+          {{else if (eq provider "glovo")}}
+            <div class="field-grid"><label>URL base contratada<input name="settings[apiBaseUrl]" value="{{settings.apiBaseUrl}}" required></label><label>Address book ID<input name="settings[addressBookId]" value="{{settings.addressBookId}}"></label></div>
+            <div class="field-grid"><label>Vendor ID<input name="settings[vendorId]" value="{{settings.vendorId}}"></label><label>Ruta de cotización<input name="settings[quotePath]" value="{{settings.quotePath}}" placeholder="/v2/laas/quotes"></label></div>
+            <label>Ruta de creación contratada<input name="settings[createPath]" value="{{settings.createPath}}" placeholder="Solo si Glovo la proporciona"></label>
+          {{else}}
+            <div class="field-grid"><label>URL base contratada<input name="settings[apiBaseUrl]" value="{{settings.apiBaseUrl}}" required></label><label>Account ID<input name="settings[accountId]" value="{{settings.accountId}}"></label></div>
+            <div class="field-grid"><label>Ruta de token<input name="settings[tokenPath]" value="{{settings.tokenPath}}" placeholder="/oauth/token"></label><label>Ruta de cotización<input name="settings[quotePath]" value="{{settings.quotePath}}" required></label></div>
+            <label>Ruta de creación contratada<input name="settings[createPath]" value="{{settings.createPath}}" required></label>
+            <div class="field-grid"><label>Nombre de recogida<input name="settings[pickupName]" value="{{settings.pickupName}}" required></label><label>Teléfono de recogida<input name="settings[pickupPhone]" value="{{settings.pickupPhone}}" required></label></div>
+            <label>Dirección de recogida<input name="settings[pickupAddress]" value="{{settings.pickupAddress}}" required></label>
+          {{/if}}
+        </fieldset>
+
+        <fieldset class="provider-section provider-security">
+          <legend>Webhooks</legend>
+          <label>Secreto de firma<input name="webhookSecret" type="password" autocomplete="new-password" placeholder="Opcional; se conserva si ya existe"></label>
+          <p class="field-hint">Endpoint: <code>/api/webhooks/delivery/{{provider}}/{{@root.restaurantId}}</code></p>
+        </fieldset>
+        <div class="provider-actions"><button class="button-primary" type="submit">Guardar configuración</button></div>
+      </form>
+      <form class="provider-test" method="post" action="/admin/providers/{{provider}}/test">{{> csrf}}<button type="submit">Probar conexión</button></form>
+    </section>
+    {{/each}}
+  </div>
 </section>

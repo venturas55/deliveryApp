@@ -20,6 +20,7 @@ Esta versión evoluciona el MVP hacia una pequeña plataforma profesional/multi-
 - Proveedor de reparto desacoplado
 - Mock delivery para desarrollo
 - Uber Direct y Glovo On-Demand configurables por restaurante
+- Just Eat JET Go configurable por restaurante
 - Credenciales de reparto cifradas con AES-256-GCM
 - Cotización simultánea, selección de proveedor y webhooks autenticados
 
@@ -166,8 +167,9 @@ que debe ser una clave base64 de exactamente 32 bytes y debe vivir en el entorno
 o en un gestor de secretos, nunca en MariaDB.
 
 Uber usa OAuth `client_credentials` con el scope `eats.deliveries` y las rutas
-oficiales de Direct para quotes y deliveries. Glovo conserva la URL base y las
-rutas contratadas por restaurante: el adapter no inventa endpoints de creación.
+oficiales de Direct para quotes y deliveries. Glovo y Just Eat JET Go conservan
+la URL base y las rutas contratadas por restaurante: sus adapters no inventan
+endpoints de creación.
 La cotización consulta en paralelo los proveedores activos y permite elegir uno
 antes de solicitar el reparto. Los webhooks se reciben en
 `/api/webhooks/delivery/:provider/:restaurantId` con firma HMAC en
@@ -239,12 +241,9 @@ En producción se recomienda poner nginx delante con HTTPS, usar una contraseña
 4. Pago online.
 5. Dirección estructurada + geocodificación.
 6. Webhooks reales del proveedor de reparto.
-7. Uber Direct producción.
-8. Glovo On-Demand.
-9. Just Eat JET Go.
-10. Multi-tenant completo: cada restaurante con usuarios, branding, dominio/subdominio y credenciales de reparto independientes.
-11. Notificaciones SMS/WhatsApp/email.
-12. PWA instalable en móvil/tablet.
+7. Multi-tenant completo: cada restaurante con usuarios, branding, dominio/subdominio y credenciales de reparto independientes.
+8. Notificaciones SMS/WhatsApp/email.
+9. PWA instalable en móvil/tablet.
 
 ## Verificación del renderizado
 

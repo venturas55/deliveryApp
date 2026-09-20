@@ -19,7 +19,7 @@ function validSignature(raw,secret,header){
 
 export async function deliveryWebhook(req,res){
   const provider=req.params.provider,restaurantId=Number(req.params.restaurantId);
-  if(!["uber","glovo"].includes(provider)||!Number.isInteger(restaurantId)||restaurantId<1)return res.status(404).json({error:"Webhook no encontrado"});
+  if(!["uber","glovo","just_eat_jet_go"].includes(provider)||!Number.isInteger(restaurantId)||restaurantId<1)return res.status(404).json({error:"Webhook no encontrado"});
   const raw=Buffer.isBuffer(req.body)?req.body:Buffer.from(JSON.stringify(req.body||{}));
   const secret=await getDeliveryWebhookSecret(restaurantId,provider);
   if(!secret||!validSignature(raw,secret,req.get("x-delivery-signature")||req.get("x-signature")))return res.status(401).json({error:"Firma inválida"});

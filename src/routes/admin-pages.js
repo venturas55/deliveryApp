@@ -44,7 +44,7 @@ router.get("/admin/products",async(req,res)=>{
 });
 router.get("/admin/providers",async(req,res)=>{
   const deliveryProviders=await admin.adminDeliveryProviders(req);
-  res.render("admin/providers",{title:"Proveedores de reparto",providersActive:true,deliveryProviders});
+  res.render("admin/providers",{title:"Proveedores de reparto",providersActive:true,deliveryProviders,restaurantId:req.user.restaurant_id});
 });
 router.post("/admin/providers/:provider",async(req,res)=>{
   await admin.saveAdminDeliveryProvider(req);res.redirect(303,"/admin/providers");
