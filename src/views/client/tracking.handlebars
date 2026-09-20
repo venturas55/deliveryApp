@@ -1,9 +1,6 @@
-<section class="card">
-  <h2 id="title"></h2>
-  <h2 id="status" aria-live="polite"></h2>
-  <progress id="progress" max="7" value="0" aria-label="Progreso del pedido"></progress>
-  <p id="detail"></p>
-  <p id="orderAddress"></p>
-  <ul id="orderItems"></ul>
-  <p id="trackingError" role="alert"></p>
+<section class="card"><h1>Pedido #{{order.id}}</h1><h2>{{order.statusLabel}}</h2>
+  <p>{{date order.created_at}}</p><p>{{order.delivery_address}}</p>
+  <ul>{{#each order.items}}<li>{{quantity}} × {{product_name}} — {{money (multiply quantity unit_price_cents)}}</li>{{/each}}</ul>
+  <p>Subtotal: {{money order.subtotal_cents}}<br>Envío: {{money order.delivery_cents}}</p><strong>Total: {{money order.total_cents}}</strong>
+  <p><a href="/tracking?id={{order.id}}">Actualizar estado</a> · <a href="/client/orders">Mis pedidos</a></p>
 </section>

@@ -1,7 +1,16 @@
-<nav class="admin-navigation" aria-label="Área de cliente">
-  <a href="/">Carta</a>
-  <a href="/client/orders">Mis pedidos</a>
-  <a href="/client/account">Mi cuenta</a>
-  <a href="/client/login" id="customerLoginLink">Iniciar sesión</a>
-  <button id="customerLogout" type="button" hidden>Cerrar sesión</button>
+<nav class="client-navigation" aria-label="Navegación del cliente">
+  <a href="/"{{#if cartActive}} aria-current="page"{{/if}}>Carta</a>
+  {{#if customerLoggedIn}}
+    <a href="/client/orders"{{#if ordersActive}} aria-current="page"{{/if}}>Mis pedidos</a>
+    <details class="account-menu">
+      <summary{{#if accountActive}} class="is-active"{{/if}}>Mi cuenta <span aria-hidden="true">⌄</span></summary>
+      <div class="account-dropdown">
+        <a href="/client/account"{{#if accountActive}} aria-current="page"{{/if}}>Mis datos y dirección</a>
+        <form method="post" action="/client/logout">{{> csrf}}<button>Cerrar sesión</button></form>
+      </div>
+    </details>
+  {{else}}
+    <a class="login-link" href="/client/login"{{#if loginActive}} aria-current="page"{{/if}}>Acceder</a>
+    <a class="login-link" href="/admin/login"{{#if loginActive}} aria-current="page"{{/if}}>Soy restaurante</a>
+  {{/if}}
 </nav>

@@ -1,0 +1,3 @@
+<section class="card"><h1>Eliminar artículo</h1><p>¿Eliminar «{{product.name}}» de la carta? Los pedidos anteriores conservarán sus datos.</p>
+  <form method="post" action="/admin/products/{{product.id}}/delete">{{> csrf}}<button>Confirmar eliminación</button></form><p><a href="/admin/products">Volver sin eliminar</a></p>
+</section>

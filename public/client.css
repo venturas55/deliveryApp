@@ -1,0 +1,51 @@
+/* Client storefront: shared compact header, native account menu, responsive cards. */
+.client-area{background:#f7f8f5;color:#20382d}
+.client-area header{gap:24px;padding:18px max(20px,calc((100vw - 1150px)/2));flex-wrap:wrap;box-shadow:0 2px 12px #193e3205}
+.client-area .restaurant-brand{min-width:0;flex:1;gap:12px}
+.client-area .restaurant-brand strong{font-size:1.15rem;overflow-wrap:anywhere}
+.client-area .brand-mark{flex-shrink:0;border-radius:50%;width:46px;height:46px}
+.client-area .restaurant-brand small{font-size:.75rem;letter-spacing:.025em}
+.client-area .client-navigation{margin:0;padding:0;max-width:none;gap:6px;flex-wrap:nowrap}
+.client-navigation>a,.account-menu>summary{padding:10px 15px;font-size:.9rem;font-weight:600;border-radius:9px;color:#53665b;white-space:nowrap;cursor:pointer}
+.client-navigation>a:hover,.account-menu>summary:hover{background:#eaf0e9;color:#193e32}
+.client-navigation>a[aria-current=page],.account-menu>summary.is-active{background:#193e32;color:#fff}
+.client-navigation>a.login-link{border:1px solid #becfc1}
+.account-menu{position:relative}
+.account-menu>summary{list-style:none;display:flex;gap:8px;align-items:center;border:1px solid #dde5dd}
+.account-menu>summary::-webkit-details-marker{display:none}
+.account-menu>summary:focus-visible{outline:3px solid #b07a36;outline-offset:3px}
+.account-dropdown{position:absolute;right:0;top:calc(100% + 10px);min-width:225px;padding:8px;background:#fff;border:1px solid #dce5dc;border-radius:12px;box-shadow:0 12px 36px #193e321a;z-index:5}
+.account-dropdown>a{display:block;padding:12px;border-radius:7px;color:#284b38;font-size:.9rem}
+.account-dropdown>a:hover,.account-dropdown>a[aria-current=page]{background:#edf2eb}
+.client-navigation .account-dropdown form{margin:4px 0 0;padding-top:4px;border-top:1px solid #edf0ea}
+.client-navigation .account-dropdown button{border:0;text-align:left;padding:12px;width:100%;font-size:.9rem;color:#666;margin:0}
+.client-navigation .account-dropdown button:hover{background:#f4f5f1}
+.client-area main{gap:32px;margin-top:30px;grid-template-columns:minmax(0,1.8fr) minmax(300px,1fr)}
+.client-area .store-intro{padding:30px 32px;border-radius:18px;background:#eaf0e7;border:1px solid #dce5d7;margin-bottom:24px}
+.client-area .store-intro .eyebrow{color:#416549;margin:0 0 14px}
+.client-area .store-intro h1{font-size:clamp(1.85rem,3vw,2.65rem);font-weight:650;line-height:1.14;margin:0 0 14px;max-width:430px}
+.client-area .store-intro p:last-child{margin:0;font-size:.95rem;max-width:450px}
+.category-navigation{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 28px}
+.category-navigation a{background:#fff;border:1px solid #dce4d9;color:#415c48;padding:8px 14px;border-radius:30px;font-size:.85rem}
+.category-navigation a:hover{background:#edf2e8;border-color:#aac09e}
+.menu-category{scroll-margin-top:120px}
+.client-area .menu-category>h2{font-size:1.25rem;letter-spacing:-.025em;margin:25px 0 15px}
+.client-area .menu-category article{padding:20px;border-radius:12px;gap:16px;margin:10px 0;align-items:center;transition:border-color .15s}
+.client-area .menu-category article:hover{border-color:#b9cbb2}
+.client-area .menu-category h3{font-size:1rem;margin:0 0 6px}
+.client-area .menu-category article p{margin:0;font-size:.875rem;line-height:1.55}
+.client-area .menu-category article>strong{white-space:nowrap;font-size:.95rem}
+.client-area .menu-category article button{background:#edf2e9;color:#24452f;border:1px solid #dce6d5;font-weight:600;font-size:.85rem}
+.client-area .menu-category article button:hover{background:#193e32;color:#fff}
+.client-area .cart{margin-top:0;border-radius:16px;padding:24px;box-shadow:0 8px 30px #183a2908}
+.cart-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #e5ebe1;padding-bottom:16px;margin-bottom:6px}
+.cart-heading h2{margin:0;font-size:1.2rem}
+.cart-heading span{font-size:.8rem;color:#526a57;background:#edf2e8;padding:5px 9px;border-radius:20px;white-space:nowrap}
+.cart-empty{text-align:center;padding:32px 12px}
+.cart-empty strong{display:block;font-size:1rem;margin-bottom:8px}
+.cart-empty p{color:#738071;line-height:1.6;font-size:.9rem;margin:0}
+.client-area .cart-total{border-top:1px solid #e5ebe1;padding-top:16px;color:#20382d}
+.client-area .cart .primary-link{display:block;text-align:center;padding:13px}
+.cart-login-note{font-size:.8rem;color:#687966;text-align:center;line-height:1.5}
+@media(max-width:900px){.client-area header{gap:16px}.client-area main{gap:20px;grid-template-columns:minmax(0,1.3fr) minmax(280px,1fr)}.client-area .menu-category article{flex-wrap:wrap}.client-area .menu-category article>div{flex-basis:100%}.client-area .menu-category article>form{margin-left:auto}}
+@media(max-width:650px){.client-area header{padding:14px 16px;gap:14px}.client-area .restaurant-brand{flex-basis:100%}.client-area .client-navigation{width:100%;gap:5px}.client-area .client-navigation>a,.account-menu>summary{font-size:.85rem;padding:9px 13px}.account-menu,.client-navigation>.login-link{margin-left:auto}.client-area main{grid-template-columns:minmax(0,1fr);margin-top:18px}.client-area .store-intro{padding:24px}.client-area .store-intro h1{font-size:1.85rem}.menu-category{scroll-margin-top:160px}.client-area .cart{padding:20px}}

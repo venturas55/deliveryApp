@@ -1,0 +1,6 @@
+<section class="card"><h1>Acceso del restaurante</h1>
+  <form id="login" method="post" action="/admin/login">{{> csrf}}
+    <label>Email<input name="email" type="email" autocomplete="username" required></label>
+    <label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label><button>Entrar</button>
+  </form>
+</section>

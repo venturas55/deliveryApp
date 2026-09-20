@@ -14,13 +14,14 @@ Esta versión evoluciona el MVP hacia una pequeña plataforma profesional/multi-
 - Pedidos transaccionales
 - Historial de eventos de cada pedido
 - Panel protegido
-- Seguimiento público del pedido
+- Seguimiento privado del pedido
 - Rate limiting
 - Helmet
 - Proveedor de reparto desacoplado
 - Mock delivery para desarrollo
-- Adaptador Uber Direct heredado del MVP
-- Preparado para añadir Glovo/Just Eat con el mismo contrato
+- Uber Direct y Glovo On-Demand configurables por restaurante
+- Credenciales de reparto cifradas con AES-256-GCM
+- Cotización simultánea, selección de proveedor y webhooks autenticados
 
 ## Instalación
 
@@ -41,6 +42,7 @@ cp .env.example .env
 - DB_*
 - ADMIN_PASSWORD
 - JWT_SECRET
+- DELIVERY_CREDENTIALS_KEY: clave base64 de 32 bytes para cifrar credenciales
 
 4. Instalar:
 
@@ -66,50 +68,46 @@ Luego acceder a:
 - Seguimiento: `/tracking.html?id=1`
 - Administración: `/admin.html`
 
-## Vistas y archivos públicos
+## Renderizado del servidor
 
-Express renderiza las páginas con `express-handlebars`:
+Todas las pantallas llegan como HTML completo generado por Handlebars. La carta,
+el carrito, los pedidos, los formularios de cuenta y el panel del restaurante
+funcionan con enlaces y formularios nativos, sin JavaScript del navegador.
 
-- `src/views/layouts/main.handlebars`: documento HTML, estilos y script de cada página.
-- `src/views/partials/header.handlebars`: cabecera compartida.
-- `src/views/client/store.handlebars`: tienda y formulario del pedido.
-- `src/views/client/tracking.handlebars`: seguimiento del cliente.
-- `src/views/admin/orders.handlebars`: panel de pedidos del restaurante.
-- `src/views/admin/products.handlebars`: gestión de artículos del restaurante.
-- `src/views/partials/admin/login.handlebars`: formulario de acceso.
-- `src/views/partials/admin/navigation.handlebars`: navegación común del restaurante.
-- `public/`: JavaScript del navegador, CSS y otros recursos estáticos.
+- `src/views/client/`: carta, login, cuenta, historial y seguimiento.
+- `src/views/admin/`: login, pedidos, detalle, artículos y confirmación de borrado.
+- `src/views/partials/`: cabecera, navegación y campo CSRF compartidos.
+- `src/views/layouts/main.handlebars`: estructura general de las páginas.
+- `src/routes/pages.js`: contexto y montaje de las vistas.
+- `src/routes/client-pages.js`: carta, carrito, cuenta y pedidos del cliente.
+- `src/routes/admin-pages.js`: acceso y formularios de gestión del restaurante.
+- `src/controllers/`: operaciones compartidas entre páginas y API; mantienen las
+  mismas validaciones, transacciones y restricciones por cuenta/restaurante.
+- `src/routes/api.js`, `admin.js`, `clients.js`, `customer-auth.js`: API JSON
+  existente, compatible con sus tokens Bearer.
+- `src/services/web-session.js`: cookies de sesión, carrito firmado y protección CSRF.
+- `public/page-behavior.js`: confirmación y prevención de doble envío, actualización
+  de páginas de pedidos cada cinco segundos si no se está editando un formulario.
+- `public/google-login.js`: integración opcional con el SDK de Google. No genera
+  vistas de la aplicación; Google necesita JavaScript para su botón oficial.
 
-Las rutas de páginas se definen en `src/routes/` mediante `res.render()`. Se mantienen `/`,
-`/index.html`, `/admin.html` y `/tracking.html?id=...`; también están disponibles
-`/admin` y `/tracking?id=...`. Las rutas inexistentes responden con 404.
-El menú, los pedidos y el seguimiento siguen consultando la API desde JavaScript.
-Para modificar la estructura compartida, edita el layout o el parcial; para el
-contenido de una página, su vista. Reinicia el servidor tras instalar dependencias.
+Las sesiones web de cliente y administrador se guardan por separado en cookies
+`HttpOnly`, `SameSite=Lax` y `Secure` en producción. No se usan tokens del navegador
+almacenados en `localStorage`. Todos los formularios POST incluyen un token CSRF.
+Las sesiones anteriores de `localStorage` requieren volver a iniciar sesión.
+El carrito solo guarda identificadores y cantidades en una cookie firmada;
+los precios y la disponibilidad siempre se calculan desde la base de datos.
 
-En el área del restaurante, la barra **Pedidos / Gestionar artículos** permite
-alternar entre `/admin/orders` y `/admin/products` con un clic, manteniendo la
-sesión. La sección actual aparece resaltada y **Cerrar sesión** está disponible
-en ambas pantallas. `/admin` y `/admin.html` siguen abriendo los pedidos.
-La estructura del panel de pedidos está en la plantilla `orders.handlebars`;
-`public/admin.js` la activa tras el acceso y carga los datos mediante la API.
+Rutas de cliente: `/`, `/client/login`, `/client/account`, `/client/orders` y
+`/tracking?id=...`. Rutas de restaurante: `/admin/login`, `/admin/orders`,
+`/admin/orders/:id` y `/admin/products`. Se conservan los alias `/index.html`,
+`/admin.html`, `/admin` y `/tracking.html`. Las pantallas privadas redirigen al
+login correspondiente cuando falta su sesión. La identidad del restaurante es
+estable y la navegación marca la sección activa.
 
-## Organización de las rutas
-
-- `src/server.js`: configuración de Express y Handlebars, recursos estáticos,
-  montaje de routers, manejo de errores y arranque del servidor.
-- `src/routes/api.js`: entrada de `/api`, límites de peticiones, inicio de sesión,
-  creación inicial del administrador y montaje de las APIs de administración y clientes.
-- `src/routes/admin.js`: página del panel y API de gestión de pedidos, productos
-  y reparto bajo `/api/admin`. La autenticación se aplica a todo el router de
-  gestión; las consultas se limitan al restaurante del administrador autenticado.
-- `src/routes/clients.js`: páginas de tienda y seguimiento, menú público,
-  creación de pedidos y consulta de su estado.
-- `src/services/`: funciones compartidas para consultar restaurantes y registrar
-  eventos de pedidos.
-
-Los routers de páginas y de API se exportan por separado para conservar las URLs
-existentes y aplicar autenticación y límites de peticiones donde corresponde.
+Después de actualizar, reinicia `npm start` e inicia sesión de nuevo.
+Esta migración de vistas no cambia la base de datos ni requiere nuevas dependencias.
+Sin JavaScript, utiliza el enlace de actualización o recarga para ver nuevos estados.
 
 ## Cuentas de clientes y acceso con Google
 
@@ -132,8 +130,7 @@ realizados en el pedido afectan solo a esa entrega. Para cambiar los valores
 habituales, utiliza **Mi cuenta**. El email de acceso se muestra como solo lectura.
 La API de pedidos también usa el perfil cuando se omiten los campos de entrega.
 Cada pedido conserva una copia de sus datos, aunque el cliente cambie su cuenta.
-Las sesiones de cliente y administrador son independientes. El carrito y los
-datos del formulario se conservan al ir a iniciar sesión. Los pedidos antiguos
+Las sesiones de cliente y administrador son independientes. El carrito se conserva al ir a iniciar sesión; después se muestran los datos guardados en la cuenta. Los pedidos antiguos
 sin cuenta siguen disponibles para el restaurante, pero no se asignan a clientes
 automáticamente. La antigua API `/api/orders/:id/public` también requiere ahora
 la sesión del propietario; ya no permite consultar pedidos ajenos por su número.
@@ -160,6 +157,22 @@ Las pruebas cubren registro, login, separación de roles, privacidad de pedidos 
 rechazo de credenciales Google inválidas. La prueba real con Google requiere
 configurar un cliente OAuth y usar el botón en un navegador.
 
+## Proveedores de reparto
+
+El administrador configura cada proveedor por separado en `/admin/providers`.
+La configuración pertenece al restaurante autenticado; activar Uber no activa
+Glovo. Los secretos se cifran con AES-256-GCM usando `DELIVERY_CREDENTIALS_KEY`,
+que debe ser una clave base64 de exactamente 32 bytes y debe vivir en el entorno
+o en un gestor de secretos, nunca en MariaDB.
+
+Uber usa OAuth `client_credentials` con el scope `eats.deliveries` y las rutas
+oficiales de Direct para quotes y deliveries. Glovo conserva la URL base y las
+rutas contratadas por restaurante: el adapter no inventa endpoints de creación.
+La cotización consulta en paralelo los proveedores activos y permite elegir uno
+antes de solicitar el reparto. Los webhooks se reciben en
+`/api/webhooks/delivery/:provider/:restaurantId` con firma HMAC en
+`x-delivery-signature`.
+
 ## Gestión de artículos
 
 Desde el panel, abre **Gestionar artículos** (`/admin/products`). Puedes crear,
@@ -178,8 +191,7 @@ del administrador autenticado. No hace falta modificar el esquema de MariaDB.
 
 El listado de pedidos permite filtrar por **Todos**, **Pendientes** (sin aceptar),
 **En curso** (aceptados, en preparación, listos o en reparto), **Entregados** y
-**Cancelados**. La selección se mantiene durante la sesión de la pestaña, incluso
-al volver desde artículos, y se respeta en la actualización automática. Cada
+**Cancelados**. La selección se guarda en la URL y se respeta al actualizar la página. Cada
 filtro muestra hasta los 200 pedidos más recientes del restaurante.
 
 Configura `DELIVERY_PROVIDER=mock` en `.env` y reinicia el servidor.
@@ -191,8 +203,8 @@ No requiere cambios en el esquema de la base de datos.
    es válida durante cinco minutos; una nueva consulta sustituye a la anterior.
 4. Pulsa **Confirmar reparto**. El pedido pasa a buscar repartidor.
 5. Usa **Simular asignación**, **Simular recogida** y **Simular entrega**, en ese orden.
-6. Abre **Seguimiento del cliente** para ver los estados; se actualiza cada cinco
-   segundos. **Productos e historial** muestra el contenido y los eventos del pedido.
+6. Abre **Gestionar pedido** para ver el contenido y el historial. El cliente
+   consulta su seguimiento privado desde **Mis pedidos**.
 
 La simulación avanza manualmente desde el panel, sin contratar ningún servicio
 externo. El tiempo mostrado es orientativo y no activa un temporizador.
@@ -233,3 +245,52 @@ En producción se recomienda poner nginx delante con HTTPS, usar una contraseña
 10. Multi-tenant completo: cada restaurante con usuarios, branding, dominio/subdominio y credenciales de reparto independientes.
 11. Notificaciones SMS/WhatsApp/email.
 12. PWA instalable en móvil/tablet.
+
+## Verificación del renderizado
+
+`npm test` comprueba las APIs y los formularios sin ejecutar JavaScript del cliente:
+login, permisos, CSRF, HTML escapado, datos precargados, carrito, checkout,
+historial, CRUD del restaurante y cierre independiente de ambas sesiones.
+Requiere MariaDB configurado con `schema.sql` y las migraciones aplicadas.
+Los datos de prueba se eliminan al terminar. El botón de Google necesita sus
+credenciales reales y comprobación interactiva en navegador.
+
+## Prueba rápida de Glovo LaaS API
+
+Se ha añadido una prueba mínima y separada de la integración Glovo en `src/delivery/glovo.js` y `scripts/test-glovo.js`.
+
+La prueba hace únicamente:
+
+1. `POST /oauth/token` con `grantType=client_credentials`.
+2. `GET /v2/laas/addresses` para comprobar autenticación y ver los `addressBook` disponibles.
+3. Si existe `GLOVO_ADDRESS_BOOK_ID`, solicita una cotización mediante `POST /v2/laas/quotes`.
+
+**No crea ningún pedido/reparto real.**
+
+Configura `.env`:
+
+```env
+GLOVO_API_BASE_URL=<URL DE STAGING O PRODUCCION INDICADA POR GLOVO>
+GLOVO_CLIENT_ID=
+GLOVO_CLIENT_SECRET=
+GLOVO_ADDRESS_BOOK_ID=
+GLOVO_TEST_ADDRESS=Carrer de Colón 20, Valencia, Spain
+GLOVO_TEST_LAT=39.4699
+GLOVO_TEST_LNG=-0.3763
+GLOVO_TEST_DETAILS=Prueba API
+```
+
+Ejecuta:
+
+```bash
+npm install
+npm run glovo:test
+```
+
+O pasando una dirección directamente:
+
+```bash
+npm run glovo:test -- "Carrer de Colón 20, Valencia, Spain"
+```
+
+La API de Glovo documenta OAuth 2.0, `POST /oauth/token`, `POST /v2/laas/quotes` y el uso obligatorio de `addressBook` para el pickup en las cotizaciones. La cotización no crea el reparto y tiene una validez limitada.

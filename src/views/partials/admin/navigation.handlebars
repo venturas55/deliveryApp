@@ -1,5 +1,6 @@
-<nav class="admin-navigation" aria-label="Administración del restaurante" hidden>
+<nav class="admin-navigation" aria-label="Administración del restaurante">
   <a href="/admin/orders"{{#if ordersActive}} aria-current="page"{{/if}}>Pedidos</a>
   <a href="/admin/products"{{#if productsActive}} aria-current="page"{{/if}}>Gestionar artículos</a>
-  <button type="button" id="adminLogout">Cerrar sesión</button>
+  <a href="/admin/providers"{{#if providersActive}} aria-current="page"{{/if}}>Proveedores de reparto</a>
+  <form method="post" action="/admin/logout">{{> csrf}}<button>Cerrar sesión</button></form>
 </nav>

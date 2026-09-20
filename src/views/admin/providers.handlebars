@@ -1,0 +1,36 @@
+<section>
+  <h1>Proveedores de reparto</h1>
+  <p>Las credenciales se guardan cifradas y no se muestran después de guardar.</p>
+  {{#each deliveryProviders}}
+  <article class="card">
+    <h2>{{provider}}</h2>
+    <p>{{#if configured}}Credenciales configuradas{{else}}Sin credenciales{{/if}} · {{#if enabled}}Activo{{else}}Desactivado{{/if}}</p>
+    {{#if lastTestStatus}}<p>Última prueba: {{lastTestStatus}}{{#if lastTestError}} · {{lastTestError}}{{/if}}</p>{{/if}}
+    <form method="post" action="/admin/providers/{{provider}}">
+      {{> csrf}}
+      <label><input class="checkbox" name="enabled" value="1" type="checkbox"{{#if enabled}} checked{{/if}}> Activar {{provider}}</label>
+      <h3>Credenciales</h3>
+      <label>Client ID<input name="credentials[clientId]" autocomplete="off"></label>
+      <label>Client secret<input name="credentials[clientSecret]" type="password" autocomplete="new-password"></label>
+      <h3>Configuración</h3>
+      {{#if (eq provider "uber")}}
+        <label>Customer ID<input name="settings[customerId]" value="{{settings.customerId}}" required></label>
+        <label>Nombre de recogida<input name="settings[pickupName]" value="{{settings.pickupName}}" required></label>
+        <label>Teléfono de recogida<input name="settings[pickupPhone]" value="{{settings.pickupPhone}}" required></label>
+        <label>Dirección de recogida<input name="settings[pickupAddress]" value="{{settings.pickupAddress}}" required></label>
+        <label>Latitud<input name="settings[pickupLat]" value="{{settings.pickupLat}}"></label>
+        <label>Longitud<input name="settings[pickupLng]" value="{{settings.pickupLng}}"></label>
+      {{else}}
+        <label>URL base indicada por Glovo<input name="settings[apiBaseUrl]" value="{{settings.apiBaseUrl}}" required></label>
+        <label>Address book ID<input name="settings[addressBookId]" value="{{settings.addressBookId}}"></label>
+        <label>Vendor ID<input name="settings[vendorId]" value="{{settings.vendorId}}"></label>
+        <label>Ruta de quote contratada<input name="settings[quotePath]" value="{{settings.quotePath}}"></label>
+        <label>Ruta de creación contratada<input name="settings[createPath]" value="{{settings.createPath}}"></label>
+      {{/if}}
+      <label>Secreto de webhook<input name="webhookSecret" type="password" autocomplete="new-password"></label>
+      <button>Guardar configuración</button>
+    </form>
+    <form method="post" action="/admin/providers/{{provider}}/test">{{> csrf}}<button>Probar conexión</button></form>
+  </article>
+  {{/each}}
+</section>

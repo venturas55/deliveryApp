@@ -1,21 +1,27 @@
 <section>
-  <div class="toolbar"><h2>Carta del restaurante</h2><button id="newProduct">Nuevo artículo</button></div>
-  <p>Los artículos disponibles aparecen en la tienda. Puedes ocultarlos temporalmente o eliminarlos.</p>
-  <p id="productMessage" role="status" aria-live="polite"></p>
-  <div id="products"></div>
+  <h1>Carta del restaurante</h1>
+ {{!--  <a href="/admin/products">Nuevo artículo</a> --}}
+  <div id="products">{{#each products}}<article class="order-card">
+    <h2>{{name}} · {{money price_cents}}</h2>
+    <p>{{category}} · {{#if active}}Disponible{{else}}Oculto{{/if}} · Orden: {{sort_order}}</p>
+    <p>{{description}}</p>
+    <div class="order-actions">
+      <a href="/admin/products?edit={{id}}">Editar</a>
+      <a href="/admin/products/{{id}}/delete">Eliminar</a>
+      <form method="post" action="/admin/products/{{id}}/toggle">{{> csrf}}
+        <input type="hidden" name="active" value="{{#if active}}0{{else}}1{{/if}}">
+        <button>{{#if active}}Ocultar{{else}}Publicar{{/if}}</button>
+      </form>
+    </div>
+  </article>{{else}}<p>No hay artículos.</p>{{/each}}</div>
 </section>
-<aside class="card">
-  <h2 id="editorTitle">Nuevo artículo</h2>
-  <form id="productForm">
-    <fieldset id="productFields">
-      <label>Nombre<input name="name" maxlength="120" required></label>
-      <label>Descripción<textarea name="description" maxlength="255"></textarea></label>
-      <label>Categoría<input name="category" maxlength="80" value="Pizzas" required></label>
-      <label>Precio (€)<input name="price" type="number" min="0" max="21474836.47" step="0.01" required></label>
-      <label>Orden en la categoría<input name="sort_order" type="number" min="0" max="2147483647" step="1" value="0" required></label>
-      <label><input name="active" type="checkbox" checked> Disponible en la tienda</label>
-      <button type="submit">Guardar artículo</button>
-      <button type="button" id="cancelEdit">Cancelar edición</button>
-    </fieldset>
-  </form>
+<aside class="card"><h2>{{#if product.id}}Editar artículo{{else}}Nuevo artículo{{/if}}</h2>
+  <form id="productForm" method="post" action="{{#if product.id}}/admin/products/{{product.id}}/edit{{else}}/admin/products{{/if}}">{{> csrf}}
+    <label>Nombre<input name="name" value="{{product.name}}" maxlength="120" required></label>
+    <label>Descripción<textarea name="description" maxlength="255">{{product.description}}</textarea></label>
+    <label>Categoría<input name="category" value="{{product.category}}" maxlength="80" required></label>
+    <label>Precio (€)<input name="price" type="number" min="0" max="21474836.47" step="0.01" value="{{decimal product.price_cents}}" required></label>
+    <label>Orden<input name="sort_order" type="number" min="0" max="2147483647" step="1" value="{{product.sort_order}}" required></label>
+    <label><input class="checkbox" name="active" value="1" type="checkbox"{{#if product.active}} checked{{/if}}> Disponible</label><button>Guardar artículo</button>
+  </form><p><a href="/admin/products">Cancelar edición</a></p>
 </aside>

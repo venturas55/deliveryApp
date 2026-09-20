@@ -1,0 +1,13 @@
+<section class="card"><h1>Pedido #{{order.id}}</h1><h2>{{order.statusLabel}}</h2><p>{{order.customer_name}} · {{order.customer_phone}}<br>{{order.delivery_address}}</p><p>{{order.delivery_notes}}</p>
+  <ul>{{#each order.items}}<li>{{quantity}} × {{product_name}} — {{money (multiply quantity unit_price_cents)}}</li>{{/each}}</ul><p>Total: <strong>{{money order.total_cents}}</strong></p>
+  <div class="order-actions">
+    {{#if order.nextStatus}}<form method="post" action="/admin/orders/{{order.id}}/status">{{> csrf}}<input type="hidden" name="status" value="{{order.nextStatus}}"><button>{{order.nextLabel}}</button></form>{{/if}}
+    {{#if order.canCancel}}<form method="post" action="/admin/orders/{{order.id}}/status" data-confirm="¿Cancelar este pedido?">{{> csrf}}<input type="hidden" name="status" value="cancelled"><button>Cancelar pedido</button></form>{{/if}}
+    {{#if order.canQuote}}<form method="post" action="/admin/orders/{{order.id}}/quote">{{> csrf}}<button>Consultar reparto</button></form>{{/if}}
+    {{#if order.simulationStatus}}<form method="post" action="/admin/orders/{{order.id}}/simulate">{{> csrf}}<input type="hidden" name="status" value="{{order.simulationStatus}}"><button>{{order.simulationLabel}}</button></form>{{/if}}
+  </div>
+  {{#each quoteErrors}}<p>{{provider}}: {{error}}</p>{{/each}}
+  {{#each quotes}}<p>{{provider}} · {{money feeCents}} · {{etaMinutes}} min estimados</p><form method="post" action="/admin/orders/{{../order.id}}/dispatch">{{> csrf}}<input type="hidden" name="provider" value="{{provider}}"><input type="hidden" name="quoteId" value="{{quoteId}}"><button>Solicitar reparto con {{provider}}</button></form>{{/each}}
+  <p><a href="/admin/orders">Volver a pedidos</a> · <a href="/admin/orders/{{order.id}}">Actualizar estado</a></p>
+</section>
+<aside class="card"><h2>Historial</h2><ol>{{#each events}}<li>{{date created_at}} — {{label}}{{#if statusLabel}}: {{statusLabel}}{{/if}}{{#if feeCents}} · {{money feeCents}}{{/if}}</li>{{/each}}</ol></aside>

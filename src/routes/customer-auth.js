@@ -1,52 +1,24 @@
 import {Router} from "express";
+import {registerCustomer,loginCustomer,customerProfile,updateProfile,emailValue,validEmail} from "../controllers/accounts.js";
+import {setSession} from "../services/web-session.js";
 import rateLimit from "express-rate-limit";
 import {randomBytes} from "node:crypto";
 import jwt from "jsonwebtoken";
 import {OAuth2Client} from "google-auth-library";
 import {query} from "../db.js";
-import {hashPassword,checkPassword,signCustomer,customerAuth} from "../auth.js";
+import {signCustomer,customerAuth} from "../auth.js";
 
 const router=Router();
 const google=new OAuth2Client();
 const limit=rateLimit({windowMs:15*60*1000,max:30});
-const emailValue=value=>typeof value==="string"?value.trim().toLowerCase():"";
-const validEmail=value=>value.length<=190&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-const session=(res,customer,status=200)=>res.status(status).json({token:signCustomer(customer),customer:{id:customer.id,name:customer.name,email:customer.email}});
-router.post("/register",limit,async(req,res)=>{
-  const {name,password}=req.body||{},email=emailValue(req.body?.email);
-  if(typeof name!=="string"||!name.trim()||name.trim().length>120||!validEmail(email)||typeof password!=="string"||password.length<8||Buffer.byteLength(password)>72)
-    return res.status(400).json({error:"Indica un nombre, un email válido y una contraseña de al menos 8 caracteres (máximo 72 bytes)"});
-  try{
-    const result=await query("INSERT INTO customers(name,email,password_hash) VALUES(?,?,?)",[name.trim(),email,await hashPassword(password)]);
-    session(res,{id:Number(result.insertId),name:name.trim(),email},201);
-  }catch(error){if(error.code==="ER_DUP_ENTRY")return res.status(409).json({error:"Este correo ya tiene una cuenta. Inicia sesión."});throw error}
-});
-router.post("/login",limit,async(req,res)=>{
-  const email=emailValue(req.body?.email),password=req.body?.password;
-  if(!validEmail(email)||typeof password!=="string"||Buffer.byteLength(password)>72)return res.status(400).json({error:"Email o contraseña no válidos"});
-  const rows=await query("SELECT * FROM customers WHERE email=?",[email]);
-  if(!rows[0]?.password_hash||!await checkPassword(password,rows[0].password_hash))return res.status(401).json({error:"Credenciales incorrectas"});
-  session(res,rows[0]);
-});
-router.get("/me",customerAuth,async(req,res)=>{
-  const rows=await query("SELECT id,name,email,phone,delivery_address,delivery_notes FROM customers WHERE id=?",[req.customer.sub]);
-  if(!rows.length)return res.status(401).json({error:"Cuenta no disponible"});
-  res.json(rows[0]);
-});
-router.patch("/me",customerAuth,async(req,res)=>{
-  const fields={name:120,phone:40,delivery_address:500,delivery_notes:500},data={};
-  for(const [key,max] of Object.entries(fields)){
-    const value=req.body?.[key];
-    if(value===undefined)continue;
-    if(typeof value!=="string"||value.trim().length>max||(key==="name"&&!value.trim()))return res.status(400).json({error:`Revisa el campo ${key} (máximo ${max} caracteres)`});
-    data[key]=value.trim();
-  }
-  if(!Object.keys(data).length)return res.status(400).json({error:"No hay datos que guardar"});
-  const existing=await query("SELECT id FROM customers WHERE id=?",[req.customer.sub]);
-  if(!existing.length)return res.status(401).json({error:"Cuenta no disponible"});
-  await query(`UPDATE customers SET ${Object.keys(data).map(key=>key+"=?").join(",")} WHERE id=?`,[...Object.values(data),req.customer.sub]);
-  res.json({ok:true});
-});
+const session=(res,customer,status=200)=>{
+  const token=signCustomer(customer);setSession(res,"customer",token);
+  return res.status(status).json({token,customer:{id:customer.id,name:customer.name,email:customer.email}});
+};
+router.post("/register",limit,async(req,res)=>session(res,await registerCustomer(req.body),201));
+router.post("/login",limit,async(req,res)=>session(res,await loginCustomer(req.body)));
+router.get("/me",customerAuth,async(req,res)=>res.json(await customerProfile(req.customer.sub)));
+router.patch("/me",customerAuth,async(req,res)=>res.json(await updateProfile(req.customer.sub,req.body)));
 router.get("/google/config",limit,(req,res)=>{
   res.set("Cache-Control","no-store");
   if(!process.env.GOOGLE_CLIENT_ID)return res.json({enabled:false});

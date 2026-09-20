@@ -1,20 +1,44 @@
 <section>
-  <div id="menu"></div>
+  <div class="store-intro"><p class="eyebrow">PEDIDOS A DOMICILIO</p><h1>Hoy, elige lo que te apetece.</h1><p>Explora nuestra carta y prepara tu pedido. Nosotros nos encargamos de cocinarlo.</p></div>
+  {{#if categories.length}}<nav class="category-navigation" aria-label="Categorías de la carta">{{#each categories}}<a href="#category-{{@index}}">{{name}}</a>{{/each}}</nav>{{/if}}
+  <div id="menu">
+    {{#each categories}}
+      <section class="menu-category" id="category-{{@index}}"><h2>{{name}}</h2>
+      {{#each products}}
+        <article><div><h3>{{name}}</h3><p>{{description}}</p></div><strong>{{money price_cents}}</strong>
+          <form method="post" action="/cart">{{> csrf}}<input type="hidden" name="product_id" value="{{id}}"><button name="action" value="add">Añadir</button></form>
+        </article>
+      {{/each}}</section>
+    {{else}}<p>La carta no tiene artículos disponibles.</p>{{/each}}
+  </div>
 </section>
-<aside class="cart">
-  <h2>Tu pedido</h2>
-  <div id="cart"></div>
-  <p>Usamos tus datos habituales. Puedes modificarlos solo para este pedido o guardarlos en <a href="/client/account">Mi cuenta</a>.</p>
-  <form id="checkout">
-    <input name="customer_name" placeholder="Nombre" maxlength="120" autocomplete="name" required>
-    <input name="customer_phone" placeholder="Teléfono" required>
-    <textarea name="delivery_address" placeholder="Dirección completa" required></textarea>
-    <textarea name="delivery_notes" placeholder="Indicaciones para el repartidor (opcional)"></textarea>
-    <select name="payment_method">
-      <option value="cash">Efectivo</option>
-      <option value="card_on_delivery">Tarjeta al entregar</option>
-    </select>
-    <button>Confirmar pedido</button>
-  </form>
-  <div id="result"></div>
+<aside id="cartPanel" class="cart">
+  <div class="cart-heading"><h2>Tu pedido</h2><span>A domicilio</span></div>
+  <div id="cart">
+    {{#each cart}}
+      <div class="cart-item"><strong>{{name}}</strong><p>{{quantity}} × {{money price_cents}} · {{money lineTotal}}</p>
+        <form method="post" action="/cart" class="inline-form">{{> csrf}}<input type="hidden" name="product_id" value="{{id}}"><button name="action" value="decrease" aria-label="Reducir {{name}}">−</button><button name="action" value="add" aria-label="Añadir {{name}}">+</button><button name="action" value="remove">Quitar</button></form>
+      </div>
+    {{else}}<div class="cart-empty"><strong>¿Qué te apetece hoy?</strong><p>Añade tus favoritos de la carta.<br>Tu pedido aparecerá aquí.</p></div>{{/each}}
+  </div>
+  {{#if cart.length}}
+    <p>Subtotal: {{money subtotal}}<br>Envío: {{money delivery}}</p><p class="cart-total">Total: {{money total}}</p>
+    {{#if customerLoggedIn}}
+      <p>Datos habituales de <a href="/client/account">Mi cuenta</a>. Puedes cambiarlos para esta entrega.</p>
+      <form id="checkout" method="post" action="/checkout">{{> csrf}}
+        <label>Nombre<input name="customer_name" value="{{profile.name}}" maxlength="120" autocomplete="name" required></label>
+        <label>Teléfono<input name="customer_phone" value="{{profile.phone}}" type="tel" maxlength="40" autocomplete="tel" required></label>
+        <label>Dirección completa<textarea name="delivery_address" maxlength="500" autocomplete="street-address" required>{{profile.delivery_address}}</textarea></label>
+        <label>Indicaciones<textarea name="delivery_notes" maxlength="500">{{profile.delivery_notes}}</textarea></label>
+        <label>Forma de pago
+          <select name="payment_method">
+            <option value="cash">Efectivo</option>
+            <option value="card">Tarjeta</option>
+            <option value="card_on_delivery">Tarjeta al entregar</option>
+          </select>
+        </label>
+        <button>Confirmar pedido</button>
+      </form>
+    {{else}}<a class="primary-link" href="/client/login?next=/">Acceder y continuar</a><p class="cart-login-note">Inicia sesión o crea tu cuenta para confirmar. Conservaremos tu carrito.</p>{{/if}}
+  {{/if}}
 </aside>

@@ -1,4 +1,7 @@
 <header>
-  <h1{{#if headingId}} id="{{headingId}}"{{/if}}>{{heading}}</h1>
-  <a href="{{navHref}}">{{navLabel}}</a>
+  <a class="restaurant-brand" href="{{#if adminArea}}/admin/orders{{else}}/{{/if}}">
+    <span class="brand-mark" aria-hidden="true">{{brandInitial}}</span>
+    <span><strong id="brand">{{restaurantName}}</strong><small>{{#if adminArea}}Gestión del restaurante{{else}}Carta y pedidos a domicilio{{/if}}</small></span>
+  </a>
+  {{#if clientArea}}{{> client/navigation}}{{/if}}
 </header>

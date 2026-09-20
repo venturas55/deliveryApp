@@ -1,13 +1,14 @@
 {
   "name": "pizzeria-delivery-platform",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test",
-    "migrate": "node scripts/migrate.js"
+    "test": "node --test test/order-flow.test.js test/delivery-credentials.test.js test/delivery-adapters.test.js",
+    "migrate": "node scripts/migrate.js",
+    "glovo:test": "node scripts/test-glovo.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

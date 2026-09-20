@@ -8,18 +8,22 @@ import {clientApiRoutes} from "./clients.js";
 
 import customerAuthRoutes from "./customer-auth.js";
 
+import {loginAdmin} from "../controllers/accounts.js";
+import {deliveryWebhook} from "../controllers/webhooks.js";
 const router=Router();
+router.use((req,res,next)=>{
+  if(req.is("application/x-www-form-urlencoded"))return res.status(415).json({error:"Use application/json"});
+  next();
+});
 const apiLimit=rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false});
 const authLimit=rateLimit({windowMs:15*60*1000,max:20});
 router.use(apiLimit);
+router.post("/webhooks/delivery/:provider/:restaurantId",deliveryWebhook);
 router.use("/customer-auth",customerAuthRoutes);
 
 router.post("/auth/login",authLimit,async(req,res)=>{
-  const {email,password}=req.body||{};
-  if(!email||!password)return res.status(400).json({error:"Email y contraseña requeridos"});
-  const rows=await query("SELECT * FROM admins WHERE email=?",[email]);
-  if(!rows.length||!(await checkPassword(password,rows[0].password_hash)))return res.status(401).json({error:"Credenciales incorrectas"});
-  res.json({token:signAdmin(rows[0]),admin:{id:rows[0].id,email:rows[0].email,restaurant_id:rows[0].restaurant_id}});
+  const admin=await loginAdmin(req.body);
+  res.json({token:signAdmin(admin),admin:{id:admin.id,email:admin.email,restaurant_id:admin.restaurant_id}});
 });
 
 router.post("/setup-admin",authLimit,async(req,res)=>{

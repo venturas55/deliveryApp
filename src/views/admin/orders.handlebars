@@ -1,24 +1,7 @@
-{{> admin/login}}
-<template id="ordersView">
-  <section>
-    <h2>Pedidos</h2>
-    <label for="orderFilter">Mostrar pedidos</label>
-    <select id="orderFilter" aria-describedby="filterHelp">
-      <option value="all">Todos</option>
-      <option value="pending">Pendientes</option>
-      <option value="in_progress">En curso</option>
-      <option value="delivered">Entregados</option>
-      <option value="cancelled">Cancelados</option>
-    </select>
-    <p id="filterHelp">Pendientes: sin aceptar. En curso: desde la aceptación hasta la entrega.</p>
-    <p id="orderCount" role="status"></p>
-    <p>Gestiona la preparación y solicita el reparto cuando el pedido esté listo.
-      En el reparto simulado, usa los botones para avanzar hasta la entrega.</p>
-    <p id="adminError" role="alert"></p>
-    <div id="orders"></div>
-  </section>
-  <aside id="orderDetail" class="card">
-    <h2>Detalle del pedido</h2>
-    <p>Selecciona «Productos e historial» para ver su contenido y evolución.</p>
-  </aside>
-</template>
+<section id="adminMain"><h1>Pedidos</h1>
+  <form method="get" action="/admin/orders" class="filter-form"><label>Mostrar pedidos<select name="filter">
+    <option value="all"{{#if (eq filter "all")}} selected{{/if}}>Todos</option><option value="pending"{{#if (eq filter "pending")}} selected{{/if}}>Pendientes</option><option value="in_progress"{{#if (eq filter "in_progress")}} selected{{/if}}>En curso</option><option value="delivered"{{#if (eq filter "delivered")}} selected{{/if}}>Entregados</option><option value="cancelled"{{#if (eq filter "cancelled")}} selected{{/if}}>Cancelados</option>
+  </select></label><button>Filtrar</button></form>
+  <p>{{orders.length}} pedidos (máximo 200 por filtro).</p>
+  <div id="orders">{{#each orders}}<article class="order-card"><h2>#{{id}} · {{statusLabel}}</h2><p>{{customer_name}} · {{customer_phone}}<br>{{delivery_address}}</p><p>{{delivery_notes}}</p><p>{{money total_cents}} · {{date created_at}}</p><a class="primary-link" href="/admin/orders/{{id}}">Gestionar pedido</a></article>{{else}}<p>No hay pedidos para este filtro.</p>{{/each}}</div>
+</section>

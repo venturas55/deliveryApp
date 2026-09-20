@@ -3,18 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{title}}</title>
+  <title>{{title}} · {{restaurantName}}</title>
   <link rel="stylesheet" href="/style.css">
+  {{#if clientArea}}<link rel="stylesheet" href="/client.css">{{/if}}
 </head>
-<body>
+<body class="{{#if clientArea}}client-area{{/if}}"{{#if refresh}} data-refresh="5000"{{/if}}>
   {{> header}}
-  {{#if adminArea}}{{> admin/navigation}}{{/if}}
-  {{#if clientArea}}{{> client/navigation}}{{/if}}
-  <main{{#if mainId}} id="{{mainId}}"{{/if}}>
-    {{{body}}}
-  </main>
-  {{#if adminArea}}<script src="/admin-navigation.js"></script>{{/if}}
-  {{#if clientArea}}<script src="/customer.js"></script>{{/if}}
-  {{#if script}}<script src="{{script}}"></script>{{/if}}
+  {{#if adminArea}}{{#if adminLoggedIn}}{{> admin/navigation}}{{/if}}{{/if}}
+  <main>{{{body}}}</main>
+  <script src="/page-behavior.js" defer></script>
+  {{#if googleEnabled}}<script src="/google-login.js" defer></script>{{/if}}
 </body>
 </html>
