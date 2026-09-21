@@ -4,7 +4,7 @@ import {
   verifyRedsysNotification
 } from "../services/redsys.js";
 
-import * as payments from "../controllers/payments.js";
+import * as payments from "../controllers/redsys-payments.js";
 
 const router = Router();
 
