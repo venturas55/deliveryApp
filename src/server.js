@@ -7,6 +7,7 @@ import {fileURLToPath} from "url";
 import helmet from "helmet";
 import apiRoutes from "./routes/api.js";
 import pageRoutes from "./routes/pages.js";
+import paymentRoutes from "./routes/payments.js";
 import {safeNext} from "./services/web-session.js";
 
 dotenv.config();
@@ -38,6 +39,7 @@ app.use(express.urlencoded({extended:false,limit:"100kb"}));
 app.use(express.static(path.join(__dirname,"../public")));
 
 app.use("/api",apiRoutes);
+app.use(paymentRoutes);
 app.use(pageRoutes);
 
 app.use((req, res) => {
