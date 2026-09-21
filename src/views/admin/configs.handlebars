@@ -1,0 +1,13 @@
+<section class="card section-page"><h1>Mi cuenta</h1><p>Datos de tu negocio.</p>
+  {{#if saved}}<p class="success" role="status">Datos guardados.</p>{{/if}}
+  <form id="accountForm" method="post" action="/admin/account">{{> csrf}}
+    <label>Id<input type="number" value="{{configs.id}}" readonly></label>
+    <label>Nombre<input name="name" value="{{configs.name}}" maxlength="120" autocomplete="name" required></label>
+    <label>Slug<input name="slug" value="{{configs.slug}}" maxlength="80" autocomplete="slug" required></label>
+    <label>Teléfono<input name="phone" value="{{configs.phone}}" type="tel" maxlength="40" autocomplete="tel"></label>
+    <label>Direccion<input name="address" value="{{configs.address}}" type="text" maxlength="500" autocomplete="address-line1"></label>
+    <label>Ciudad<input name="city" value="{{configs.city}}" type="text" maxlength="100" autocomplete="address-line1"></label>
+    <label>Desde<input name="created_at" value="{{configs.created_at}}" type="text" maxlength="200" autocomplete="address-line1" readonly></label>
+    <button>Guardar datos</button>
+  </form>
+</section>

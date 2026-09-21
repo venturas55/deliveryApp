@@ -1,4 +1,4 @@
-<section id="adminMain"><h1>Pedidos</h1>
+<section id="adminMain" class="section-page"><h1>Pedidos</h1>
   <form method="get" action="/admin/orders" class="filter-form"><label>Mostrar pedidos<select name="filter">
     <option value="all"{{#if (eq filter "all")}} selected{{/if}}>Todos</option><option value="pending"{{#if (eq filter "pending")}} selected{{/if}}>Pendientes</option><option value="in_progress"{{#if (eq filter "in_progress")}} selected{{/if}}>En curso</option><option value="delivered"{{#if (eq filter "delivered")}} selected{{/if}}>Entregados</option><option value="cancelled"{{#if (eq filter "cancelled")}} selected{{/if}}>Cancelados</option>
   </select></label><button>Filtrar</button></form>

@@ -476,13 +476,21 @@ a:focus-visible {
   }
 }
 
-.providers-page {
+.section-page {
   grid-column: 1 / -1;
   display: block;
   width: 100%;
   max-width: 1040px;
   margin: 34px auto
 }
+
+/* .providers-page {
+  grid-column: 1 / -1;
+  display: block;
+  width: 100%;
+  max-width: 1040px;
+  margin: 34px auto
+} */
 
 .providers-heading {
   display: flex;

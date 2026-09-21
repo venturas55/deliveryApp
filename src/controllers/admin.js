@@ -45,6 +45,26 @@ function productData(body,partial=false){
   return data;
 }
 
+function configsData(body,partial=false){
+  if(!body||typeof body!=="object"||Array.isArray(body))throw orderError(400,"Datos de configuración inválidos");
+  const data={};
+  const defaults={name:"",slug:"",phone:"",address:"",city:"",active:1};
+  for(const [field,max] of [["name",150],["slug",80],["phone",40],["address",500],["city",100]]){
+    if(partial&&body[field]===undefined)continue;
+    const value=body[field]??defaults[field];
+    if(typeof value!=="string"||value.trim().length>max||(field!=="description"&&!value.trim()))throw orderError(400,`Campo ${field} inválido (máximo ${max} caracteres)`);
+    data[field]=value.trim();
+  }
+
+  if(!partial||body.active!==undefined){
+    const value=body.active??1;
+    if(![0,1,true,false].includes(value))throw orderError(400,"Disponibilidad inválida");
+    data.active=Number(value);
+  }
+  if(!Object.keys(data).length)throw orderError(400,"No hay cambios que guardar");
+  return data;
+}
+
 
 export async function adminOrders(req){
   const groups=new Map([
@@ -225,3 +245,22 @@ export async function testAdminDeliveryProvider(req){
     throw error;
   }
 }
+
+export async function adminConfigs(req){
+  const configs=await query(`SELECT * FROM restaurants WHERE id=?`,[req.user.restaurant_id]);
+  return (configs[0]);
+}
+export async function updateAdminConfigs(req){
+  const data=configsData(req.body,true);
+  console.log(data);
+  const fields=Object.keys(data);
+  const result=await query(`UPDATE restaurants SET ${fields.map(field=>field+"=?").join(",")} WHERE id=?`,[...Object.values(data),req.user.restaurant_id]);
+/*   if(!result.affectedRows){
+    const existing=await query("SELECT id FROM restaurants WHERE id=? AND restaurant_id=?",[req.params.id,req.user.restaurant_id]);
+    if(!existing.length)throw orderError(404,"Configuración no encontrada");
+  } */
+  return ({ok:true});
+}
+
+
+

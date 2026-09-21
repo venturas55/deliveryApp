@@ -179,25 +179,86 @@
 
 .category-navigation {
     display: flex;
+    align-items: center;
+    justify-content: center;
     gap: 8px;
     flex-wrap: wrap;
-    margin: 0 0 28px
+
+    margin: 0 0 28px;
+    padding: 10px 12px;
+
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid #e7ece4;
+    border-radius: 16px;
+
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.045);
+
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .category-navigation a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 9px 16px;
+
     background: #fff;
     border: 1px solid #dce4d9;
-    color: var(--green-color);
-    padding: 8px 14px;
     border-radius: 30px;
-    font-size: .85rem
+
+    color: var(--green-color);
+
+    font-size: .85rem;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+
+    transition:
+        background-color .2s ease,
+        border-color .2s ease,
+        color .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease;
 }
 
 .category-navigation a:hover {
     background: #edf2e8;
     border-color: var(--green-color);
+
+    box-shadow: 0 3px 10px rgba(0, 0, 0, .06);
+
+    transform: translateY(-1px);
 }
 
+.category-navigation a:active {
+    transform: translateY(0);
+}
+
+.category-navigation a:focus-visible {
+    outline: 2px solid var(--green-color);
+    outline-offset: 2px;
+}
+
+/* Para cuando añadamos detección automática de categoría */
+.category-navigation a.active {
+    background: var(--green-color);
+    border-color: var(--green-color);
+    color: #fff;
+
+    box-shadow: 0 3px 10px rgba(0, 0, 0, .12);
+}
+
+/* Al pulsar un #category-X deja espacio respecto a la parte superior */
+[id^="category-"] {
+    scroll-margin-top: 90px;
+}
+
+html {
+    scroll-behavior: smooth;
+}
 .menu-category {
     scroll-margin-top: 120px
 }
@@ -318,6 +379,115 @@
     line-height: 1.5
 }
 
+.delivery-method {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+
+    margin: 14px 0 20px;
+    padding: 5px;
+
+    background: #f4f6f2;
+    border: 1px solid #e2e8df;
+    border-radius: 14px;
+}
+
+.delivery-option {
+    position: relative;
+    cursor: pointer;
+}
+
+.delivery-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.delivery-option__content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    min-height: 58px;
+    padding: 9px 12px;
+
+    border: 1px solid transparent;
+    border-radius: 10px;
+
+    color: #62685f;
+
+    transition:
+        background-color .2s ease,
+        border-color .2s ease,
+        color .2s ease,
+        box-shadow .2s ease,
+        transform .15s ease;
+}
+
+.delivery-option__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+
+    background: rgba(255, 255, 255, .7);
+    border-radius: 9px;
+
+    font-size: 1.1rem;
+}
+
+.delivery-option__text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.delivery-option__text strong {
+    font-size: .88rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.delivery-option__text small {
+    font-size: .72rem;
+    line-height: 1.1;
+    opacity: .7;
+}
+
+
+/* Hover */
+.delivery-option:hover .delivery-option__content {
+    color: var(--green-color);
+}
+
+
+/* Seleccionado */
+.delivery-option input:checked + .delivery-option__content {
+    background: #fff;
+    border-color: rgba(45, 92, 60, .18);
+
+    color: var(--green-color);
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, .06),
+        0 1px 2px rgba(0, 0, 0, .04);
+}
+
+.delivery-option input:checked
++ .delivery-option__content
+.delivery-option__icon {
+    background: #edf2e8;
+}
+
+
+/* Accesibilidad con teclado */
+.delivery-option input:focus-visible + .delivery-option__content {
+    outline: 2px solid var(--green-color);
+    outline-offset: 2px;
+}
 @media(max-width:900px) {
     .client-area header {
         gap: 16px

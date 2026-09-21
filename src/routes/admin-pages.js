@@ -70,4 +70,11 @@ router.get("/admin/products/:id/delete",async(req,res)=>{
 });
 router.post("/admin/products/:id/delete",async(req,res)=>{await admin.deleteProduct(req);res.redirect(303,"/admin/products")});
 
+
+
+router.get("/admin/configs",async(req,res)=>{
+  const configs=await admin.adminConfigs(req);
+  res.render("admin/configs",{title:"Configuración",configsActive:true,configs,refresh:true});
+});
+router.post("/admin/account",async(req,res)=>{await admin.updateAdminConfigs(req);res.redirect(303,"/admin/configs?saved=1")});
 export default router;

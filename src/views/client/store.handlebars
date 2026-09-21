@@ -3,7 +3,8 @@
   {{#if categories.length}}<nav class="category-navigation" aria-label="Categorías de la carta">{{#each categories}}<a href="#category-{{@index}}">{{name}}</a>{{/each}}</nav>{{/if}}
   <div id="menu">
     {{#each categories}}
-      <section class="menu-category" id="category-{{@index}}"><h2>{{name}}</h2>
+      <section class="menu-category" id="category-{{@index}}">
+        <h2>{{name}}</h2>
       {{#each products}}
         <article><div><h3>{{name}}</h3><p>{{description}}</p></div><strong>{{money price_cents}}</strong>
           <form method="post" action="/cart">{{> csrf}}<input type="hidden" name="product_id" value="{{id}}"><button name="action" value="add">Añadir</button></form>
@@ -13,7 +14,57 @@
   </div>
 </section>
 <aside id="cartPanel" class="cart">
-  <div class="cart-heading"><h2>Tu pedido</h2><span>A domicilio</span></div>
+<div class="cart-heading">
+    <h2>Tu pedido</h2>
+        <span class="delivery-badge" data-delivery-badge>
+        A domicilio
+    </span>
+</div>
+
+<div class="delivery-method">
+    <label class="delivery-option">
+        <input
+            type="radio"
+            name="delivery_method"
+            value="delivery"
+            form="checkout"
+            data-delivery-method
+            checked
+        >
+
+        <span class="delivery-option__content">
+            <span class="delivery-option__icon" aria-hidden="true">
+                🛵
+            </span>
+
+            <span class="delivery-option__text">
+                <strong>A domicilio</strong>
+                <small>Te lo llevamos</small>
+            </span>
+        </span>
+    </label>
+
+    <label class="delivery-option">
+        <input
+            type="radio"
+            name="delivery_method"
+            value="pickup"
+            form="checkout"
+            data-delivery-method
+        >
+
+        <span class="delivery-option__content">
+            <span class="delivery-option__icon" aria-hidden="true">
+                🛍
+            </span>
+
+            <span class="delivery-option__text">
+                <strong>Recoger</strong>
+                <small>En el local</small>
+            </span>
+        </span>
+    </label>
+</div>
   <div id="cart">
     {{#each cart}}
       <div class="cart-item"><strong>{{name}}</strong><p>{{quantity}} × {{money price_cents}} · {{money lineTotal}}</p>
@@ -22,18 +73,38 @@
     {{else}}<div class="cart-empty"><strong>¿Qué te apetece hoy?</strong><p>Añade tus favoritos de la carta.<br>Tu pedido aparecerá aquí.</p></div>{{/each}}
   </div>
   {{#if cart.length}}
-    <p>Subtotal: {{money subtotal}}<br>Envío: {{money delivery}}</p><p class="cart-total">Total: {{money total}}</p>
+   <div class="cart-summary">
+    <p>
+        <span>Subtotal</span>
+        <strong>{{money subtotal}}</strong>
+    </p>
+
+    <p>
+        <span>Envío</span>
+        <strong
+            data-delivery-price
+            data-delivery-cents="{{delivery}}"
+        >
+            {{money delivery}}
+        </strong>
+    </p>
+
+    <p class="cart-total">
+        <span>Total</span>
+        <strong
+            data-cart-total
+            data-subtotal-cents="{{subtotal}}"
+        >
+            {{money total}}
+        </strong>
+    </p>
+</div>
+
     {{#if customerLoggedIn}}
       <p>Datos habituales de <a href="/client/account">Mi cuenta</a>. Puedes cambiarlos para esta entrega.</p>
       <form id="checkout" method="post" action="/checkout">{{> csrf}}
         <label>Nombre<input name="customer_name" value="{{profile.name}}" maxlength="120" autocomplete="name" required></label>
         <label>Teléfono<input name="customer_phone" value="{{profile.phone}}" type="tel" maxlength="40" autocomplete="tel" required></label>
-        <label>Pedido para
-          <select name="delivery_method" data-delivery-method>
-            <option value="delivery">Reparto a domicilio</option>
-            <option value="pickup">Recogida en local</option>
-          </select>
-        </label>
         <div data-delivery-address>
           {{> client/address-picker}}
         </div>
@@ -49,3 +120,111 @@
     {{else}}<a class="primary-link" href="/client/login?next=/">Acceder y continuar</a><p class="cart-login-note">Inicia sesión o crea tu cuenta para confirmar. Conservaremos tu carrito.</p>{{/if}}
   {{/if}}
 </aside>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const deliveryMethods =
+        document.querySelectorAll('[data-delivery-method]');
+
+    const deliveryBadge =
+        document.querySelector('[data-delivery-badge]');
+
+    const deliveryPrice =
+        document.querySelector('[data-delivery-price]');
+
+    const cartTotal =
+        document.querySelector('[data-cart-total]');
+
+    const deliveryAddress =
+        document.querySelector('[data-delivery-address]');
+
+    if (
+        !deliveryMethods.length ||
+        !deliveryBadge ||
+        !deliveryPrice ||
+        !cartTotal
+    ) {
+        return;
+    }
+
+    const deliveryCents =
+        Number(deliveryPrice.dataset.deliveryCents);
+
+    const subtotalCents =
+        Number(cartTotal.dataset.subtotalCents);
+
+    const money = cents =>
+        new Intl.NumberFormat('es-ES', {
+            style: 'currency',
+            currency: 'EUR'
+        }).format(cents / 100);
+
+
+    function updateDeliveryMethod() {
+
+        const selected =
+            document.querySelector(
+                '[data-delivery-method]:checked'
+            );
+
+        if (!selected) return;
+
+        const isPickup = selected.value === 'pickup';
+
+
+        /* Badge */
+
+        deliveryBadge.textContent =
+            isPickup
+                ? 'Recogida en local'
+                : 'A domicilio';
+
+        deliveryBadge.classList.toggle(
+            'pickup',
+            isPickup
+        );
+
+
+        /* Precio de envío */
+
+        deliveryPrice.textContent =
+            isPickup
+                ? 'Gratis'
+                : money(deliveryCents);
+
+
+        /* Total */
+
+        const finalTotal =
+            subtotalCents +
+            (isPickup ? 0 : deliveryCents);
+
+        cartTotal.textContent =
+            money(finalTotal);
+
+
+        /* Dirección */
+
+        if (deliveryAddress) {
+            deliveryAddress.hidden = isPickup;
+
+            deliveryAddress
+                .querySelectorAll('input, select, textarea')
+                .forEach(element => {
+                    element.disabled = isPickup;
+                });
+        }
+    }
+
+
+    deliveryMethods.forEach(method => {
+        method.addEventListener(
+            'change',
+            updateDeliveryMethod
+        );
+    });
+
+
+    updateDeliveryMethod();
+});
+</script>
