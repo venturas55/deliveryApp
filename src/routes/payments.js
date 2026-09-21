@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { createRedsysPayment } from "../services/redsys.js";
+import {
+  createRedsysPayment,
+  verifyRedsysNotification
+} from "../services/redsys.js";
+
+import * as payments from "../controllers/payments.js";
 
 const router = Router();
 
@@ -118,16 +123,86 @@ router.get("/payment/redsys/error", (req, res) => {
 });
 
 
-router.post("/payment/redsys/notification", (req, res) => {
-  /*
-   * Lo implementaremos en la siguiente fase.
-   *
-   * NO marcamos ningún pedido como pagado todavía.
-   */
-  console.log("Notificacion Redsys TEST recibida");
+router.post(
+  "/payment/redsys/notification",
+  async (req, res) => {
 
-  res.sendStatus(200);
-});
+    try {
+
+      const {
+        Ds_SignatureVersion,
+        Ds_MerchantParameters,
+        Ds_Signature
+      } = req.body;
+
+      const result = verifyRedsysNotification({
+        signatureVersion: Ds_SignatureVersion,
+        merchantParameters: Ds_MerchantParameters,
+        signature: Ds_Signature
+      });
+
+      if (!result.valid) {
+        console.error(
+          "REDSYS: firma de notificación NO válida"
+        );
+
+        return res.sendStatus(400);
+      }
+
+      const p = result.parameters;
+
+      const redsysOrder =
+        p.Ds_Order ?? p.DS_ORDER;
+
+      const amount =
+        p.Ds_Amount ?? p.DS_AMOUNT;
+
+      const currency =
+        p.Ds_Currency ?? p.DS_CURRENCY;
+
+      const response =
+        p.Ds_Response ?? p.DS_RESPONSE;
+
+      const authorizationCode =
+        p.Ds_AuthorisationCode ??
+        p.Ds_AuthorizationCode ??
+        null;
+
+      const paymentResult =
+        await payments.processRedsysNotification({
+          redsysOrder,
+          amountCents: amount,
+          currency,
+          response,
+          authorizationCode
+        });
+
+      console.log("=== REDSYS ===");
+      console.log("Pedido Redsys:", redsysOrder);
+      console.log("Pedido DB:", paymentResult.orderId);
+      console.log("Importe:", amount);
+      console.log("Respuesta:", response);
+      console.log("Firma: VALIDA");
+      console.log(
+        "Pago:",
+        paymentResult.paid
+          ? "AUTORIZADO"
+          : "NO AUTORIZADO"
+      );
+
+      return res.sendStatus(200);
+
+    } catch (error) {
+
+      console.error(
+        "Error procesando notificación Redsys:",
+        error
+      );
+
+      return res.sendStatus(400);
+    }
+  }
+);
 
 
 export default router;

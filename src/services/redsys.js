@@ -159,3 +159,87 @@ export function createRedsysPayment({
     signature,
   };
 }
+
+function base64UrlDecode(value) {
+  let base64 = String(value)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+
+  while (base64.length % 4) {
+    base64 += "=";
+  }
+
+  return Buffer.from(base64, "base64");
+}
+
+function signaturesEqual(a, b) {
+  try {
+    const aBuffer = base64UrlDecode(a);
+    const bBuffer = base64UrlDecode(b);
+
+    if (aBuffer.length !== bBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(aBuffer, bBuffer);
+  } catch {
+    return false;
+  }
+}
+
+export function verifyRedsysNotification({
+  merchantParameters,
+  signature,
+  signatureVersion,
+}) {
+
+  if (signatureVersion !== "HMAC_SHA512_V2") {
+    throw new Error(
+      `Versión de firma Redsys no soportada: ${signatureVersion}`
+    );
+  }
+
+  if (!merchantParameters || !signature) {
+    throw new Error("Notificación Redsys incompleta");
+  }
+
+  // Decodificamos los parámetros para obtener Ds_Order.
+  const decoded = base64UrlDecode(
+    merchantParameters
+  ).toString("utf8");
+
+  const parameters = JSON.parse(decoded);
+
+  const order =
+    parameters.Ds_Order ??
+    parameters.DS_ORDER;
+
+  if (!order) {
+    throw new Error(
+      "Ds_Order no encontrado en la notificación Redsys"
+    );
+  }
+
+  const { secretKey } = getConfig();
+
+  /*
+   * IMPORTANTE:
+   * Se firma merchantParameters EXACTAMENTE
+   * como Redsys lo ha enviado.
+   */
+  const expectedSignature = createSignature(
+    merchantParameters,
+    String(order),
+    secretKey
+  );
+
+  const valid = signaturesEqual(
+    expectedSignature,
+    signature
+  );
+
+  return {
+    valid,
+    parameters
+  };
+}

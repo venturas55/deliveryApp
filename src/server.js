@@ -48,7 +48,10 @@ app.use((req, res) => {
 app.use((err,req,res,next)=>{
   if(res.headersSent)return next(err);
   const status=err.status||500;
-  if(status>=500)console.error("Request failed:",err.code||err.name);
+  //if(status>=500)console.error("Request failed:",err.code||err.name);
+  if (status >= 500) {
+  console.error("Request failed:", err);
+}
   if(!req.path.startsWith("/api/")){
     const error=status>=500?"No se pudo completar la operación. Inténtalo de nuevo...":err.message;
     let back="/";try{const ref=new URL(req.get("referer"));if(ref.host===req.get("host"))back=safeNext(ref.pathname+ref.search)}catch{}

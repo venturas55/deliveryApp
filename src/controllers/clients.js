@@ -35,7 +35,7 @@ export async function createOrder(req){
   if(!customer_name||!customer_phone||!delivery_address||!Array.isArray(items)||!items.length)throw httpError(400,"Faltan datos del pedido");
   const ids=items.map(x=>Number(x?.product_id)).filter(id=>Number.isInteger(id)&&id>0);
   if(ids.length!==items.length)throw httpError(400,"Productos no validos");
-  if(!["cash","card","card_on_delivery"].includes(payment_method))throw httpError(400,"Forma de pago no valida");
+  if(!["cash","online","card_on_delivery"].includes(payment_method))throw httpError(400,"Forma de pago no valida");
   const products=await query(`SELECT id,name,price_cents FROM products WHERE restaurant_id=? AND active=1 AND id IN (${ids.map(()=>"?").join(",")})`,[r.id,...ids]);
   const map=new Map(products.map(p=>[Number(p.id),p])); let subtotal=0; const normalized=[];
   for(const x of items){
