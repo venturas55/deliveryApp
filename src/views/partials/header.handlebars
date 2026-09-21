@@ -1,6 +1,6 @@
 <header>
   <a class="restaurant-brand" href="{{#if adminArea}}/admin/orders{{else}}/{{/if}}">
-    <span class="brand-mark" aria-hidden="true">{{brandInitial}}</span>
+    <span class="brand-mark" aria-hidden="true"> <img src="/img/Massa e Fuoco con Cornisa Blanco.svg" width="32" height="32" alt="" aria-hidden="true"></span>
     <span><strong id="brand">{{restaurantName}}</strong><small>{{#if adminArea}}Gestión del restaurante{{else}}Carta y pedidos a domicilio{{/if}}</small></span>
   </a>
   {{#if clientArea}}{{> client/navigation}}{{/if}}

@@ -28,7 +28,15 @@
       <form id="checkout" method="post" action="/checkout">{{> csrf}}
         <label>Nombre<input name="customer_name" value="{{profile.name}}" maxlength="120" autocomplete="name" required></label>
         <label>Teléfono<input name="customer_phone" value="{{profile.phone}}" type="tel" maxlength="40" autocomplete="tel" required></label>
-        {{> client/address-picker}}
+        <label>Pedido para
+          <select name="delivery_method" data-delivery-method>
+            <option value="delivery">Reparto a domicilio</option>
+            <option value="pickup">Recogida en local</option>
+          </select>
+        </label>
+        <div data-delivery-address>
+          {{> client/address-picker}}
+        </div>
         <label>Forma de pago
           <select name="payment_method">
             <option value="cash">Efectivo</option>

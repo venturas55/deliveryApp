@@ -29,7 +29,7 @@ async function getToken(config){
   const key=`${clientId}:${clientSecret}`,cached=tokenCache.get(key);
   if(cached&&Date.now()<cached.expiresAt)return cached.token;
   const body=new URLSearchParams({client_id:clientId,client_secret:clientSecret,grant_type:"client_credentials",scope:"eats.deliveries"});
-  const response=await fetch("https://auth.uber.com/oauth/v2/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
+  const response=await fetch("https://auth.uber.com/oauth/v2/token",{signal:AbortSignal.timeout(15000),method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
   if(!response.ok)throw new Error(`Uber auth failed: ${response.status} ${await response.text()}`);
   const data=await response.json();
   if(!data.access_token)throw new Error("Uber no devolvió access_token");
@@ -38,7 +38,7 @@ async function getToken(config){
 }
 
 async function uberFetch(config,path,options={}){
-  const response=await fetch(`${apiBase(config.settings)}${path}`,{...options,headers:{"Content-Type":"application/json",Authorization:`Bearer ${await getToken(config)}`,...(options.headers||{})}});
+  const response=await fetch(`${apiBase(config.settings)}${path}`,{signal:AbortSignal.timeout(15000),...options,headers:{"Content-Type":"application/json",Authorization:`Bearer ${await getToken(config)}`,...(options.headers||{})}});
   const text=await response.text();let data;
   try{data=text?JSON.parse(text):null}catch{data=text}
   if(!response.ok)throw new Error(`Uber ${response.status}: ${typeof data==="string"?data:JSON.stringify(data)}`);
@@ -60,8 +60,12 @@ export function createUberDelivery(config){
       const data=await uberFetch(config,`/v1/customers/${encodeURIComponent(customerId)}/delivery_quotes`,{method:"POST",body:JSON.stringify({pickup_address:pickup(config).address,dropoff_address:addressObject(orderAddress(order),settings),...(order.delivery_latitude!=null&&order.delivery_longitude!=null?{dropoff_latitude:Number(order.delivery_latitude),dropoff_longitude:Number(order.delivery_longitude)}:{}),...(settings.pickupLat&&settings.pickupLng?{pickup_latitude:Number(settings.pickupLat),pickup_longitude:Number(settings.pickupLng)}:{})})});
       return {provider:"uber",quoteId:data.id,feeCents:Number(data.fee||0),etaMinutes:data.duration?Math.round(Number(data.duration)/60):null,expiresAt:data.expires?Date.parse(data.expires):null,raw:data};
     },
+    async get(providerOrderId){
+      return uberFetch(config,`/v1/customers/${encodeURIComponent(customerId)}/deliveries/${encodeURIComponent(providerOrderId)}`);
+    },
     async create(order,quote){
-      const settings=config.settings||{},dropoffNotes=[order.delivery_patio&&`Patio: ${order.delivery_patio}`,order.delivery_apartment&&`Piso/puerta: ${order.delivery_apartment}`,order.delivery_notes].filter(Boolean).join(". "),data=await uberFetch(config,`/v1/customers/${encodeURIComponent(customerId)}/deliveries`,{method:"POST",body:JSON.stringify({quote_id:quote.quoteId,pickup_address:pickup(config).address,pickup_name:required(settings,"pickupName"),pickup_phone_number:phoneNumber(settings.pickupPhone,"pickupPhone"),dropoff_address:addressObject(orderAddress(order),settings),dropoff_name:order.customer_name,dropoff_phone_number:phoneNumber(order.customer_phone,"customer_phone"),dropoff_notes:dropoffNotes,...(order.delivery_latitude!=null&&order.delivery_longitude!=null?{dropoff_latitude:Number(order.delivery_latitude),dropoff_longitude:Number(order.delivery_longitude)}:{}),manifest_items:order.items.map(item=>({name:item.product_name,quantity:item.quantity,size:"small"}))})});
+      const code=required(order,"pickup_verification_code");
+      const settings=config.settings||{},dropoffNotes=[order.delivery_patio&&`Patio: ${order.delivery_patio}`,order.delivery_apartment&&`Piso/puerta: ${order.delivery_apartment}`,order.delivery_notes].filter(Boolean).join(". "),verification=settings.dropoffVerification==="qr"?{dropoff_verification:{barcodes:[{type:"QR",value:required(order,"delivery_verification_code")}]}}:{},data=await uberFetch(config,`/v1/customers/${encodeURIComponent(customerId)}/deliveries`,{method:"POST",body:JSON.stringify({quote_id:quote.quoteId,idempotency_key:code,external_id:String(order.id),pickup_verification:{barcodes:[{type:"QR",value:code}]},...verification,pickup_notes:"Escanea el QR del pedido que muestra el restaurante antes de recogerlo.",undeliverable_action:"return",pickup_address:pickup(config).address,pickup_name:required(settings,"pickupName"),pickup_phone_number:phoneNumber(settings.pickupPhone,"pickupPhone"),dropoff_address:addressObject(orderAddress(order),settings),dropoff_name:order.customer_name,dropoff_phone_number:phoneNumber(order.customer_phone,"customer_phone"),dropoff_notes:dropoffNotes,...(order.delivery_latitude!=null&&order.delivery_longitude!=null?{dropoff_latitude:Number(order.delivery_latitude),dropoff_longitude:Number(order.delivery_longitude)}:{}),manifest_items:order.items.map(item=>({name:item.product_name,quantity:item.quantity,size:"small"}))})});
       return {provider:"uber",providerOrderId:data.id,providerStatus:data.status||"pending",trackingUrl:data.tracking_url,raw:data};
     }
   };

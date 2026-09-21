@@ -26,11 +26,12 @@ router.get("/admin/orders/:id",async(req,res)=>{
   const payload=event?JSON.parse(event.payload_json):null;
   const quotes=order.canQuote?(payload?.quotes||((payload?.quoteId)?[payload]:[])).filter(item=>item.expiresAt>Date.now()):[];
   const quoteErrors=payload?.errors||[];
-  const events=order.events.map(e=>{const p=JSON.parse(e.payload_json||"{}");return {...e,label:eventLabels[e.event_type]||e.event_type,statusLabel:labels[p.status],feeCents:p.feeCents}});
+  const events=order.events.map(e=>{const p=JSON.parse(e.payload_json||"{}");return {...e,label:eventLabels[e.event_type]||e.event_type,statusLabel:p.ignored?null:labels[p.status],reason:p.reason,feeCents:p.feeCents}});
   res.render("admin/order",{title:"Pedido #"+order.id,ordersActive:true,order,events,quotes,quoteErrors,refresh:!order.finished});
 });
+router.get("/admin/orders/:id/pickup-qr",async(req,res)=>res.set("Cache-Control","no-store").type("png").send(await admin.pickupQr(req)));
 router.post("/admin/orders/:id/:action",async(req,res)=>{
-  const operations={status:admin.setOrderStatus,quote:admin.deliveryQuote,dispatch:admin.dispatchDelivery,simulate:admin.simulateDelivery};
+  const operations={status:admin.setOrderStatus,quote:admin.deliveryQuote,dispatch:admin.dispatchDelivery,simulate:admin.simulateDelivery,sync:admin.syncDelivery};
   const operation=operations[req.params.action];
   if(!Object.hasOwn(operations,req.params.action))throw httpError(404,"Operación no encontrada");
   if(req.params.action==="dispatch")req.body={provider:req.body.provider,quoteId:req.body.quoteId};

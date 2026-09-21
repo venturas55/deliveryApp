@@ -1,4 +1,7 @@
 import {query,transaction} from "../db.js";
+import {randomUUID} from "node:crypto";
+import QRCode from "qrcode";
+import {normalizeDelivery,applyDeliveryUpdate,deliveryView} from "../services/delivery-tracking.js";
 import {getConfiguredDeliveryProvider,getConfiguredDeliveryProviders} from "../delivery/index.js";
 import {mockDelivery} from "../delivery/mock.js";
 import {logEvent} from "../services/order-events.js";
@@ -104,6 +107,12 @@ export async function dispatchDelivery(req){
   const requestedProvider=req.body?.provider||req.body?.quote?.provider||(process.env.DELIVERY_PROVIDER==="mock"?"mock":null);
   const requestedQuoteId=req.body?.quoteId||req.body?.quote?.quoteId;
   if(!requestedProvider||!requestedQuoteId)throw orderError(400,"Proveedor y quoteId requeridos");
+  // Commit the stable QR/idempotency key before any external create request.
+  if(requestedProvider==="uber")await changeOrder(req,async(c,order)=>{
+    deliveryReady(order);
+    if(!order.pickup_verification_code)await c.query("UPDATE orders SET pickup_verification_code=? WHERE id=?",[randomUUID(),order.id]);
+    if(!order.delivery_verification_code)await c.query("UPDATE orders SET delivery_verification_code=? WHERE id=?",[randomUUID(),order.id]);
+  });
   const delivery=await changeOrder(req,async(c,order)=>{
     deliveryReady(order);
     const events=await c.query("SELECT payload_json FROM order_events WHERE order_id=? AND event_type='delivery.quoted' ORDER BY id DESC LIMIT 1",[order.id]);
@@ -116,16 +125,44 @@ export async function dispatchDelivery(req){
     const delivery=await provider.create({...order,items},quote);
     await c.query("UPDATE orders SET status='delivery_requested',provider=?,provider_order_id=?,provider_status=? WHERE id=?",[delivery.provider,delivery.providerOrderId,delivery.providerStatus,order.id]);
     await logEvent(c,order.id,"delivery.requested",{...delivery,status:"delivery_requested",feeCents:quote.feeCents});
+    if(delivery.provider==="uber"){
+      const update=normalizeDelivery("uber",delivery.raw,{snapshot:true});
+      if(!update)throw orderError(502,"Uber devolvió un reparto no válido; reintenta la solicitud");
+      await applyDeliveryUpdate(c,{...order,status:"delivery_requested",provider:"uber",provider_order_id:delivery.providerOrderId,provider_status:delivery.providerStatus},update,{source:"create"});
+    }
     return delivery;
   });
   return (delivery);
 }
 
+export async function syncDelivery(req){
+  return changeOrder(req,async(c,order)=>{
+    if(order.provider!=="uber"||!order.provider_order_id)throw orderError(409,"Este pedido no tiene reparto Uber");
+    const provider=await getConfiguredDeliveryProvider(order.restaurant_id,"uber",true);
+    const data=await provider.get(order.provider_order_id);
+    const update=normalizeDelivery("uber",data,{snapshot:true});
+    if(!update)throw orderError(502,"Uber devolvió un estado no reconocido");
+    return applyDeliveryUpdate(c,order,update,{source:"sync"});
+  });
+}
+
+export async function pickupQr(req){
+  const order=await adminOrder(req);
+  if(!deliveryView(order).showPickupQr)throw orderError(409,"QR no disponible: comprueba el estado de recogida");
+  return QRCode.toBuffer(order.pickup_verification_code,{type:"png",width:320,margin:4,errorCorrectionLevel:"M"});
+}
+
 export async function simulateDelivery(req){
   const result=await changeOrder(req,async(c,order)=>{
-    if(order.provider!=="mock"||!order.provider_order_id)throw orderError(409,"Este pedido no tiene un reparto simulado");
+    const uberSimulation=process.env.DELIVERY_SIMULATION==="true"&&order.provider==="uber";
+    if((order.provider!=="mock"&&!uberSimulation)||!order.provider_order_id)throw orderError(409,"Este pedido no tiene un reparto simulado");
     const next=mockDelivery.next(order.status);
     if(!next||req.body?.status!==next.status)throw orderError(409,"El pedido ya ha cambiado o no permite este paso");
+    if(uberSimulation){
+      const update={providerOrderId:order.provider_order_id,eventId:`simulation-${next.providerStatus}-${Date.now()}`,providerStatus:next.providerStatus,status:next.status,eventMs:Date.now(),data:{id:order.provider_order_id,status:next.providerStatus,...next.status==="courier_assigned"?{courier:{name:"Repartidor simulado",public_phone_info:{formatted_phone_number:"+34900000000"}}}:next.status==="out_for_delivery"?{pickup:{verification:{barcodes:[{type:"QR",value:order.pickup_verification_code,scan_result:{outcome:"SUCCESS",timestamp:new Date().toISOString()}}]}}}:next.status==="delivered"?{dropoff:{verification:{barcodes:[{type:"QR",value:order.delivery_verification_code,scan_result:{outcome:"SUCCESS",timestamp:new Date().toISOString()}}]}}}:{}},raw:{simulation:true,status:next.providerStatus}};
+      await applyDeliveryUpdate(c,order,update,{source:"simulation"});
+      return next;
+    }
     await c.query("UPDATE orders SET status=?,provider_status=? WHERE id=?",[next.status,next.providerStatus,order.id]);
     await logEvent(c,order.id,"delivery.updated",{from:order.status,...next,provider:"mock"});
     return next;

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test test/order-flow.test.js test/delivery-credentials.test.js test/delivery-adapters.test.js test/geocoding.test.js",
+    "test": "node --test test/order-flow.test.js test/delivery-credentials.test.js test/delivery-adapters.test.js test/geocoding.test.js test/uber-delivery.test.js",
     "migrate": "node scripts/migrate.js",
     "glovo:test": "node scripts/test-glovo.js"
   },
@@ -20,6 +20,7 @@
     "google-auth-library": "^11.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mariadb": "^3.4.5"
+    "mariadb": "^3.4.5",
+    "qrcode": "^1.5.4"
   }
 }

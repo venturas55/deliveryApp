@@ -10,4 +10,34 @@
   {{#each quotes}}<p>{{provider}} · {{money feeCents}} · {{etaMinutes}} min estimados</p><form method="post" action="/admin/orders/{{../order.id}}/dispatch">{{> csrf}}<input type="hidden" name="provider" value="{{provider}}"><input type="hidden" name="quoteId" value="{{quoteId}}"><button>Solicitar reparto con {{provider}}</button></form>{{/each}}
   <p><a href="/admin/orders">Volver a pedidos</a> · <a href="/admin/orders/{{order.id}}">Actualizar estado</a></p>
 </section>
-<aside class="card"><h2>Historial</h2><ol>{{#each events}}<li>{{date created_at}} — {{label}}{{#if statusLabel}}: {{statusLabel}}{{/if}}{{#if feeCents}} · {{money feeCents}}{{/if}}</li>{{/each}}</ol></aside>
+{{#if order.provider_order_id}}
+<section class="card delivery-panel">
+  <h2>Reparto {{order.provider}}</h2>
+  <p>Referencia: {{order.provider_order_id}} · Estado: {{order.provider_status}}</p>
+  {{#if order.delivery.courier}}<p>Repartidor: <strong>{{order.delivery.courier.name}}</strong><br>Contacto: {{order.delivery.courier.phone}}<br>{{order.delivery.courier.vehicle}} {{order.delivery.courier.plate}}</p>{{/if}}
+  {{#if order.delivery.pickupEta}}<p>Recogida estimada: {{date order.delivery.pickupEta}}</p>{{/if}}
+  {{#if order.delivery.dropoffEta}}<p>Entrega estimada: {{date order.delivery.dropoffEta}}</p>{{/if}}
+  {{#if order.delivery.courierImminent}}<p>El repartidor está llegando a su próxima parada.</p>{{/if}}
+  {{#if order.delivery.trackingUrl}}<p><a href="{{order.delivery.trackingUrl}}" target="_blank" rel="noopener noreferrer">Abrir seguimiento Uber</a></p>{{/if}}
+  {{#if order.delivery.incident}}<p role="alert">Incidencia: {{order.delivery.incident}}</p>{{/if}}
+  {{#if order.delivery.returnPending}}<p role="status">Devolución en curso. Comprueba la llegada del pedido al restaurante.</p>{{/if}}
+  {{#if order.delivery.returnDeliveryId}}<p>Referencia de devolución: {{order.delivery.returnDeliveryId}}</p>{{/if}}
+  {{#if (eq order.provider "uber")}}
+    <p {{#if order.delivery.verificationProblem}}role="alert"{{/if}}>{{order.delivery.verificationLabel}}</p>
+    {{#if order.delivery.pickupVerification.timestamp}}<p>Escaneo: {{date order.delivery.pickupVerification.timestamp}}</p>{{/if}}
+  {{/if}}
+  {{#if order.delivery.showPickupQr}}
+    <div class="pickup-label">
+      <h3>Recogida · Pedido #{{order.id}}</h3>
+      <img src="/admin/orders/{{order.id}}/pickup-qr" width="320" height="320" alt="QR de recogida del pedido {{order.id}}">
+      <p>Muestra este QR al repartidor para que lo escanee con su aplicación Uber antes de llevarse el pedido.</p>
+    </div>
+    <button type="button" data-print-pickup>Imprimir etiqueta de recogida</button>
+  {{/if}}
+  {{#if order.delivery.deliveryVerificationLabel}}<p {{#if order.delivery.deliveryVerificationProblem}}role="alert"{{/if}}>{{order.delivery.deliveryVerificationLabel}}</p>{{/if}}
+  {{#if order.delivery.updatedAt}}<p>Última actualización: {{date order.delivery.updatedAt}}</p>{{/if}}
+  {{#if order.delivery.syncedAt}}<p>Última consulta a Uber: {{date order.delivery.syncedAt}}</p>{{/if}}
+  {{#if order.delivery.canSync}}<form method="post" action="/admin/orders/{{order.id}}/sync">{{> csrf}}<button>Consultar estado en Uber</button></form><p>Usa esta consulta si el seguimiento no se actualiza.</p>{{/if}}
+</section>
+{{/if}}
+<aside class="card"><h2>Historial</h2><ol>{{#each events}}<li>{{date created_at}} — {{label}}{{#if statusLabel}}: {{statusLabel}}{{/if}}{{#if reason}} · {{reason}}{{/if}}{{#if feeCents}} · {{money feeCents}}{{/if}}</li>{{/each}}</ol></aside>

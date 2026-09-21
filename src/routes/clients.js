@@ -6,3 +6,4 @@ clientApiRoutes.get("/public/menu",async(req,res)=>res.status(200).json(await op
 clientApiRoutes.post("/orders",customerAuth,async(req,res)=>res.status(201).json(await operations.createOrder(req)));
 clientApiRoutes.get("/customer/orders",customerAuth,async(req,res)=>res.status(200).json(await operations.customerOrders(req)));
 clientApiRoutes.get(["/customer/orders/:id","/orders/:id/public"],customerAuth,async(req,res)=>res.status(200).json(await operations.customerOrder(req)));
+clientApiRoutes.get("/customer/orders/:id/delivery/qr",customerAuth,async(req,res)=>res.set("Cache-Control","no-store").type("png").send(await operations.deliveryQr(req)));

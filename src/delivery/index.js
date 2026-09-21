@@ -1,6 +1,7 @@
 import {getDeliveryProviderConfig} from "../services/delivery-config.js";
 import {createGlovoDelivery} from "./glovo.js";
 import {createJustEatJetGoDelivery} from "./just-eat-jet-go.js";
+import {createStuartDelivery} from "./stuart.js";
 import {mockDelivery} from "./mock.js";
 import {createUberDelivery} from "./uber.js";
 
@@ -9,10 +10,10 @@ export function getDeliveryProvider(){return process.env.DELIVERY_PROVIDER==="ub
 export async function getConfiguredDeliveryProviders(restaurantId){
   if(process.env.DELIVERY_PROVIDER==="mock")return [mockDelivery];
   const result=[];
-  for(const provider of ["uber","glovo","just_eat_jet_go"]){
+  for(const provider of ["uber","glovo","just_eat_jet_go","stuart"]){
     const config=await getDeliveryProviderConfig(restaurantId,provider);
     if(!config.enabled)continue;
-    result.push(provider==="uber"?createUberDelivery(config):provider==="glovo"?createGlovoDelivery(config):createJustEatJetGoDelivery(config));
+    result.push(provider==="uber"?createUberDelivery(config):provider==="glovo"?createGlovoDelivery(config):provider==="just_eat_jet_go"?createJustEatJetGoDelivery(config):createStuartDelivery(config));
   }
   return result;
 }
@@ -21,7 +22,7 @@ export async function getConfiguredDeliveryProvider(restaurantId,name,allowDisab
   if(name==="mock"&&process.env.DELIVERY_PROVIDER==="mock")return mockDelivery;
   if(allowDisabled){
     const config=await getDeliveryProviderConfig(restaurantId,name);
-    return name==="uber"?createUberDelivery(config):name==="glovo"?createGlovoDelivery(config):createJustEatJetGoDelivery(config);
+    return name==="uber"?createUberDelivery(config):name==="glovo"?createGlovoDelivery(config):name==="just_eat_jet_go"?createJustEatJetGoDelivery(config):createStuartDelivery(config);
   }
   const providers=await getConfiguredDeliveryProviders(restaurantId);
   const provider=providers.find(candidate=>candidate.name===name);

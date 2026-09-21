@@ -24,7 +24,7 @@ router.get(["/","/index.html"],async(req,res)=>{
   const delivery=cart.length&&subtotal<Number(process.env.FREE_DELIVERY_FROM_CENTS||3000)?Number(process.env.DELIVERY_BASE_CENTS||399):0;
   const profile=req.customer?await accounts.customerProfile(req.customer.sub):null;
   if(profile)profile.addressData={formatted_address:profile.delivery_formatted_address,street:profile.delivery_street,number:profile.delivery_number,city:profile.delivery_city,province:profile.delivery_province,postal_code:profile.delivery_postal_code,country:profile.delivery_country,latitude:profile.delivery_latitude,longitude:profile.delivery_longitude,place_id:profile.delivery_place_id};
-  res.render("client/store",{title:"Carta",cartActive:true,categories:[...groups].map(([name,products])=>({name,products})),cart,subtotal,delivery,total:subtotal+delivery,profile,addressData:profile?.addressData});
+  res.render("client/store",{title:"Carta",cartActive:true,restaurant:data.restaurant,categories:[...groups].map(([name,products])=>({name,products})),cart,subtotal,delivery,total:subtotal+delivery,profile,addressData:profile?.addressData});
 });
 router.post("/cart",async(req,res)=>{
   const id=Number(req.body.product_id),action=req.body.action;

@@ -80,6 +80,9 @@ test("mock delivery: full lifecycle, isolation, duplicates and cancellation",{ti
     await request("/api/orders","POST",{},401,null);
     const create=()=>request("/api/orders","POST",{slug,items:[{product_id:Number(product.insertId),quantity:2}]},201,clientToken);
     const order=await create();
+    const pickupOrder=await request("/api/orders","POST",{slug,items:[{product_id:Number(product.insertId),quantity:1}],delivery_method:"pickup"},201,clientToken);
+    assert.equal(pickupOrder.delivery_method,"pickup");
+    assert.equal((await request(`/api/customer/orders/${pickupOrder.id}`,"GET",undefined,200,clientToken)).delivery_method,"pickup");
     await request("/api/customer-auth/me","PATCH",{delivery_address:"New address"},200,clientToken);
     assert.equal((await request(`/api/customer/orders/${order.id}`,"GET",undefined,200,clientToken)).delivery_address,"Test address");
     assert.equal((await request("/api/customer-auth/me","GET",undefined,200,second.token)).delivery_address,"");

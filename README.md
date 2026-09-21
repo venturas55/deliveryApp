@@ -220,6 +220,20 @@ antes de solicitar el reparto. Los webhooks se reciben en
 `/api/webhooks/delivery/:provider/:restaurantId` con firma HMAC en
 `x-delivery-signature`.
 
+Para completar pruebas locales sin esperar a un repartidor real, define
+`DELIVERY_SIMULATION=true` y reinicia el servidor. En un pedido Uber solicitado
+aparecerán los botones **Simular asignación**, **Simular recogida** y
+**Simular entrega**. Son acciones internas del panel del restaurante: reutilizan
+la aplicación de estados y evidencias, pero no llaman a Uber ni sustituyen un
+webhook real. No actives esta variable en producción.
+
+Para Uber, la verificación QR de recogida se envía siempre cuando se solicita el
+reparto. La verificación QR de entrega es opt-in: en la configuración de Uber,
+selecciona **QR del cliente** solo si el contrato de Uber Direct de la cuenta
+admite `dropoff_verification`. El cliente verá un QR privado durante el estado
+`out_for_delivery`; el resultado del escaneo llega por webhook o por la
+sincronización manual. Los códigos no se incluyen en la API JSON del cliente.
+
 ## Gestión de artículos
 
 Desde el panel, abre **Gestionar artículos** (`/admin/products`). Puedes crear,

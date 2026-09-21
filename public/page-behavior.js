@@ -14,6 +14,18 @@ if(document.body.dataset.refresh)setInterval(()=>{
 },Number(document.body.dataset.refresh));
 window.addEventListener("pageshow",()=>{submitting=false});
 
+document.querySelectorAll("[data-delivery-method]").forEach(select=>{
+  const addressBlock=select.closest("form")?.querySelector("[data-delivery-address]");
+  const fields=addressBlock?.querySelectorAll("input,select,textarea");
+  const sync=()=>{
+    const pickup=select.value==="pickup";
+    if(addressBlock)addressBlock.hidden=pickup;
+    fields?.forEach(field=>{if(!field.dataset.keepRequired)field.required=!pickup;});
+  };
+  select.addEventListener("change",sync);
+  sync();
+});
+
 document.querySelectorAll("[data-provider-tabs]").forEach(container=>{
   const tabs=[...container.querySelectorAll("[data-provider-tab]")],panels=[...container.querySelectorAll("[data-provider-panel]")];
   function activate(provider){
@@ -28,3 +40,5 @@ document.querySelectorAll("[data-provider-tabs]").forEach(container=>{
     event.preventDefault();tabs[next].focus();activate(tabs[next].dataset.providerTab);
   });
 });
+
+document.querySelectorAll("[data-print-pickup]").forEach(button=>button.addEventListener("click",()=>window.print()));
