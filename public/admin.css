@@ -1,0 +1,62 @@
+.order-payment {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: .5rem 0 1rem;
+}
+
+.payment-method-badge,
+.payment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .4rem .7rem;
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+
+/* Método de pago */
+.payment-method-badge {
+  color: #374151;
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+/* Pagado */
+.payment-badge--paid {
+  color: #166534;
+  background: #dcfce7;
+  border-color: #bbf7d0;
+}
+
+/* Pendiente */
+.payment-badge--pending {
+  color: #92400e;
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+
+/* Fallido */
+.payment-badge--failed {
+  color: #991b1b;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+/* Cancelado */
+.payment-badge--cancelled {
+  color: #4b5563;
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+/* Reembolsado */
+.payment-badge--refunded {
+  color: #5b21b6;
+  background: #ede9fe;
+  border-color: #ddd6fe;
+}

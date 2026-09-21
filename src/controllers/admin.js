@@ -76,7 +76,7 @@ export async function adminOrders(req){
   if(!groups.has(filter))throw httpError(400,"Filtro de pedidos no válido");
   const states=groups.get(filter);
   const clause=states.length?` AND status IN (${states.map(()=>"?").join(",")})`:"";
-  const orders=await query(`SELECT id,customer_name,customer_phone,delivery_address,delivery_notes,status,subtotal_cents,delivery_cents,total_cents,provider,provider_order_id,provider_status,created_at,updated_at FROM orders WHERE restaurant_id=?${clause} ORDER BY id DESC LIMIT 200`,[req.user.restaurant_id,...states]);
+  const orders=await query(`SELECT * FROM orders WHERE restaurant_id=?${clause} ORDER BY id DESC LIMIT 200`,[req.user.restaurant_id,...states]);
   return (orders);
 }
 

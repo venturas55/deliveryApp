@@ -6,6 +6,7 @@
   <title>{{title}} · {{restaurantName}}</title>
   <link rel="stylesheet" href="/style.css">
   {{#if clientArea}}<link rel="stylesheet" href="/client.css">{{/if}}
+  {{#if adminArea}}<link rel="stylesheet" href="/admin.css">{{/if}}
 </head>
 <body class="{{#if clientArea}}client-area{{/if}}"{{#if refresh}} data-refresh="5000"{{/if}}>
   {{> header}}
