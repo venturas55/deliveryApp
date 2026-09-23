@@ -10,6 +10,17 @@ CREATE TABLE IF NOT EXISTS restaurants (
   phone VARCHAR(40),
   address VARCHAR(500),
   city VARCHAR(100) DEFAULT 'Valencia',
+  delivery_formatted_address VARCHAR(500) NOT NULL DEFAULT '',
+  delivery_street VARCHAR(180) NOT NULL DEFAULT '',
+  delivery_number VARCHAR(40) NOT NULL DEFAULT '',
+  delivery_city VARCHAR(120) NOT NULL DEFAULT '',
+  delivery_province VARCHAR(120) NOT NULL DEFAULT '',
+  delivery_postal_code VARCHAR(20) NOT NULL DEFAULT '',
+  delivery_country VARCHAR(2) NOT NULL DEFAULT '',
+  delivery_latitude DECIMAL(10,7) NULL,
+  delivery_longitude DECIMAL(10,7) NULL,
+  delivery_place_id VARCHAR(255) NOT NULL DEFAULT '',
+  delivery_patio VARCHAR(120) NOT NULL DEFAULT '',
   active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

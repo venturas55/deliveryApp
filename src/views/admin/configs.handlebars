@@ -1,13 +1,213 @@
-<section class="card section-page"><h1>Mi cuenta</h1><p>Datos de tu negocio.</p>
-  {{#if saved}}<p class="success" role="status">Datos guardados.</p>{{/if}}
-  <form id="accountForm" method="post" action="/admin/account">{{> csrf}}
-    <label>Id<input type="number" value="{{configs.id}}" readonly></label>
-    <label>Nombre<input name="name" value="{{configs.name}}" maxlength="120" autocomplete="name" required></label>
-    <label>Slug<input name="slug" value="{{configs.slug}}" maxlength="80" autocomplete="slug" required></label>
-    <label>Teléfono<input name="phone" value="{{configs.phone}}" type="tel" maxlength="40" autocomplete="tel"></label>
-    <label>Direccion<input name="address" value="{{configs.address}}" type="text" maxlength="500" autocomplete="address-line1"></label>
-    <label>Ciudad<input name="city" value="{{configs.city}}" type="text" maxlength="100" autocomplete="address-line1"></label>
-    <label>Desde<input name="created_at" value="{{configs.created_at}}" type="text" maxlength="200" autocomplete="address-line1" readonly></label>
-    <button>Guardar datos</button>
+<section class="card section-page">
+
+  <header class="settings-header">
+    <div>
+      <span class="settings-eyebrow">CONFIGURACIÓN</span>
+      <h1>Mi negocio</h1>
+      <p>Gestiona la información general y las condiciones de reparto de tu restaurante.</p>
+    </div>
+  </header>
+
+  {{#if saved}}
+    <div class="settings-success" role="status">
+      <span class="settings-success-icon">✓</span>
+      <div>
+        <strong>Cambios guardados</strong>
+        <span>La configuración de tu negocio se ha actualizado correctamente.</span>
+      </div>
+    </div>
+  {{/if}}
+
+  <form id="accountForm" method="post" action="/admin/configs" class="settings-form">
+    {{> csrf}}
+
+    {{!-- DATOS DEL NEGOCIO --}}
+    <section class="settings-card">
+      <div class="settings-card-header">
+        <div class="settings-card-icon" aria-hidden="true">⌂</div>
+
+        <div>
+          <h2>Datos del negocio</h2>
+          <p>Información que identifica a tu restaurante.</p>
+        </div>
+      </div>
+
+      <div class="settings-grid">
+
+        <div class="form-field form-field--full">
+          <label for="business-name">Nombre del negocio</label>
+          <input
+            id="business-name"
+            name="name"
+            value="{{configs.name}}"
+            maxlength="120"
+            autocomplete="organization"
+            required
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="business-phone">Teléfono</label>
+          <input
+            id="business-phone"
+            name="phone"
+            value="{{configs.phone}}"
+            type="tel"
+            maxlength="40"
+            autocomplete="tel"
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="business-city">Ciudad</label>
+          <input
+            id="business-city"
+            name="city"
+            value="{{configs.city}}"
+            type="text"
+            maxlength="100"
+            autocomplete="address-level2"
+          >
+        </div>
+
+{{!--         <div class="form-field form-field--full">
+          <label for="business-address">Dirección</label>
+          <input
+            id="business-address"
+            name="address"
+            value="{{configs.address}}"
+            type="text"
+            maxlength="500"
+            autocomplete="street-address"
+          >
+        </div> --}}
+        {{> admin/address-picker}}
+
+ <div class="form-field">
+          <label>Numero
+    <input name="delivery_patio" value="{{configs.delivery_patio}}" maxlength="5" placeholder="Nº del patio o portal">
+  </label>
+</div>
+
+      </div>
+    </section>
+
+
+    {{!-- CONFIGURACIÓN DEL REPARTO --}}
+    <section class="settings-card">
+      <div class="settings-card-header">
+        <div class="settings-card-icon" aria-hidden="true">↗</div>
+
+        <div>
+          <h2>Configuración del reparto</h2>
+          <p>Define el coste estándar y cuándo ofrecer el envío gratuito.</p>
+        </div>
+      </div>
+
+      <div class="settings-grid">
+
+        <div class="form-field">
+          <label for="delivery-base">Coste de envío</label>
+
+          <div class="money-input">
+            <input
+              id="delivery-base"
+              name="delivery_base_cents"
+              value="{{decimal configs.delivery_base_cents}}"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              placeholder="3.00"
+            >
+            <span>€</span>
+          </div>
+
+          <small>Importe aplicado por defecto a los pedidos con reparto.</small>
+        </div>
+
+        <div class="form-field">
+          <label for="free-delivery">Envío gratis desde</label>
+
+          <div class="money-input">
+            <input
+              id="free-delivery"
+              name="free_delivery_from_cents"
+              value="{{decimal configs.free_delivery_from_cents}}"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              placeholder="30.00"
+            >
+            <span>€</span>
+          </div>
+
+          <small>Importe mínimo del pedido para no cobrar gastos de envío.</small>
+        </div>
+
+      </div>
+    </section>
+
+
+    {{!-- INFORMACIÓN INTERNA --}}
+    <section class="settings-card settings-card--secondary">
+      <div class="settings-card-header">
+        <div class="settings-card-icon" aria-hidden="true">i</div>
+
+        <div>
+          <h2>Información de la cuenta</h2>
+          <p>Datos internos asignados al restaurante.</p>
+        </div>
+      </div>
+
+      <div class="settings-grid">
+
+        <div class="form-field">
+          <label for="restaurant-id">ID del restaurante</label>
+          <input
+            id="restaurant-id"
+            type="number"
+            value="{{configs.id}}"
+            readonly
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="restaurant-slug">Identificador web</label>
+          <input
+            id="restaurant-slug"
+            name="slug"
+            value="{{configs.slug}}"
+            maxlength="80"
+            required
+          >
+          <small>Identificador utilizado internamente en la URL del negocio.</small>
+        </div>
+
+        <div class="form-field form-field--full">
+          <label for="created-at">Cuenta creada</label>
+          <input
+            id="created-at"
+            value="{{configs.created_at}}"
+            type="text"
+            readonly
+          >
+        </div>
+
+      </div>
+    </section>
+
+
+    <footer class="settings-actions">
+      <p>Los cambios se aplicarán a la configuración actual del restaurante.</p>
+
+      <button type="submit" class="settings-save">
+        <span aria-hidden="true">✓</span>
+        Guardar cambios
+      </button>
+    </footer>
+
   </form>
+
 </section>

@@ -6,8 +6,10 @@ import * as accounts from "../controllers/accounts.js";
 import {httpError} from "../services/http-error.js";
 import {presentOrder,labels,eventLabels} from "../services/order-presenter.js";
 import {requireAdmin,setSession,clearSession} from "../services/web-session.js";
+import {searchAddresses} from "../services/geocoding.js";
 const router=Router();
 const loginLimit=rateLimit({windowMs:15*60*1000,max:30});
+const addressLimit=rateLimit({windowMs:60*1000,max:30});
 
 router.get("/admin/login",(req,res)=>res.render("admin/login",{title:"Acceso del restaurante"}));
 router.post("/admin/login",loginLimit,async(req,res)=>{
@@ -16,6 +18,10 @@ router.post("/admin/login",loginLimit,async(req,res)=>{
 router.post("/admin/logout",(req,res)=>{clearSession(res,"admin");res.redirect(303,"/")});
 router.get(["/admin","/admin.html"],(req,res)=>res.redirect(303,req.user?"/admin/orders":"/admin/login"));
 router.use("/admin",requireAdmin);
+router.get("/admin/address-search",addressLimit,async(req,res)=>{
+  try{return res.json(await searchAddresses(req.query.q))}
+  catch{return res.status(502).json({error:"No se pudo consultar el buscador de direcciones"})}
+});
 router.get("/admin/orders",async(req,res)=>{
   const orders=await admin.adminOrders(req);
   res.render("admin/orders",{title:"Pedidos",ordersActive:true,filter:req.query.filter||"all",orders:orders.map(presentOrder),refresh:true});
@@ -74,7 +80,19 @@ router.post("/admin/products/:id/delete",async(req,res)=>{await admin.deleteProd
 
 router.get("/admin/configs",async(req,res)=>{
   const configs=await admin.adminConfigs(req);
-  res.render("admin/configs",{title:"Configuración",configsActive:true,configs,refresh:true});
+  const addressData=configs.delivery_place_id?{
+    formatted_address:configs.delivery_formatted_address,
+    street:configs.delivery_street,
+    number:configs.delivery_number,
+    city:configs.delivery_city,
+    province:configs.delivery_province,
+    postal_code:configs.delivery_postal_code,
+    country:configs.delivery_country,
+    latitude:configs.delivery_latitude,
+    longitude:configs.delivery_longitude,
+    place_id:configs.delivery_place_id
+  }:null;
+  res.render("admin/configs",{title:"Configuración",configsActive:true,configs,addressData,refresh:true});
 });
-router.post("/admin/account",async(req,res)=>{await admin.updateAdminConfigs(req);res.redirect(303,"/admin/configs?saved=1")});
+router.post("/admin/configs",async(req,res)=>{console.log(req.body);await admin.updateAdminConfigs(req);res.redirect(303,"/admin/configs?saved=1")});
 export default router;

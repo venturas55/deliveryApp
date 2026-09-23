@@ -7,49 +7,49 @@ document.querySelectorAll("[data-address-picker]").forEach((picker) => {
     formatted = picker.querySelector("[data-address-formatted]"),
     location = picker.querySelector("[data-address-location]");
   let timer, request;
-function showAddress(address) {
-  const selected = {
-    ...address,
-    formatted_address: address.formatted_address || "",
-    street: address.street || "",
-    number: address.number || "",
-    city: address.city || "",
-    province: address.province || "",
-    postal_code: address.postal_code || "",
-    country: address.country || "",
-    place_id: address.place_id || ""
-  };
+  function showAddress(address) {
+    const selected = {
+      ...address,
+      formatted_address: address.formatted_address || "",
+      street: address.street || "",
+      number: address.number || "",
+      city: address.city || "",
+      province: address.province || "",
+      postal_code: address.postal_code || "",
+      country: address.country || "",
+      place_id: address.place_id || "",
+    };
 
-  if (!selected.formatted_address || !selected.place_id) return;
+    if (!selected.formatted_address || !selected.place_id) return;
 
-  dataInput.value = JSON.stringify(selected);
-  picker.dataset.selected = "true";
+    dataInput.value = JSON.stringify(selected);
+    picker.dataset.selected = "true";
 
-  search.setCustomValidity("");
-  search.value = selected.formatted_address;
+    search.setCustomValidity("");
+    search.value = selected.formatted_address;
 
-  street.textContent = [selected.street, selected.number]
-    .filter(Boolean)
-    .join(" ");
+    street.textContent = [selected.street, selected.number]
+      .filter(Boolean)
+      .join(" ");
 
-  formatted.textContent = selected.formatted_address;
+    formatted.textContent = selected.formatted_address;
 
-  location.textContent = [
-    selected.city,
-    selected.province,
-    selected.postal_code,
-    selected.country
-  ]
-    .filter(Boolean)
-    .join(" · ");
+    location.textContent = [
+      selected.city,
+      selected.province,
+      selected.postal_code,
+      selected.country,
+    ]
+      .filter(Boolean)
+      .join(" · ");
 
-  // Eliminar completamente las sugerencias
-  suggestions.hidden = true;
-  suggestions.replaceChildren();
-  suggestions._items = [];
+    // Eliminar completamente las sugerencias
+    suggestions.hidden = true;
+    suggestions.replaceChildren();
+    suggestions._items = [];
 
-  confirmation.hidden = false;
-}
+    confirmation.hidden = false;
+  }
   function render(items) {
     suggestions.replaceChildren();
     const validItems = (Array.isArray(items) ? items : []).filter(

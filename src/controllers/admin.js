@@ -6,10 +6,28 @@ import {getConfiguredDeliveryProvider,getConfiguredDeliveryProviders} from "../d
 import {mockDelivery} from "../delivery/mock.js";
 import {logEvent} from "../services/order-events.js";
 import {httpError} from "../services/http-error.js";
+import {cleanAddress,validateAddress} from "../services/geocoding.js";
 import {getDeliveryProviders,providerFields,saveDeliveryProvider} from "../services/delivery-config.js";
 import {  refundOrderPayment} from "./redsys-payments.js";
 // Lock the order so each state change and its event are committed together.
 function orderError(status,message){return Object.assign(new Error(message),{status})}
+
+function eurosToCents(value) {
+  const normalized = String(value)
+    .trim()
+    .replace(",", ".");
+
+  const euros = Number(normalized);
+
+  if (!Number.isFinite(euros) || euros < 0) {
+    throw orderError(
+      400,
+      "El importe introducido no es válido"
+    );
+  }
+
+  return Math.round(euros * 100);
+}
 async function changeOrder(req,fn){
   return transaction(async c=>{
     const rows=await c.query("SELECT * FROM orders WHERE id=? AND restaurant_id=? FOR UPDATE",[req.params.id,req.user.restaurant_id]);
@@ -46,23 +64,109 @@ function productData(body,partial=false){
   return data;
 }
 
-function configsData(body,partial=false){
-  if(!body||typeof body!=="object"||Array.isArray(body))throw orderError(400,"Datos de configuración inválidos");
-  const data={};
-  const defaults={name:"",slug:"",phone:"",address:"",city:"",active:1};
-  for(const [field,max] of [["name",150],["slug",80],["phone",40],["address",500],["city",100]]){
-    if(partial&&body[field]===undefined)continue;
-    const value=body[field]??defaults[field];
-    if(typeof value!=="string"||value.trim().length>max||(field!=="description"&&!value.trim()))throw orderError(400,`Campo ${field} inválido (máximo ${max} caracteres)`);
-    data[field]=value.trim();
+function configsData(body, partial = false) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw orderError(400, "Datos de configuración inválidos");
   }
 
-  if(!partial||body.active!==undefined){
-    const value=body.active??1;
-    if(![0,1,true,false].includes(value))throw orderError(400,"Disponibilidad inválida");
-    data.active=Number(value);
+  const data = {};
+
+  // Campos de texto
+  const textFields = [
+    ["name", 150],
+    ["slug", 80],
+    ["phone", 40],
+    ["address", 500],
+    ["city", 100]
+  ];
+
+  for (const [field, max] of textFields) {
+    if (partial && body[field] === undefined) continue;
+
+    const value = body[field] ?? "";
+
+    if (
+      typeof value !== "string" ||
+      !value.trim() ||
+      value.trim().length > max
+    ) {
+      throw orderError(
+        400,
+        `Campo ${field} inválido (máximo ${max} caracteres)`
+      );
+    }
+
+    data[field] = value.trim();
   }
-  if(!Object.keys(data).length)throw orderError(400,"No hay cambios que guardar");
+
+  for (const [field, max] of [
+    ["delivery_formatted_address", 500],
+    ["delivery_street", 180],
+    ["delivery_number", 40],
+    ["delivery_city", 120],
+    ["delivery_province", 120],
+    ["delivery_postal_code", 20],
+    ["delivery_country", 2],
+    ["delivery_place_id", 255],
+    ["delivery_patio", 120]
+  ]) {
+    if (partial && body[field] === undefined) continue;
+    const value = body[field] ?? "";
+    if (typeof value !== "string" || value.length > max) {
+      throw orderError(400, `Campo ${field} inválido (máximo ${max} caracteres)`);
+    }
+    data[field] = value.trim();
+  }
+
+  for (const field of [
+  "delivery_base_cents",
+  "free_delivery_from_cents"
+]) {
+  if (partial && body[field] === undefined) continue;
+
+  const euros = Number(
+    String(body[field]).replace(",", ".")
+  );
+
+  if (!Number.isFinite(euros) || euros < 0) {
+    throw orderError(
+      400,
+      `Campo ${field} inválido`
+    );
+  }
+
+  for (const field of ["delivery_latitude", "delivery_longitude"]) {
+    if (partial && body[field] === undefined) continue;
+    const value = Number(body[field]);
+    if (!Number.isFinite(value)) throw orderError(400, `Campo ${field} inválido`);
+    data[field] = value;
+  }
+
+  // Euros → céntimos
+  data[field] = Math.round(euros * 100);
+}
+
+  // Restaurante activo/inactivo
+  if (!partial || body.active !== undefined) {
+    const value = body.active ?? 1;
+
+    if (![0, 1, true, false, "0", "1"].includes(value)) {
+      throw orderError(
+        400,
+        "Disponibilidad inválida"
+      );
+    }
+
+    data.active = Number(value);
+  }
+
+  if (!Object.keys(data).length) {
+    throw orderError(
+      400,
+      "No hay cambios que guardar"
+    );
+  }
+
   return data;
 }
 
@@ -342,17 +446,73 @@ export async function adminConfigs(req){
   const configs=await query(`SELECT * FROM restaurants WHERE id=?`,[req.user.restaurant_id]);
   return (configs[0]);
 }
-export async function updateAdminConfigs(req){
-  const data=configsData(req.body,true);
-  console.log(data);
-  const fields=Object.keys(data);
-  const result=await query(`UPDATE restaurants SET ${fields.map(field=>field+"=?").join(",")} WHERE id=?`,[...Object.values(data),req.user.restaurant_id]);
-/*   if(!result.affectedRows){
-    const existing=await query("SELECT id FROM restaurants WHERE id=? AND restaurant_id=?",[req.params.id,req.user.restaurant_id]);
-    if(!existing.length)throw orderError(404,"Configuración no encontrada");
-  } */
-  return ({ok:true});
+export async function updateAdminConfigs(req) {
+  const body = {
+    ...req.body
+  };
+
+  const rawAddress = body.delivery_address_data;
+  if (rawAddress && String(rawAddress).trim() !== "{}") {
+    let addressData = rawAddress;
+    if (typeof addressData === "string") {
+      try { addressData = JSON.parse(addressData); }
+      catch { throw orderError(400, "Dirección seleccionada inválida"); }
+    }
+    const addressError = validateAddress(addressData);
+    if (addressError) throw orderError(400, addressError);
+    const address = cleanAddress(addressData);
+    Object.assign(body, {
+      address: address.formatted_address,
+      city: address.city,
+      delivery_formatted_address: address.formatted_address,
+      delivery_street: address.street,
+      delivery_number: address.number,
+      delivery_city: address.city,
+      delivery_province: address.province,
+      delivery_postal_code: address.postal_code,
+      delivery_country: address.country,
+      delivery_latitude: address.latitude,
+      delivery_longitude: address.longitude,
+      delivery_place_id: address.place_id
+    });
+  }
+  delete body.delivery_address_data;
+
+  // Euros del formulario → céntimos
+  if (body.delivery_base_euros !== undefined) {
+    body.delivery_base_cents = eurosToCents(
+      body.delivery_base_euros
+    );
+
+    delete body.delivery_base_euros;
+  }
+
+  if (body.free_delivery_from_euros !== undefined) {
+    body.free_delivery_from_cents = eurosToCents(
+      body.free_delivery_from_euros
+    );
+
+    delete body.free_delivery_from_euros;
+  }
+
+  const data = configsData(body, true);
+
+  console.log("CONFIG ACTUALIZADA:", data);
+
+  const fields = Object.keys(data);
+
+  const result = await query(
+    `UPDATE restaurants
+     SET ${fields.map(field => `${field}=?`).join(", ")}
+     WHERE id=?`,
+    [
+      ...Object.values(data),
+      req.user.restaurant_id
+    ]
+  );
+
+  console.log("FILAS MODIFICADAS:", result.affectedRows);
+
+  return { ok: true };
 }
-
-
 
