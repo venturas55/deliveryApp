@@ -488,6 +488,16 @@ html {
     outline: 2px solid var(--green-color);
     outline-offset: 2px;
 }
+.address-suggestion{
+    padding: 10px 12px;
+    cursor: pointer;
+    color: var(--white-color);
+    background: var(--green-color);
+}
+
+.address-suggestion:hover{
+     background: var(--hover-color);
+}
 @media(max-width:900px) {
     .client-area header {
         gap: 16px

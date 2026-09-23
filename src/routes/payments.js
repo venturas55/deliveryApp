@@ -106,7 +106,6 @@ router.get("/payment/redsys/test", (req, res, next) => {
   }
 });
 
-
 router.get("/payment/redsys/success", (req, res) => {
   res.send(`
     <h1>Pago completado</h1>
@@ -114,14 +113,12 @@ router.get("/payment/redsys/success", (req, res) => {
   `);
 });
 
-
 router.get("/payment/redsys/error", (req, res) => {
   res.status(400).send(`
     <h1>Pago no completado</h1>
     <p>Redsys ha devuelto el navegador a la URL KO.</p>
   `);
 });
-
 
 router.post(
   "/payment/redsys/notification",
@@ -203,6 +200,5 @@ router.post(
     }
   }
 );
-
 
 export default router;

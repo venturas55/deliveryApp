@@ -1,14 +1,164 @@
-<section class="card"><h1>Pedido #{{order.id}}</h1><h2>{{order.statusLabel}} - {{order.payment_status}}</h2><p>{{order.customer_name}} · {{order.customer_phone}}<br>{{order.delivery_address}}</p><p>{{order.delivery_notes}}</p>
+<section class="card">
+  <h1>Pedido #{{order.id}}</h1>
+
+  <div class="order-status-header">
+    <h2>{{order.statusLabel}}</h2>
+
+    <div class="order-payment">
+
+      {{#if (eq order.payment_method "online")}}
+        <span class="payment-method-badge">
+          💳 Tarjeta online
+        </span>
+      {{else if (eq order.payment_method "cash")}}
+        <span class="payment-method-badge">
+          💶 Efectivo
+        </span>
+      {{else if (eq order.payment_method "card_on_delivery")}}
+        <span class="payment-method-badge">
+          💳 Tarjeta al repartidor
+        </span>
+      {{/if}}
+
+      {{#if (eq order.payment_status "paid")}}
+        <span class="payment-badge payment-badge--paid">
+          ✓ Pagado
+        </span>
+
+      {{else if (eq order.payment_status "refund_pending")}}
+        <span class="payment-badge payment-badge--pending">
+          ↩ Devolución en curso
+        </span>
+
+      {{else if (eq order.payment_status "refunded")}}
+        <span class="payment-badge payment-badge--refunded">
+          ↩ Reembolsado
+        </span>
+
+      {{else if (eq order.payment_status "failed")}}
+        <span class="payment-badge payment-badge--failed">
+          ✕ Pago fallido
+        </span>
+
+      {{else if (eq order.payment_status "cancelled")}}
+        <span class="payment-badge payment-badge--cancelled">
+          ✕ Pago cancelado
+        </span>
+
+      {{else}}
+        <span class="payment-badge payment-badge--pending">
+          ⏱ Pendiente de pago
+        </span>
+      {{/if}}
+
+    </div>
+  </div><p>{{order.customer_name}} · {{order.customer_phone}}<br>{{order.delivery_address}}</p><p>{{order.delivery_notes}}</p>
   <ul>{{#each order.items}}<li>{{quantity}} × {{product_name}} — {{money (multiply quantity unit_price_cents)}}</li>{{/each}}</ul><p>Total: <strong>{{money order.total_cents}}</strong></p>
+  {{#if (eq order.payment_status "refunded")}}
+  <div class="refund-info">
+    <strong>↩ Pago reembolsado</strong>
+
+    <p>
+      Se han devuelto
+      <strong>{{money order.refund_amount_cents}}</strong>
+      al cliente.
+    </p>
+
+    {{#if order.refunded_at}}
+      <small>
+        Devolución realizada:
+        {{date order.refunded_at}}
+      </small>
+    {{/if}}
+  </div>
+{{/if}}
   <div class="order-actions">
     {{#if order.nextStatus}}<form method="post" action="/admin/orders/{{order.id}}/status">{{> csrf}}<input type="hidden" name="status" value="{{order.nextStatus}}"><button>{{order.nextLabel}}</button></form>{{/if}}
-    {{#if order.canCancel}}<form method="post" action="/admin/orders/{{order.id}}/status" data-confirm="¿Cancelar este pedido?">{{> csrf}}<input type="hidden" name="status" value="cancelled"><button>Cancelar pedido</button></form>{{/if}}
+    {{#if order.canCancel}}
+
+  {{#if (eq order.payment_method "online")}}
+
+    {{#if (eq order.payment_status "paid")}}
+
+      <form
+        method="post"
+        action="/admin/orders/{{order.id}}/status"
+        data-confirm="Este pedido ya está pagado. Se cancelará el pedido y se devolverán {{money order.total_cents}} al cliente mediante Redsys. ¿Quieres continuar?"
+      >
+        {{> csrf}}
+
+        <input
+          type="hidden"
+          name="status"
+          value="cancelled"
+        >
+
+        <button class="danger-button">
+          Rechazar y devolver {{money order.total_cents}}
+        </button>
+      </form>
+
+    {{else}}
+
+      <form
+        method="post"
+        action="/admin/orders/{{order.id}}/status"
+        data-confirm="¿Cancelar este pedido?"
+      >
+        {{> csrf}}
+
+        <input
+          type="hidden"
+          name="status"
+          value="cancelled"
+        >
+
+        <button class="danger-button">
+          Rechazar pedido
+        </button>
+      </form>
+
+    {{/if}}
+
+  {{else}}
+
+    <form
+      method="post"
+      action="/admin/orders/{{order.id}}/status"
+      data-confirm="¿Cancelar este pedido?"
+    >
+      {{> csrf}}
+
+      <input
+        type="hidden"
+        name="status"
+        value="cancelled"
+      >
+
+      <button class="danger-button">
+        Rechazar pedido
+      </button>
+    </form>
+
+  {{/if}}
+
+{{/if}}
     {{#if order.canQuote}}<form method="post" action="/admin/orders/{{order.id}}/quote">{{> csrf}}<button>Consultar reparto</button></form>{{/if}}
     {{#if order.simulationStatus}}<form method="post" action="/admin/orders/{{order.id}}/simulate">{{> csrf}}<input type="hidden" name="status" value="{{order.simulationStatus}}"><button>{{order.simulationLabel}}</button></form>{{/if}}
   </div>
   {{#each quoteErrors}}<p>{{provider}}: {{error}}</p>{{/each}}
   {{#each quotes}}<p>{{provider}} · {{money feeCents}} · {{etaMinutes}} min estimados</p><form method="post" action="/admin/orders/{{../order.id}}/dispatch">{{> csrf}}<input type="hidden" name="provider" value="{{provider}}"><input type="hidden" name="quoteId" value="{{quoteId}}"><button>Solicitar reparto con {{provider}}</button></form>{{/each}}
-  <p><a href="/admin/orders">Volver a pedidos</a> · <a href="/admin/orders/{{order.id}}">Actualizar estado</a></p>
+  <nav class="order-navigation" aria-label="Navegación del pedido">
+  <a href="/admin/orders" class="admin-action admin-action--back">
+    <span aria-hidden="true">←</span>
+    Volver a pedidos
+  </a>
+
+  <a href="/admin/orders/{{order.id}}" class="admin-action admin-action--refresh">
+    <span aria-hidden="true">↻</span>
+    Actualizar estado
+  </a>
+</nav>
 </section>
 {{#if order.provider_order_id}}
 <section class="card delivery-panel">

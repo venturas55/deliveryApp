@@ -41,6 +41,10 @@
           <span class="payment-badge payment-badge--cancelled">
             ✕ Cancelado
           </span>
+        {{else if (eq payment_status "refund_pending")}}
+        <span class="payment-badge payment-badge--pending">
+          ↩ Devolución en curso
+        </span>
         {{else if (eq payment_status "refunded")}}
           <span class="payment-badge payment-badge--refunded">
             ↩ Reembolsado

@@ -221,8 +221,17 @@ router.get(
   addressLimit,
   async (req, res) => {
     try {
-      return res.json(await searchAddresses(req.query.q));
+      console.log("BUSQUEDA:", JSON.stringify(req.query.q));
+      console.log("USER AGENT:", req.get("user-agent"));
+
+      const results = await searchAddresses(req.query.q);
+
+      console.log("RESULTADOS:", results);
+
+      return res.json(results);
     } catch (error) {
+      console.error("ERROR ADDRESS SEARCH:", error);
+
       return res
         .status(502)
         .json({ error: "No se pudo consultar el buscador de direcciones" });

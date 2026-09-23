@@ -60,3 +60,111 @@
   background: #ede9fe;
   border-color: #ddd6fe;
 }
+
+.order-status-header {
+  margin-bottom: 1.25rem;
+}
+
+.order-status-header h2 {
+  margin-bottom: .6rem;
+}
+
+.refund-info {
+  margin: 1rem 0;
+  padding: 1rem 1.1rem;
+
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 12px;
+
+  color: #5b21b6;
+}
+
+.refund-info p {
+  margin: .4rem 0;
+}
+
+.refund-info small {
+  opacity: .8;
+}
+
+.danger-button {
+  background: #b91c1c;
+  color: #fff;
+  border: 0;
+}
+
+.danger-button:hover {
+  background: #991b1b;
+}
+.order-navigation {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .65rem;
+
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+
+  border-top: 1px solid #e5e7eb;
+}
+
+.admin-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+
+  padding: .65rem 1rem;
+
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+
+  background: #fff;
+  color: #374151;
+
+  font-size: .9rem;
+  font-weight: 600;
+  line-height: 1;
+
+  text-decoration: none;
+
+  transition:
+    background-color .15s ease,
+    border-color .15s ease,
+    color .15s ease,
+    transform .15s ease;
+}
+
+.admin-action:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  color: #111827;
+  text-decoration: none;
+}
+
+.admin-action:active {
+  transform: translateY(1px);
+}
+
+.admin-action--refresh {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.admin-action--refresh:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #14532d;
+}
+
+@media (max-width: 600px) {
+  .order-navigation {
+    align-items: stretch;
+  }
+
+  .admin-action {
+    flex: 1;
+  }
+}

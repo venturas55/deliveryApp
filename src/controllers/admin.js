@@ -7,6 +7,7 @@ import {mockDelivery} from "../delivery/mock.js";
 import {logEvent} from "../services/order-events.js";
 import {httpError} from "../services/http-error.js";
 import {getDeliveryProviders,providerFields,saveDeliveryProvider} from "../services/delivery-config.js";
+import {  refundOrderPayment} from "./redsys-payments.js";
 // Lock the order so each state change and its event are committed together.
 function orderError(status,message){return Object.assign(new Error(message),{status})}
 async function changeOrder(req,fn){
@@ -88,18 +89,109 @@ export async function adminOrder(req){
   return ({...rows[0],items,events});
 }
 
-export async function setOrderStatus(req){
-  const transitions={new:["accepted","cancelled"],accepted:["preparing","cancelled"],preparing:["ready","cancelled"],ready:["cancelled"]};
-  const status=req.body?.status;
-  if(!["accepted","preparing","ready","cancelled"].includes(status))throw orderError(400,"Estado no permitido");
-  await changeOrder(req,async(c,order)=>{
-    if(!transitions[order.status]?.includes(status))throw orderError(409,"El pedido ya ha cambiado o no permite esta transición");
-    await c.query("UPDATE orders SET status=? WHERE id=?",[status,order.id]);
-    await logEvent(c,order.id,"status.changed",{from:order.status,status});
-  });
-  return ({ok:true});
-}
+export async function setOrderStatus(req) {
 
+  const transitions = {
+    new: ["accepted", "cancelled"],
+    accepted: ["preparing", "cancelled"],
+    preparing: ["ready", "cancelled"],
+    ready: ["cancelled"]
+  };
+
+  const status = req.body?.status;
+
+  if (
+    ![
+      "accepted",
+      "preparing",
+      "ready",
+      "cancelled"
+    ].includes(status)
+  ) {
+    throw orderError(
+      400,
+      "Estado no permitido"
+    );
+  }
+
+  /*
+   * Si el administrador está rechazando
+   * el pedido, comprobamos primero si
+   * tenemos que devolver un pago Redsys.
+   */
+  if (status === "cancelled") {
+
+    await refundOrderPayment(
+      req.params.id
+    );
+  }
+
+  /*
+   * Solo llegamos aquí si:
+   *
+   * - no necesitaba devolución, o
+   * - Redsys confirmó la devolución.
+   */
+  await changeOrder(
+    req,
+    async (c, order) => {
+
+      if (
+        !transitions[order.status]?.includes(status)
+      ) {
+        throw orderError(
+          409,
+          "El pedido ya ha cambiado o no permite esta transición"
+        );
+      }
+
+      await c.query(
+        `UPDATE orders
+         SET status = ?
+         WHERE id = ?`,
+        [
+          status,
+          order.id
+        ]
+      );
+
+      await logEvent(
+        c,
+        order.id,
+        "status.changed",
+        {
+          from: order.status,
+          status
+        }
+      );
+
+      /*
+       * Dejamos además constancia
+       * explícita de la devolución.
+       */
+      if (
+        status === "cancelled" &&
+        order.payment_method === "online" &&
+        order.payment_status === "refunded"
+      ) {
+
+        await logEvent(
+          c,
+          order.id,
+          "payment.refunded",
+          {
+            amountCents:
+              order.refund_amount_cents
+          }
+        );
+      }
+    }
+  );
+
+  return {
+    ok: true
+  };
+}
 export async function deliveryQuote(req){
   const quote=await changeOrder(req,async(c,order)=>{
     deliveryReady(order);

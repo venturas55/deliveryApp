@@ -4,6 +4,12 @@ const TEST_URL = "https://sis-t.redsys.es:25443/sis/realizarPago";
 
 const LIVE_URL = "https://sis.redsys.es/sis/realizarPago";
 
+const TEST_REST_URL =
+  "https://sis-t.redsys.es:25443/sis/rest/trataPeticionREST";
+
+const LIVE_REST_URL =
+  "https://sis.redsys.es/sis/rest/trataPeticionREST";
+
 function base64UrlEncode(data) {
   return Buffer.from(data)
     .toString("base64")
@@ -241,5 +247,121 @@ export function verifyRedsysNotification({
   return {
     valid,
     parameters
+  };
+}
+
+export async function refundRedsysPayment({
+  order,
+  amountCents
+}) {
+  const {
+    merchantCode,
+    terminal,
+    secretKey
+  } = getConfig();
+
+  const parameters = {
+    DS_MERCHANT_ORDER: String(order),
+    DS_MERCHANT_MERCHANTCODE: merchantCode,
+    DS_MERCHANT_TERMINAL: terminal,
+    DS_MERCHANT_TRANSACTIONTYPE: "3",
+    DS_MERCHANT_CURRENCY: "978",
+    DS_MERCHANT_AMOUNT: String(amountCents)
+  };
+
+  const merchantParameters =
+    base64UrlEncode(JSON.stringify(parameters));
+
+  const signature = createSignature(
+    merchantParameters,
+    String(order),
+    secretKey
+  );
+
+  const endpoint =
+    process.env.REDSYS_ENV === "live"
+      ? LIVE_REST_URL
+      : TEST_REST_URL;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+
+    headers: {
+      "Content-Type": "application/json"
+    },
+
+    body: JSON.stringify({
+      Ds_SignatureVersion: "HMAC_SHA512_V2",
+      Ds_MerchantParameters: merchantParameters,
+      Ds_Signature: signature
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Error HTTP Redsys devolución: ${response.status}`
+    );
+  }
+
+  const data = await response.json();
+
+  if (
+    !data.Ds_MerchantParameters ||
+    !data.Ds_Signature
+  ) {
+    throw new Error(
+      "Respuesta de devolución Redsys incompleta"
+    );
+  }
+
+  /*
+   * Verificamos también la firma de la
+   * respuesta recibida de Redsys.
+   */
+  const verification = verifyRedsysNotification({
+    signatureVersion: data.Ds_SignatureVersion,
+    merchantParameters: data.Ds_MerchantParameters,
+    signature: data.Ds_Signature
+  });
+
+  if (!verification.valid) {
+    throw new Error(
+      "Firma inválida en respuesta de devolución Redsys"
+    );
+  }
+
+  const result = verification.parameters;
+
+  const responseCode =
+    result.Ds_Response ??
+    result.DS_RESPONSE;
+
+  const returnedOrder =
+    result.Ds_Order ??
+    result.DS_ORDER;
+
+  const returnedAmount =
+    result.Ds_Amount ??
+    result.DS_AMOUNT;
+
+  if (String(returnedOrder) !== String(order)) {
+    throw new Error(
+      "Redsys devolvió un número de pedido diferente"
+    );
+  }
+
+  if (
+    Number(returnedAmount) !==
+    Number(amountCents)
+  ) {
+    throw new Error(
+      "Redsys devolvió un importe diferente"
+    );
+  }
+
+  return {
+    success: String(responseCode) === "0900",
+    responseCode: String(responseCode),
+    parameters: result
   };
 }
