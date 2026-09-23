@@ -5,6 +5,34 @@ import {getRestaurant} from "../services/restaurants.js";
 import {logEvent} from "../services/order-events.js";
 import {httpError} from "../services/http-error.js";
 import {cleanAddress,validateAddress} from "../services/geocoding.js";
+import {getConfiguredDeliveryProvider} from "../delivery/index.js";
+import {normalizeDelivery,applyDeliveryUpdate} from "../services/delivery-tracking.js";
+
+async function syncCustomerDelivery(order,customerId){
+  if(order.provider!=="uber"||!order.provider_order_id||["delivered","cancelled"].includes(order.status))return;
+  const details=parseDetails(order.delivery_details_json);
+  const lastSync=Date.parse(details.customerSyncedAt||"");
+  if(Number.isFinite(lastSync)&&Date.now()-lastSync<10000)return;
+  try{
+    const provider=await getConfiguredDeliveryProvider(order.restaurant_id,"uber",true);
+    const snapshot=await provider.get(order.provider_order_id);
+    const update=normalizeDelivery("uber",snapshot,{snapshot:true});
+    if(!update)return;
+    await transaction(async connection=>{
+      const rows=await connection.query("SELECT * FROM orders WHERE id=? AND customer_id=? FOR UPDATE",[order.id,customerId]);
+      if(!rows.length||rows[0].provider!=="uber")return;
+      const result=await applyDeliveryUpdate(connection,rows[0],update,{source:"sync"});
+      if(!result.ignored){
+        const updated=await connection.query("SELECT delivery_details_json FROM orders WHERE id=?",[order.id]);
+        const current=parseDetails(updated[0]?.delivery_details_json);
+        current.customerSyncedAt=new Date().toISOString();
+        await connection.query("UPDATE orders SET delivery_details_json=? WHERE id=?",[JSON.stringify(current),order.id]);
+      }
+    });
+  }catch{
+    // El webhook o la siguiente recarga pueden completar la actualización.
+  }
+}
 
 export async function menu(req){
   const r=await getRestaurant(req.query.slug||"demo"); if(!r)throw httpError(404,"Restaurante no encontrado");
@@ -64,10 +92,13 @@ export async function customerOrders(req){
 }
 
 export async function customerOrder(req){
-  const rows=await query("SELECT id,customer_name,delivery_address,delivery_method,status,subtotal_cents,delivery_cents,total_cents,provider,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
+  const rows=await query("SELECT id,restaurant_id,customer_name,delivery_address,delivery_method,status,subtotal_cents,delivery_cents,total_cents,provider,provider_order_id,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
   if(!rows.length)throw httpError(404,"Pedido no encontrado");
+  await syncCustomerDelivery(rows[0],req.customer.sub);
+  const refreshed=await query("SELECT id,customer_name,delivery_address,delivery_method,status,subtotal_cents,delivery_cents,total_cents,provider,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
+  const current=refreshed[0]||rows[0];
   const items=await query("SELECT product_name,quantity,unit_price_cents FROM order_items WHERE order_id=?",[req.params.id]);
-  const {delivery_details_json,delivery_verification_code,...order}=rows[0],details=parseDetails(delivery_details_json);
+  const {delivery_details_json,delivery_verification_code,...order}=current,details=parseDetails(delivery_details_json);
   // Pickup secrets, courier contact data and raw events remain restaurant-only.
   return ({...order,items,trackingUrl:safeTrackingUrl(details.trackingUrl),dropoffEta:details.dropoffEta||null,dropoffVerification:details.dropoffVerification||null,hasDeliveryVerificationQr:!!delivery_verification_code&&order.status==="out_for_delivery",returnPending:!!details.returnPending});
 }
