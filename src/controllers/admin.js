@@ -443,7 +443,9 @@ export async function testAdminDeliveryProvider(req){
 }
 
 export async function adminConfigs(req){
-  const configs=await query(`SELECT * FROM restaurants WHERE id=?`,[req.user.restaurant_id]);
+  console.log("Restaurant:",req.client._httpMessage.locals.restaurantName);
+  const configs=await query(`SELECT * FROM restaurants WHERE name like ?`,`%${req.client._httpMessage.locals.restaurantName}%`);
+  //const configs=await query(`SELECT * FROM restaurants WHERE id=?`,1);
   return (configs[0]);
 }
 export async function updateAdminConfigs(req) {

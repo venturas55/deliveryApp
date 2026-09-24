@@ -2,6 +2,7 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { signCustomer } from "../auth.js";
 import * as clients from "../controllers/clients.js";
+import { adminConfigs } from "../controllers/admin.js";
 import * as accounts from "../controllers/accounts.js";
 import * as payments from "../controllers/redsys-payments.js";
 import { httpError } from "../services/http-error.js";
@@ -21,7 +22,9 @@ const loginLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 });
 const addressLimit = rateLimit({ windowMs: 60 * 1000, max: 30 });
 
 router.get(["/", "/index.html"], async (req, res) => {
-  const data = await clients.menu({ query: { slug: "demo" } });
+  const data = await clients.menu({ query: { name: "Massa e fuoco" } });
+    const configsData = await adminConfigs(req);
+    console.log("CONFIGS DATA:", configsData);
   const products = data.products.map((p) => ({ ...p, id: Number(p.id) }));
   const groups = new Map();
   for (const product of products) {
@@ -43,11 +46,12 @@ router.get(["/", "/index.html"], async (req, res) => {
         ]
       : [];
   });
+
   const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
   const delivery =
     cart.length &&
-    subtotal < Number(process.env.FREE_DELIVERY_FROM_CENTS || 3000)
-      ? Number(process.env.DELIVERY_BASE_CENTS || 399)
+    subtotal < Number(configsData.free_delivery_from_cents) || 3000
+      ? Number(configsData.delivery_base_cents) || 399
       : 0;
   const profile = req.customer
     ? await accounts.customerProfile(req.customer.sub)
@@ -65,6 +69,7 @@ router.get(["/", "/index.html"], async (req, res) => {
       longitude: profile.delivery_longitude,
       place_id: profile.delivery_place_id,
     };
+
   res.render("client/store", {
     title: "Carta",
     cartActive: true,
@@ -73,6 +78,7 @@ router.get(["/", "/index.html"], async (req, res) => {
     cart,
     subtotal,
     delivery,
+    configsData,
     total: subtotal + delivery,
     profile,
     addressData: profile?.addressData,
@@ -135,11 +141,14 @@ router.post("/checkout", requireCustomer, async (req, res) => {
       String(Date.now()).slice(-8) + String(order.id).padStart(4, "0");
     await payments.setRedsysPaymentPending(order.id, redsysOrder);
     console.log(
-  "REDSYS:",
-  "pedido DB =", order.id,
-  "pedido Redsys =", redsysOrder,
-  "importe =", order.total_cents
-);
+      "REDSYS:",
+      "pedido DB =",
+      order.id,
+      "pedido Redsys =",
+      redsysOrder,
+      "importe =",
+      order.total_cents,
+    );
     const payment = createRedsysPayment({
       order: redsysOrder,
       amountCents: order.total_cents,
