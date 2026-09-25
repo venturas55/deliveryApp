@@ -199,7 +199,8 @@ export async function setOrderStatus(req) {
     new: ["accepted", "cancelled"],
     accepted: ["preparing", "cancelled"],
     preparing: ["ready", "cancelled"],
-    ready: ["cancelled"]
+    ready: ["cancelled", "out_for_delivery"],
+    out_for_delivery: ["delivered"]
   };
 
   const status = req.body?.status;
@@ -209,7 +210,9 @@ export async function setOrderStatus(req) {
       "accepted",
       "preparing",
       "ready",
-      "cancelled"
+      "cancelled",
+      "out_for_delivery",
+      "delivered"
     ].includes(status)
   ) {
     throw orderError(
@@ -249,6 +252,14 @@ export async function setOrderStatus(req) {
         );
       }
 
+      if (status === "out_for_delivery" && order.status === "ready") {
+        if (order.provider_order_id) throw orderError(409, "El pedido ya tiene un reparto externo");
+        await c.query("UPDATE orders SET status=?,provider='own',provider_status=? WHERE id=?", [status, status, order.id]);
+      } else if (status === "delivered") {
+        if (order.provider !== "own" || order.status !== "out_for_delivery") throw orderError(409, "Solo el administrador puede cerrar un reparto propio en curso");
+        await c.query("UPDATE orders SET status=?,provider_status=? WHERE id=?", [status, status, order.id]);
+      } else {
+
       await c.query(
         `UPDATE orders
          SET status = ?
@@ -258,6 +269,7 @@ export async function setOrderStatus(req) {
           order.id
         ]
       );
+      }
 
       await logEvent(
         c,

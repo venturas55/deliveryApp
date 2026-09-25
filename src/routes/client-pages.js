@@ -46,16 +46,20 @@ router.get(["/", "/index.html"], async (req, res) => {
         ]
       : [];
   });
-
   const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
   const delivery =
     cart.length &&
-    subtotal < Number(configsData.free_delivery_from_cents) || 3000
-      ? Number(configsData.delivery_base_cents) || 399
+    subtotal < Number(configsData.free_delivery_from_cents)
+      ? Number(configsData.delivery_base_cents) 
       : 0;
+  console.log("SUBTOTAL",cart.length,subtotal, Number(configsData.free_delivery_from_cents));
+  console.log("COMPARISON",subtotal < Number(configsData.free_delivery_from_cents) );
+  console.log("DELIVERY",delivery);
+
   const profile = req.customer
     ? await accounts.customerProfile(req.customer.sub)
     : null;
+
   if (profile)
     profile.addressData = {
       formatted_address: profile.delivery_formatted_address,

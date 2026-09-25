@@ -1,13 +1,12 @@
 import {query} from "../db.js";
 import {decryptSecret,encryptSecret} from "./delivery-credentials.js";
 
-export const providers=["uber","glovo","just_eat_jet_go","stuart"];
+export const providers=["uber","glovo","just_eat_jet_go"];
 
 const fields={
   uber:{credentials:["clientId","clientSecret"],settings:["customerId","pickupName","pickupPhone","pickupAddress","pickupLat","pickupLng","apiBaseUrl","dropoffVerification"]},
   glovo:{credentials:["clientId","clientSecret"],settings:["apiBaseUrl","addressBookId","vendorId","pickupName","pickupPhone","pickupAddress","pickupCity","pickupPostcode","quotePath","createPath"]},
   just_eat_jet_go:{credentials:["clientId","clientSecret","apiKey"],settings:["apiBaseUrl","accountId","pickupName","pickupPhone","pickupAddress","pickupLat","pickupLng","tokenPath","quotePath","createPath"]},
-  stuart:{credentials:["clientId","clientSecret","apiKey"],settings:["apiBaseUrl","accountId","pickupName","pickupPhone","pickupAddress","pickupLat","pickupLng","tokenPath","quotePath","createPath"]}
 };
 
 function parseJson(value,fallback={}){try{return value?JSON.parse(value):fallback}catch{return fallback}}

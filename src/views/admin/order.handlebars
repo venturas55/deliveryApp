@@ -143,11 +143,14 @@
   {{/if}}
 
 {{/if}}
-    {{#if order.canQuote}}<form method="post" action="/admin/orders/{{order.id}}/quote">{{> csrf}}<button>Consultar reparto</button></form>{{/if}}
+    
+    {{#if order.canQuote}}<form method="post" action="/admin/orders/{{order.id}}/quote">{{> csrf}}<button>Consultar reparto externo</button></form>{{/if}}
+    {{#if order.canCompleteOwnDelivery}}<form method="post" action="/admin/orders/{{order.id}}/status">{{> csrf}}<input type="hidden" name="status" value="delivered"><button>Marcar entregado</button></form>{{/if}}
     {{#if order.simulationStatus}}<form method="post" action="/admin/orders/{{order.id}}/simulate">{{> csrf}}<input type="hidden" name="status" value="{{order.simulationStatus}}"><button>{{order.simulationLabel}}</button></form>{{/if}}
   </div>
   {{#each quoteErrors}}<p>{{provider}}: {{error}}</p>{{/each}}
-  {{#each quotes}}<p>{{provider}} · {{money feeCents}} · {{etaMinutes}} min estimados</p><form method="post" action="/admin/orders/{{../order.id}}/dispatch">{{> csrf}}<input type="hidden" name="provider" value="{{provider}}"><input type="hidden" name="quoteId" value="{{quoteId}}"><button>Solicitar reparto con {{provider}}</button></form>{{/each}}
+  {{#each quotes}}<form method="post" action="/admin/orders/{{../order.id}}/dispatch">{{> csrf}}<input type="hidden" name="provider" value="{{provider}}"><input type="hidden" name="quoteId" value="{{quoteId}}"><button>Asignar con reparto de{{provider}} {{provider}} · {{money feeCents}} · {{etaMinutes}} min estimados</button></form>{{/each}}
+  {{#if order.canStartOwnDelivery}}<form method="post" action="/admin/orders/{{order.id}}/status">{{> csrf}}<input type="hidden" name="status" value="out_for_delivery"><button>Asignar con reparto propio</button></form>{{/if}}
   <nav class="order-navigation" aria-label="Navegación del pedido">
   <a href="/admin/orders" class="admin-action admin-action--back">
     <span aria-hidden="true">←</span>
