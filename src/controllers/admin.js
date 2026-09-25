@@ -42,11 +42,11 @@ function deliveryReady(order){
 function productData(body,partial=false){
   if(!body||typeof body!=="object"||Array.isArray(body))throw orderError(400,"Datos de artículo inválidos");
   const data={};
-  const defaults={description:"",category:"Pizzas",active:1,sort_order:0};
-  for(const [field,max] of [["name",120],["description",255],["category",80]]){
+  const defaults={description:"",category:"Pizzas",active:1,sort_order:0,image_url:"",image_description:""};
+  for(const [field,max] of [["name",120],["description",255],["category",80],["image_url",500],["image_description",255]]){
     if(partial&&body[field]===undefined)continue;
     const value=body[field]??defaults[field];
-    if(typeof value!=="string"||value.trim().length>max||(field!=="description"&&!value.trim()))throw orderError(400,`Campo ${field} inválido (máximo ${max} caracteres)`);
+    if(typeof value!=="string"||value.trim().length>max||(!["description","image_description"].includes(field)&&!value.trim()))throw orderError(400,`Campo ${field} inválido (máximo ${max} caracteres)`);
     data[field]=value.trim();
   }
   for(const field of ["price_cents","sort_order"]){
@@ -399,8 +399,8 @@ export async function simulateDelivery(req){
 }
 
 export async function createProduct(req){
-  const {name,description,category,price_cents,active,sort_order}=productData(req.body);
-  const result=await query("INSERT INTO products(restaurant_id,category,name,description,price_cents,active,sort_order) VALUES(?,?,?,?,?,?,?)",[req.user.restaurant_id,category,name,description,price_cents,active,sort_order]);
+  const {name,description,category,price_cents,active,sort_order,image_url,image_description}=productData(req.body);
+  const result=await query("INSERT INTO products(restaurant_id,category,name,description,price_cents,active,sort_order,image_url,image_description) VALUES(?,?,?,?,?,?,?,?,?)",[req.user.restaurant_id,category,name,description,price_cents,active,sort_order,image_url,image_description]);
   return ({id:Number(result.insertId)});
 }
 

@@ -1,0 +1,3 @@
+ALTER TABLE products
+  ADD COLUMN image_url VARCHAR(500) NOT NULL DEFAULT '',
+  ADD COLUMN image_description VARCHAR(255) NOT NULL DEFAULT '';

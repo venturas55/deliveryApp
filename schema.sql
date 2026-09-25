@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS products (
   category VARCHAR(80) DEFAULT 'Pizzas',
   name VARCHAR(120) NOT NULL,
   description VARCHAR(255),
+  image_url VARCHAR(500) NOT NULL DEFAULT '',
+  image_description VARCHAR(255) NOT NULL DEFAULT '',
   price_cents INT NOT NULL,
   active TINYINT(1) NOT NULL DEFAULT 1,
   sort_order INT NOT NULL DEFAULT 0,

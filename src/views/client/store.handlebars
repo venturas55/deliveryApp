@@ -7,6 +7,18 @@
         <h2>{{name}}</h2>
       {{#each products}}
         <article><div><h3>{{name}}</h3><p>{{description}}</p></div><strong>{{money price_cents}}</strong>
+        <a href="/product/{{id}}">
+
+        {{#if image_url}}
+       
+          <img src="{{image_url}}" class="product-image"  alt="{{#if image_description}}{{image_description}}{{else}}{{name}}{{/if}}" loading="lazy">
+    
+          {{else}}
+
+              <img src="/img/default.png" class="product-image" loading="lazy">
+          {{/if}}
+          </a>
+
           <form method="post" action="/cart">{{> csrf}}<input type="hidden" name="product_id" value="{{id}}"><button name="action" value="add">Añadir</button></form>
         </article>
       {{/each}}</section>

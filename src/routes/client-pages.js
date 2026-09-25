@@ -24,8 +24,9 @@ const addressLimit = rateLimit({ windowMs: 60 * 1000, max: 30 });
 router.get(["/", "/index.html"], async (req, res) => {
   const data = await clients.menu({ query: { name: "Massa e fuoco" } });
     const configsData = await adminConfigs(req);
-    console.log("CONFIGS DATA:", configsData);
+    //console.log("CONFIGS DATA:", configsData);
   const products = data.products.map((p) => ({ ...p, id: Number(p.id) }));
+  //console.log("PRODUCTS:", products);
   const groups = new Map();
   for (const product of products) {
     if (!groups.has(product.category)) groups.set(product.category, []);
@@ -52,9 +53,6 @@ router.get(["/", "/index.html"], async (req, res) => {
     subtotal < Number(configsData.free_delivery_from_cents)
       ? Number(configsData.delivery_base_cents) 
       : 0;
-  console.log("SUBTOTAL",cart.length,subtotal, Number(configsData.free_delivery_from_cents));
-  console.log("COMPARISON",subtotal < Number(configsData.free_delivery_from_cents) );
-  console.log("DELIVERY",delivery);
 
   const profile = req.customer
     ? await accounts.customerProfile(req.customer.sub)
@@ -88,6 +86,17 @@ router.get(["/", "/index.html"], async (req, res) => {
     addressData: profile?.addressData,
   });
 });
+router.get("/product/:id", async (req, res) => {
+  console.log(req.params.id);
+   const product = await clients.product(req.params.id);
+  res.render("client/product", {
+    title: "Carta item",
+    product 
+  });
+});
+
+
+
 router.post("/cart", async (req, res) => {
   const id = Number(req.body.product_id),
     action = req.body.action;

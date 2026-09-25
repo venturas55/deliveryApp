@@ -1,15 +1,39 @@
 import {Router} from "express";
+import multer from "multer";
+import {randomUUID} from "node:crypto";
+import {mkdir,writeFile} from "node:fs/promises";
+import path from "node:path";
 import rateLimit from "express-rate-limit";
 import {signAdmin} from "../auth.js";
 import * as admin from "../controllers/admin.js";
 import * as accounts from "../controllers/accounts.js";
 import {httpError} from "../services/http-error.js";
 import {presentOrder,labels,eventLabels} from "../services/order-presenter.js";
-import {requireAdmin,setSession,clearSession} from "../services/web-session.js";
+import {requireAdmin,setSession,clearSession,validateCsrf} from "../services/web-session.js";
 import {searchAddresses} from "../services/geocoding.js";
 const router=Router();
 const loginLimit=rateLimit({windowMs:15*60*1000,max:30});
 const addressLimit=rateLimit({windowMs:60*1000,max:30});
+const productImageUpload=multer({
+  storage:multer.memoryStorage(),
+  limits:{fileSize:5*1024*1024,files:1},
+  fileFilter:(req,file,cb)=>{
+    if(["image/jpeg","image/png","image/webp"].includes(file.mimetype))return cb(null,true);
+    const error=new Error("Formato de imagen no válido");error.status=400;cb(error);
+  }
+});
+async function saveProductImage(req,res,next){
+  if(!req.file)return next();
+  const extension={"image/jpeg":".jpg","image/png":".png","image/webp":".webp"}[req.file.mimetype];
+  const filename=randomUUID()+extension;
+  const directory=path.join(process.cwd(),"public","uploads","products");
+  try{
+    await mkdir(directory,{recursive:true});
+    await writeFile(path.join(directory,filename),req.file.buffer,{flag:"wx"});
+    req.body.image_url="/uploads/products/"+filename;
+    next();
+  }catch(error){next(error)}
+}
 
 router.get("/admin/login",(req,res)=>res.render("admin/login",{title:"Acceso del restaurante"}));
 router.post("/admin/login",loginLimit,async(req,res)=>{
@@ -47,7 +71,7 @@ router.get("/admin/products",async(req,res)=>{
   const products=await admin.adminProducts(req);
   const product=req.query.edit?products.find(p=>String(p.id)===req.query.edit):{category:"Pizzas",active:1,sort_order:0};
   if(!product)throw httpError(404,"Artículo no encontrado");
-  res.render("admin/products",{title:"Gestionar artículos",productsActive:true,products,product});
+  res.render("admin/products",{title:"Gestionar artículos",productsActive:true,products,product,productCount:products.length,activeProductCount:products.filter(item=>Number(item.active)===1).length});
 });
 router.get("/admin/providers",async(req,res)=>{
   const deliveryProviders=await admin.adminDeliveryProviders(req);
@@ -64,8 +88,8 @@ function productForm(req){
   if(typeof price!=="string"||!/^\d+(\.\d{1,2})?$/.test(price))throw httpError(400,"Precio no válido");
   req.body={...req.body,price_cents:Math.round(Number(price)*100),sort_order:Number(req.body.sort_order),active:req.body.active==="1"?1:0};
 }
-router.post("/admin/products",async(req,res)=>{productForm(req);await admin.createProduct(req);res.redirect(303,"/admin/products")});
-router.post("/admin/products/:id/edit",async(req,res)=>{productForm(req);await admin.updateProduct(req);res.redirect(303,"/admin/products")});
+router.post("/admin/products",productImageUpload.single("image"),validateCsrf,saveProductImage,async(req,res)=>{productForm(req);await admin.createProduct(req);res.redirect(303,"/admin/products")});
+router.post("/admin/products/:id/edit",productImageUpload.single("image"),validateCsrf,saveProductImage,async(req,res)=>{productForm(req);await admin.updateProduct(req);res.redirect(303,"/admin/products")});
 router.post("/admin/products/:id/toggle",async(req,res)=>{
   req.body={active:Number(req.body.active)};await admin.updateProduct(req);res.redirect(303,"/admin/products");
 });

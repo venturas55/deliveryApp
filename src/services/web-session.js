@@ -8,22 +8,28 @@ export function clearSession(res,role){res.clearCookie(role+"_session",cookieOpt
 export function readToken(value){
   try{return jwt.verify(value||"",process.env.JWT_SECRET,{algorithms:["HS256"]})}catch{return null}
 }
-export function webSession(req,res,next){
-  const customer=readToken(req.cookies.customer_session),admin=readToken(req.cookies.admin_session);
-  req.customer=customer?.role==="customer"?customer:null;
-  req.user=admin?.role==="admin"?admin:null;
-  res.locals.customerLoggedIn=!!req.customer;
-  res.locals.adminLoggedIn=!!req.user;
-  let csrf=req.cookies.web_csrf;
-  if(!/^[a-f0-9]{64}$/.test(csrf||"")){
-    csrf=randomBytes(32).toString("hex");res.cookie("web_csrf",csrf,cookieOptions());
+export function webSession(req, res, next) {
+  const customer = readToken(req.cookies.customer_session);
+  const admin = readToken(req.cookies.admin_session);
+
+  req.customer = customer?.role === "customer" ? customer : null;
+  req.user = admin?.role === "admin" ? admin : null;
+
+  res.locals.customerLoggedIn = !!req.customer;
+  res.locals.adminLoggedIn = !!req.user;
+
+  let csrf = req.cookies.web_csrf;
+
+  if (!/^[a-f0-9]{64}$/.test(csrf || "")) {
+    csrf = randomBytes(32).toString("hex");
+    res.cookie("web_csrf", csrf, cookieOptions());
   }
-  res.locals.csrf=csrf;
-  res.set("Cache-Control","no-store");
-  if(!["GET","HEAD","OPTIONS"].includes(req.method)){
-    const supplied=req.body?._csrf;
-    if(typeof supplied!=="string"||!/^[a-f0-9]{64}$/.test(supplied)||!timingSafeEqual(Buffer.from(supplied),Buffer.from(csrf)))return next(httpError(403,"Formulario caducado. Recarga la página e inténtalo de nuevo."));
-  }
+
+  req.csrf = csrf;
+  res.locals.csrf = csrf;
+
+  res.set("Cache-Control", "no-store");
+
   next();
 }
 export function requireCustomer(req,res,next){
@@ -45,4 +51,47 @@ export function readCart(req){
 export function writeCart(res,items){
   if(!items.length)return res.clearCookie("customer_cart",cookieOptions());
   res.cookie("customer_cart",jwt.sign({purpose:"cart",items},process.env.JWT_SECRET,{expiresIn:"7d"}),{...cookieOptions(),maxAge:7*24*60*60*1000});
+}
+
+export function validateCsrf(req, res, next) {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    return next();
+  }
+
+  const supplied =
+    req.body?._csrf ||
+    req.get("x-csrf-token");
+
+  const csrf = req.csrf;
+
+  if (
+    typeof supplied !== "string" ||
+    !/^[a-f0-9]{64}$/.test(supplied) ||
+    typeof csrf !== "string" ||
+    !/^[a-f0-9]{64}$/.test(csrf)
+  ) {
+    return next(
+      httpError(
+        403,
+        "Formulario caducado. Recarga la página e inténtalo de nuevo."
+      )
+    );
+  }
+
+  const suppliedBuffer = Buffer.from(supplied, "utf8");
+  const csrfBuffer = Buffer.from(csrf, "utf8");
+
+  if (
+    suppliedBuffer.length !== csrfBuffer.length ||
+    !timingSafeEqual(suppliedBuffer, csrfBuffer)
+  ) {
+    return next(
+      httpError(
+        403,
+        "Formulario caducado. Recarga la página e inténtalo de nuevo."
+      )
+    );
+  }
+
+  next();
 }

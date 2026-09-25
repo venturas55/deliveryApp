@@ -1,27 +1,81 @@
-<section>
-  <h1>Carta del restaurante</h1>
- {{!--  <a href="/admin/products">Nuevo artículo</a> --}}
-  <div id="products">{{#each products}}<article class="order-card">
-    <h2>{{name}} · {{money price_cents}}</h2>
-    <p>{{category}} · {{#if active}}Disponible{{else}}Oculto{{/if}} · Orden: {{sort_order}}</p>
-    <p>{{description}}</p>
-    <div class="order-actions">
-      <a href="/admin/products?edit={{id}}">Editar</a>
-      <a href="/admin/products/{{id}}/delete">Eliminar</a>
-      <form method="post" action="/admin/products/{{id}}/toggle">{{> csrf}}
-        <input type="hidden" name="active" value="{{#if active}}0{{else}}1{{/if}}">
-        <button>{{#if active}}Ocultar{{else}}Publicar{{/if}}</button>
-      </form>
+<section class="products-page">
+  <div class="products-heading">
+    <div>
+      <span class="products-eyebrow">CATÁLOGO DEL RESTAURANTE</span>
+      <h1>Productos</h1>
+      <p>Organiza artículos, precios e imágenes de tu carta.</p>
     </div>
-  </article>{{else}}<p>No hay artículos.</p>{{/each}}</div>
+    <a class="products-primary-link" href="#productForm">＋ Nuevo producto</a>
+  </div>
+
+  <div class="products-summary" aria-label="Resumen de productos">
+    <div><span>Total productos</span><strong>{{productCount}}</strong></div>
+    <div><span>Disponibles</span><strong>{{activeProductCount}}</strong></div>
+  </div>
+
+  <div class="products-list-heading">
+    <div><h2>Tu carta</h2><p>Gestiona los productos visibles para tus clientes.</p></div>
+    <span>{{productCount}} artículos</span>
+  </div>
+
+  <div class="products-grid" id="products">
+    {{#each products}}
+      <article class="product-card">
+        <div class="product-card-image">
+          {{#if image_url}}
+            <img src="{{image_url}}" alt="{{#if image_description}}{{image_description}}{{else}}{{name}}{{/if}}" loading="lazy">
+          {{else}}
+            <span aria-hidden="true">{{category}}</span>
+          {{/if}}
+          <span class="product-status{{#unless active}} product-status--hidden{{/unless}}">{{#if active}}Disponible{{else}}Oculto{{/if}}</span>
+        </div>
+        <div class="product-card-body">
+          <div class="product-card-title"><h3>{{name}}</h3><strong>{{money price_cents}}</strong></div>
+          <p class="product-card-category">{{category}} <span>·</span> Orden {{sort_order}}</p>
+          {{#if description}}<p class="product-card-description">{{description}}</p>{{/if}}
+          {{#if image_description}}<p class="product-card-caption">Foto: {{image_description}}</p>{{/if}}
+          <div class="product-card-actions">
+            <a class="product-button product-button--primary" href="/admin/products?edit={{id}}">Editar</a>
+            <form method="post" action="/admin/products/{{id}}/toggle">{{> csrf}}
+              <input type="hidden" name="active" value="{{#if active}}0{{else}}1{{/if}}">
+              <button class="product-button product-button--secondary" type="submit">{{#if active}}Ocultar{{else}}Publicar{{/if}}</button>
+            </form>
+            <a class="product-delete-link" href="/admin/products/{{id}}/delete">Eliminar</a>
+          </div>
+        </div>
+      </article>
+    {{else}}
+      <div class="products-empty"><span aria-hidden="true">＋</span><h3>Aún no hay productos</h3><p>Añade el primer artículo para empezar a completar tu carta.</p><a href="#productForm">Crear producto</a></div>
+    {{/each}}
+  </div>
 </section>
-<aside class="card"><h2>{{#if product.id}}Editar artículo{{else}}Nuevo artículo{{/if}}</h2>
-  <form id="productForm" method="post" action="{{#if product.id}}/admin/products/{{product.id}}/edit{{else}}/admin/products{{/if}}">{{> csrf}}
-    <label>Nombre<input name="name" value="{{product.name}}" maxlength="120" required></label>
-    <label>Descripción<textarea name="description" maxlength="255">{{product.description}}</textarea></label>
-    <label>Categoría<input name="category" value="{{product.category}}" maxlength="80" required></label>
-    <label>Precio (€)<input name="price" type="number" min="0" max="21474836.47" step="0.01" value="{{decimal product.price_cents}}" required></label>
-    <label>Orden<input name="sort_order" type="number" min="0" max="2147483647" step="1" value="{{product.sort_order}}" required></label>
-    <label><input class="checkbox" name="active" value="1" type="checkbox"{{#if product.active}} checked{{/if}}> Disponible</label><button>Guardar artículo</button>
-  </form><p><a href="/admin/products">Cancelar edición</a></p>
+
+<aside class="card product-editor" id="productForm">
+  <div class="product-editor-heading">
+    <span class="products-eyebrow">{{#if product.id}}EDITAR CATÁLOGO{{else}}NUEVO EN LA CARTA{{/if}}</span>
+    <h2>{{#if product.id}}Editar producto{{else}}Añadir producto{{/if}}</h2>
+    <p>Completa los datos para mostrar el artículo en tu carta.</p>
+  </div>
+  <form method="post" enctype="multipart/form-data" action="{{#if product.id}}/admin/products/{{product.id}}/edit{{else}}/admin/products{{/if}}">{{> csrf}}
+    <label class="product-field">Nombre del producto<input name="name" value="{{product.name}}" maxlength="120" placeholder="Ej. Pizza Margarita" required></label>
+    <label class="product-field">Descripción<textarea name="description" maxlength="255" rows="3" placeholder="Ingredientes o detalles del producto">{{product.description}}</textarea></label>
+    <div class="product-fields-row">
+      <label class="product-field">Categoría<input name="category" value="{{product.category}}" maxlength="80" placeholder="Pizzas" required></label>
+      <label class="product-field">Precio (€)<input name="price" type="number" min="0" max="21474836.47" step="0.01" value="{{decimal product.price_cents}}" placeholder="0,00" required></label>
+    </div>
+    <label class="product-field">Orden en la carta<input name="sort_order" type="number" min="0" max="2147483647" step="1" value="{{product.sort_order}}" required><small>Los números menores aparecen primero.</small></label>
+
+    <div class="product-image-section">
+      <h3>Imagen del producto</h3>
+      {{#if product.image_url}}<img class="product-current-image" src="{{product.image_url}}" alt="{{#if product.image_description}}{{product.image_description}}{{else}}{{product.name}}{{/if}}">{{/if}}
+      <label class="product-field">Subir imagen<input class="product-file-input" name="image" type="file" accept="image/jpeg,image/png,image/webp"><small>JPEG, PNG o WebP. Máximo 5 MB. Si editas, deja vacío para conservar la imagen actual.</small></label>
+      <label class="product-field">Descripción de la imagen<textarea name="image_description" maxlength="255" rows="2" placeholder="Describe la imagen para hacerla accesible">{{product.image_description}}</textarea></label>
+    </div>
+
+    <label class="product-availability"><input class="checkbox" name="active" value="1" type="checkbox"{{#if product.active}} checked{{/if}}><span><strong>Disponible en la carta</strong><small>Los clientes podrán ver y pedir este producto.</small></span></label>
+    <div class="product-editor-actions">
+      <button class="product-button product-button--primary" type="submit">{{#if product.id}}Guardar cambios{{else}}Añadir producto{{/if}}</button>
+      {{#if product.id}}<a class="product-cancel-link" href="/admin/products">Cancelar edición</a>{{/if}}
+    </div>
+  </form>
 </aside>

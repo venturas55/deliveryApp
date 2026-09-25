@@ -36,9 +36,18 @@ async function syncCustomerDelivery(order,customerId){
 
 export async function menu(req){
   const r=await getRestaurant(req.query.slug||"demo"); if(!r)throw httpError(404,"Restaurante no encontrado");
-  const products=await query("SELECT id,category,name,description,price_cents FROM products WHERE restaurant_id=? AND active=1 ORDER BY category,sort_order,id",[r.id]);
-  const zones=await query("SELECT id,name,postal_codes,min_order_cents,delivery_fee_cents FROM delivery_zones WHERE restaurant_id=? AND active=1",[r.id]);
+  const products=await query("SELECT * FROM products WHERE restaurant_id=? AND active=1 ORDER BY category,sort_order,id",[r.id]);
+  const zones=await query("SELECT * FROM delivery_zones WHERE restaurant_id=? AND active=1",[r.id]);
   return ({restaurant:r,products,zones});
+}
+
+export async function product(id) {
+  const [product] = await query(
+    "SELECT * FROM products WHERE id=?",
+    [id]
+  );
+  console.log(product);
+  return product ?? null;
 }
 
 export async function createOrder(req){
