@@ -24,6 +24,41 @@
       {{/each}}</section>
     {{else}}<p>La carta no tiene artículos disponibles.</p>{{/each}}
   </div>
+
+  <section id="contact" class="restaurant-contact" aria-labelledby="restaurant-contact-title">
+    <div class="restaurant-contact__heading">
+      <p class="eyebrow">ESTAMOS AQUÍ</p>
+      <h2 id="restaurant-contact-title">Contacto</h2>
+      <p>¿Tienes alguna pregunta? Contacta con {{restaurantContact.name}}.</p>
+    </div>
+    <address class="restaurant-contact__details">
+      {{#if restaurantContact.phone}}
+        <div><span>Teléfono</span><a href="{{restaurantContact.phoneHref}}">{{restaurantContact.phone}}</a></div>
+      {{/if}}
+      {{#if restaurantContact.address}}
+        <div><span>Dirección</span><strong>{{restaurantContact.address}}</strong></div>
+      {{/if}}
+      {{#if restaurantContact.city}}
+        <div><span>Ciudad</span><strong>{{restaurantContact.city}}</strong></div>
+      {{/if}}
+    </address>
+    {{#if restaurantContact.mapEmbedUrl}}
+      <div class="restaurant-contact__map">
+        <iframe
+          src="{{restaurantContact.mapEmbedUrl}}"
+          title="Ubicación de {{restaurantContact.name}} en Google Maps"
+          loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
+      </div>
+    {{else if restaurantContact.mapUrl}}
+      <div class="restaurant-contact__map-prompt">
+        <p>Consulta la ubicación y cómo llegar.</p>
+        <a href="{{restaurantContact.mapUrl}}" target="_blank" rel="noopener noreferrer">Abrir ubicación en Google Maps</a>
+      </div>
+    {{/if}}
+  </section>
 </section>
 <aside id="cartPanel" class="cart">
 <div class="cart-heading">

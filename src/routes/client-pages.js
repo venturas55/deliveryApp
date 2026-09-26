@@ -58,6 +58,34 @@ router.get(["/", "/index.html"], async (req, res) => {
     ? await accounts.customerProfile(req.customer.sub)
     : null;
 
+  const restaurantContact = {
+    name: data.restaurant.name,
+    phone: data.restaurant.phone,
+    phoneHref: data.restaurant.phone
+      ? `tel:${String(data.restaurant.phone).replace(/[^\d+]/g, "").replace(/(?!^)\+/g, "")}`
+      : "",
+    address: data.restaurant.delivery_formatted_address || data.restaurant.address,
+    city: data.restaurant.delivery_formatted_address
+      ? ""
+      : data.restaurant.delivery_city || data.restaurant.city,
+  };
+  const hasRestaurantCoordinates =
+    data.restaurant.delivery_latitude !== null &&
+    data.restaurant.delivery_latitude !== undefined &&
+    data.restaurant.delivery_longitude !== null &&
+    data.restaurant.delivery_longitude !== undefined;
+  const mapQuery = hasRestaurantCoordinates
+    ? `${data.restaurant.delivery_latitude},${data.restaurant.delivery_longitude}`
+    : [restaurantContact.name, restaurantContact.address, restaurantContact.city]
+        .filter(Boolean)
+        .join(", ");
+  restaurantContact.mapUrl = mapQuery
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
+    : "";
+  restaurantContact.mapEmbedUrl = process.env.GOOGLE_MAPS_EMBED_API_KEY && mapQuery
+    ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(process.env.GOOGLE_MAPS_EMBED_API_KEY)}&q=${encodeURIComponent(mapQuery)}`
+    : "";
+
   if (profile)
     profile.addressData = {
       formatted_address: profile.delivery_formatted_address,
@@ -76,6 +104,7 @@ router.get(["/", "/index.html"], async (req, res) => {
     title: "Carta",
     cartActive: true,
     restaurant: data.restaurant,
+    restaurantContact,
     categories: [...groups].map(([name, products]) => ({ name, products })),
     cart,
     subtotal,
