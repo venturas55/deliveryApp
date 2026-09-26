@@ -60,7 +60,7 @@ document.querySelectorAll("[data-address-picker]").forEach((picker) => {
       button.type = "button";
       button.className = "address-suggestion";
       button.dataset.addressIndex = String(index);
-      button.textContent = item.formatted_address;
+      button.textContent = item.suggestion || item.formatted_address;
       suggestions.append(button);
     });
     suggestions.hidden = !validItems.length;

@@ -7,9 +7,8 @@ dirección estructurada, coordenadas y `place_id`; una cadena escrita manualment
 no se acepta como dirección definitiva. El piso/puerta y las instrucciones se
 guardan aparte y nunca se usan para calcular coordenadas.
 
-Por defecto se usa Nominatim server-side. En producción configura
-`GEOCODER_BASE_URL` y un `GEOCODER_USER_AGENT` identificable, respetando los
-límites y condiciones del proveedor elegido.
+Se usa Geoapify Geocoding server-side. Configura `GEOAPIFY_API_KEY` en `.env`;
+puedes obtener una clave en https://myprojects.geoapify.com/.
 # Pizzería Delivery Platform — V0.2
 
 Esta versión evoluciona el MVP hacia una pequeña plataforma profesional/multi-restaurante.

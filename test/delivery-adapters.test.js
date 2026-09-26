@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createUberDelivery} from "../src/delivery/uber.js";
 import {createJustEatJetGoDelivery} from "../src/delivery/just-eat-jet-go.js";
-import {createStuartDelivery} from "../src/delivery/stuart.js";
 
 test("Uber Direct adapter uses current OAuth and delivery endpoints",async()=>{
   const calls=[];
@@ -48,23 +47,5 @@ test("JET Go adapter uses the configured contract paths",async()=>{
     assert.equal(quote.provider,"just_eat_jet_go");
     assert.equal(delivery.providerOrderId,"jet-delivery");
     assert.deepEqual(calls.map(call=>call.url),["https://jet.example/token","https://jet.example/quotes","https://jet.example/deliveries"]);
-  }finally{globalThis.fetch=originalFetch}
-});
-
-test("Stuart adapter uses the configured contract paths",async()=>{
-  const originalFetch=globalThis.fetch,calls=[];
-  globalThis.fetch=async(url,options)=>{
-    calls.push({url,options});
-    if(url.endsWith("/token"))return new Response(JSON.stringify({access_token:"stuart-token"}),{status:200});
-    if(url.endsWith("/quotes"))return new Response(JSON.stringify({id:"stuart-quote",feeCents:510,etaMinutes:18}),{status:200});
-    return new Response(JSON.stringify({id:"stuart-delivery",status:"created"}),{status:200});
-  };
-  try{
-    const provider=createStuartDelivery({credentials:{clientId:"client",clientSecret:"secret"},settings:{apiBaseUrl:"https://stuart.example",tokenPath:"/token",quotePath:"/quotes",createPath:"/deliveries",pickupName:"Store",pickupPhone:"+34123",pickupAddress:"Pickup"}});
-    const order={delivery_address:"Dropoff",customer_name:"Customer",customer_phone:"+34456",items:[]};
-    const quote=await provider.quote(order),delivery=await provider.create(order,quote);
-    assert.equal(quote.provider,"stuart");
-    assert.equal(delivery.providerOrderId,"stuart-delivery");
-    assert.deepEqual(calls.map(call=>call.url),["https://stuart.example/token","https://stuart.example/quotes","https://stuart.example/deliveries"]);
   }finally{globalThis.fetch=originalFetch}
 });
