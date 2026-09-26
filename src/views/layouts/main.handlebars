@@ -8,7 +8,7 @@
   {{#if clientArea}}<link rel="stylesheet" href="/client.css">{{/if}}
   {{#if adminArea}}<link rel="stylesheet" href="/admin.css">{{/if}}
 </head>
-<body class="{{#if clientArea}}client-area{{/if}}"{{#if refresh}} data-refresh="5000"{{/if}}>
+<body class="{{#if clientArea}}client-area{{/if}}{{#if adminArea}} admin-area{{/if}}"{{#if refresh}} data-refresh="5000"{{/if}}>
   {{> header}}
   {{#if adminArea}}{{#if adminLoggedIn}}{{> admin/navigation}}{{/if}}{{/if}}
   <main>{{{body}}}</main>
