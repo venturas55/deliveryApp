@@ -50,6 +50,10 @@ router.get("/admin/orders",async(req,res)=>{
   const orders=await admin.adminOrders(req);
   res.render("admin/orders",{title:"Pedidos",ordersActive:true,filter:req.query.filter||"all",orders:orders.map(presentOrder),refresh:true});
 });
+router.get("/admin/stats",async(req,res)=>{
+  const stats=await admin.adminOrderStats(req);
+  res.render("admin/order-stats",{title:"Estadísticas de pedidos",statsActive:true,stats});
+});
 router.get("/admin/orders/:id",async(req,res)=>{
   const order=presentOrder(await admin.adminOrder(req));
   const event=order.events.find(e=>e.event_type==="delivery.quoted");

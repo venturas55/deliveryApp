@@ -1,0 +1,32 @@
+<section class="orders-page section-page order-stats-page">
+  <header class="orders-header">
+    <div>
+      <span class="orders-eyebrow">RESUMEN DEL RESTAURANTE</span>
+      <h1>Estadísticas de pedidos</h1>
+      <p>Pedidos recibidos por día y por franja horaria.</p>
+    </div>
+    <a class="orders-filter-button" href="/admin/orders">Volver a pedidos</a>
+  </header>
+
+  <section class="stats-panel" aria-labelledby="daily-title">
+    <div class="stats-panel-heading"><div><h2 id="daily-title">Pedidos por día</h2><p>Últimos 14 días</p></div></div>
+    <div class="stats-bars stats-bars--daily">
+      {{#each stats.daily}}
+        <div class="stats-bar-item" title="{{total}} pedidos">
+          <span class="stats-bar-value">{{total}}</span>
+          <div class="stats-bar-track"><span class="stats-bar-fill" style="height:{{width}}%"></span></div>
+          <span class="stats-bar-label">{{label}}</span>
+        </div>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="stats-panel" aria-labelledby="hours-title">
+    <div class="stats-panel-heading"><div><h2 id="hours-title">Pedidos por franja horaria</h2><p>Totales acumulados</p></div></div>
+    <div class="stats-hours">
+      {{#each stats.hourly}}
+        <div class="stats-hour-item"><span class="stats-hour-label">{{label}}</span><span class="stats-hour-track"><span class="stats-hour-fill" style="width:{{width}}%"></span></span><strong>{{total}}</strong></div>
+      {{/each}}
+    </div>
+  </section>
+</section>

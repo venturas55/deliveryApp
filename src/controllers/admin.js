@@ -185,6 +185,29 @@ export async function adminOrders(req){
   return (orders);
 }
 
+export async function adminOrderStats(req){
+  const restaurantId=req.user.restaurant_id;
+  const days=await query(`SELECT DATE_FORMAT(created_at,'%Y-%m-%d') AS day,COUNT(*) AS total FROM orders
+    WHERE restaurant_id=? AND created_at>=CURRENT_DATE - INTERVAL 13 DAY
+    GROUP BY DATE(created_at) ORDER BY day`,[restaurantId]);
+  const byDay=new Map(days.map(row=>[row.day,Number(row.total)]));
+  const daily=Array.from({length:14},(_,index)=>{
+    const date=new Date();date.setDate(date.getDate()-13+index);
+    const key=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+    return {label:date.toLocaleDateString("es-ES",{day:"2-digit",month:"short"}),total:byDay.get(key)||0};
+  });
+  const hours=await query(`SELECT FLOOR(HOUR(created_at)/3) AS slot,COUNT(*) AS total FROM orders
+    WHERE restaurant_id=? GROUP BY FLOOR(HOUR(created_at)/3)`,[restaurantId]);
+  const bySlot=new Map(hours.map(row=>[Number(row.slot),Number(row.total)]));
+  const hourly=Array.from({length:8},(_,slot)=>({
+    label:`${String(slot*3).padStart(2,"0")}:00–${String(slot*3+3).padStart(2,"0")}:00`,
+    total:bySlot.get(slot)||0
+  }));
+  const dailyMax=Math.max(1,...daily.map(row=>row.total));
+  const hourlyMax=Math.max(1,...hourly.map(row=>row.total));
+  return {daily:daily.map(row=>({...row,width:Math.round(row.total/dailyMax*100)})),hourly:hourly.map(row=>({...row,width:Math.round(row.total/hourlyMax*100)}))};
+}
+
 export async function adminOrder(req){
   const rows=await query("SELECT * FROM orders WHERE id=? AND restaurant_id=?",[req.params.id,req.user.restaurant_id]);
   if(!rows.length)throw httpError(404,"Pedido no encontrado");

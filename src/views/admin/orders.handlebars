@@ -1,76 +1,205 @@
-<section id="adminMain" class="section-page"><h1>Pedidos</h1>
-  <form method="get" action="/admin/orders" class="filter-form"><label>Mostrar pedidos<select name="filter">
-    <option value="all"{{#if (eq filter "all")}} selected{{/if}}>Todos</option><option value="pending"{{#if (eq filter "pending")}} selected{{/if}}>Pendientes</option><option value="in_progress"{{#if (eq filter "in_progress")}} selected{{/if}}>En curso</option><option value="delivered"{{#if (eq filter "delivered")}} selected{{/if}}>Entregados</option><option value="cancelled"{{#if (eq filter "cancelled")}} selected{{/if}}>Cancelados</option>
-  </select></label><button>Filtrar</button></form>
-  <p>{{orders.length}} pedidos (máximo 200 por filtro).</p>
-<div id="orders">
-  {{#each orders}}
-    <article class="order-card">
+<section id="adminMain" class="orders-page section-page">
 
-      <h2>#{{id}} · {{statusLabel}}</h2>
+  <header class="orders-header">
+    <div>
+      <span class="orders-eyebrow">GESTIÓN DE PEDIDOS</span>
+      <h1>Pedidos</h1>
+      <p>Consulta y gestiona los pedidos recibidos en el restaurante.</p>
+    </div>
 
-      <div class="order-payment">
+    <div class="orders-counter">
+      <strong>{{orders.length}}</strong>
+      <span>pedidos</span>
+    </div>
+  </header>
 
-        {{#if (eq payment_method "online")}}
-          <span class="payment-method-badge">
-            💳 Tarjeta online
-          </span>
-        {{else if (eq payment_method "cash")}}
-          <span class="payment-method-badge">
-            💶 Efectivo
-          </span>
-        {{else if (eq payment_method "card_on_delivery")}}
-          <span class="payment-method-badge">
-            💳 Tarjeta al repartidor
-          </span>
-        {{/if}}
 
-        {{#if (eq payment_status "paid")}}
-          <span class="payment-badge payment-badge--paid">
-            ✓ Pagado
-          </span>
-        {{else if (eq payment_status "pending")}}
-          <span class="payment-badge payment-badge--pending">
-            ⏱ Pendiente de pago
-          </span>
-        {{else if (eq payment_status "failed")}}
-          <span class="payment-badge payment-badge--failed">
-            ✕ Pago fallido
-          </span>
-        {{else if (eq payment_status "cancelled")}}
-          <span class="payment-badge payment-badge--cancelled">
-            ✕ Cancelado
-          </span>
-        {{else if (eq payment_status "refund_pending")}}
-        <span class="payment-badge payment-badge--pending">
-          ↩ Devolución en curso
-        </span>
-        {{else if (eq payment_status "refunded")}}
-          <span class="payment-badge payment-badge--refunded">
-            ↩ Reembolsado
-          </span>
-        {{/if}}
+  <div class="orders-toolbar">
 
+    <form method="get" action="/admin/orders" class="orders-filter">
+      <label for="orders-filter">Mostrar</label>
+
+      <select id="orders-filter" name="filter">
+        <option value="all" {{#if (eq filter "all")}}selected{{/if}}>
+          Todos los pedidos
+        </option>
+
+        <option value="pending" {{#if (eq filter "pending")}}selected{{/if}}>
+          Pendientes
+        </option>
+
+        <option value="in_progress" {{#if (eq filter "in_progress")}}selected{{/if}}>
+          En curso
+        </option>
+
+        <option value="delivered" {{#if (eq filter "delivered")}}selected{{/if}}>
+          Entregados
+        </option>
+
+        <option value="cancelled" {{#if (eq filter "cancelled")}}selected{{/if}}>
+          Cancelados
+        </option>
+      </select>
+
+      <button type="submit" class="orders-filter-button">
+        Filtrar
+      </button>
+    </form>
+
+    <span class="orders-limit">
+      Máximo 200 pedidos por filtro
+    </span>
+
+  </div>
+
+
+  <div id="orders" class="orders-grid">
+
+    {{#each orders}}
+
+      <article class="order-card">
+
+        <header class="order-card-header">
+
+          <div class="order-number">
+            <span>Pedido</span>
+            <h2>#{{id}}</h2>
+          </div>
+
+          <span class="order-status order-status--{{status}}">
+            {{statusLabel}}
+          </span>
+
+        </header>
+
+
+        <div class="order-card-body">
+
+          <div class="order-payment">
+
+            {{#if (eq payment_method "online")}}
+              <span class="payment-method-badge">
+                💳 Tarjeta online
+              </span>
+
+            {{else if (eq payment_method "cash")}}
+              <span class="payment-method-badge">
+                💶 Efectivo
+              </span>
+
+            {{else if (eq payment_method "card_on_delivery")}}
+              <span class="payment-method-badge">
+                💳 Tarjeta al repartidor
+              </span>
+            {{/if}}
+
+
+            {{#if (eq payment_status "paid")}}
+
+              <span class="payment-badge payment-badge--paid">
+                ✓ Pagado
+              </span>
+
+            {{else if (eq payment_status "pending")}}
+
+              <span class="payment-badge payment-badge--pending">
+                ⏱ Pendiente de pago
+              </span>
+
+            {{else if (eq payment_status "failed")}}
+
+              <span class="payment-badge payment-badge--failed">
+                ✕ Pago fallido
+              </span>
+
+            {{else if (eq payment_status "cancelled")}}
+
+              <span class="payment-badge payment-badge--cancelled">
+                ✕ Cancelado
+              </span>
+
+            {{else if (eq payment_status "refund_pending")}}
+
+              <span class="payment-badge payment-badge--pending">
+                ↩ Devolución en curso
+              </span>
+
+            {{else if (eq payment_status "refunded")}}
+
+              <span class="payment-badge payment-badge--refunded">
+                ↩ Reembolsado
+              </span>
+
+            {{/if}}
+
+          </div>
+
+
+          <div class="order-customer">
+
+            <div class="order-info-row">
+              <span class="order-info-icon" aria-hidden="true">👤</span>
+
+              <div>
+                <span class="order-info-label">Cliente</span>
+                <strong>{{customer_name}}</strong>
+                <span>{{customer_phone}}</span>
+              </div>
+            </div>
+
+
+            <div class="order-info-row">
+              <span class="order-info-icon" aria-hidden="true">⌖</span>
+
+              <div>
+                <span class="order-info-label">Entrega</span>
+                <strong>{{delivery_address}}</strong>
+              </div>
+            </div>
+
+
+            {{#if delivery_notes}}
+              <div class="order-notes">
+                <span>Nota del cliente</span>
+                <p>{{delivery_notes}}</p>
+              </div>
+            {{/if}}
+
+          </div>
+
+        </div>
+
+
+        <footer class="order-card-footer">
+
+          <div class="order-total">
+            <span>Total</span>
+            <strong>{{money total_cents}}</strong>
+          </div>
+
+          <div class="order-date">
+            {{date created_at}}
+          </div>
+
+          <a class="order-manage-button" href="/admin/orders/{{id}}">
+            Gestionar
+            <span aria-hidden="true">→</span>
+          </a>
+
+        </footer>
+
+      </article>
+
+    {{else}}
+
+      <div class="orders-empty">
+        <div class="orders-empty-icon">▤</div>
+        <h2>No hay pedidos</h2>
+        <p>No hay pedidos para el filtro seleccionado.</p>
       </div>
 
-      <p>
-        {{customer_name}} · {{customer_phone}}<br>
-        {{delivery_address}}
-      </p>
+    {{/each}}
 
-      <p>{{delivery_notes}}</p>
+  </div>
 
-      <p>
-        {{money total_cents}} · {{date created_at}}
-      </p>
-
-      <a class="primary-link" href="/admin/orders/{{id}}">
-        Gestionar pedido
-      </a>
-
-    </article>
-  {{else}}
-    <p>No hay pedidos para este filtro.</p>
-  {{/each}}
-</div>
 </section>
