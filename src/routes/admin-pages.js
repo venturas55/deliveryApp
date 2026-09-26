@@ -35,6 +35,7 @@ async function saveProductImage(req,res,next){
   }catch(error){next(error)}
 }
 
+
 router.get("/admin/login",(req,res)=>res.render("admin/login",{title:"Acceso del restaurante"}));
 router.post("/admin/login",loginLimit,async(req,res)=>{
   const user=await accounts.loginAdmin(req.body);setSession(res,"admin",signAdmin(user));res.redirect(303,"/admin/orders");
@@ -123,4 +124,19 @@ router.get("/admin/configs",async(req,res)=>{
   res.render("admin/configs",{title:"Configuración",configsActive:true,configs,addressData,refresh:true});
 });
 router.post("/admin/configs",async(req,res)=>{console.log(req.body);await admin.updateAdminConfigs(req);res.redirect(303,"/admin/configs?saved=1")});
+
+router.get("/admin/clientes",async(req,res)=>{
+  const clientes= await admin.getClientes();
+  console.log(clientes);
+  res.render("admin/clientes",{title:"Clientes",clientesActive:true,clientes,restaurantId:req.user.restaurant_id});
+});
+router.get("/admin/cliente/:id",async(req,res)=>{
+
+  const customer= await admin.getClientes(req.params.id);
+  console.log(customer);
+  res.render("admin/cliente",{title:"Cliente",clientesActive:true,customer,restaurantId:req.user.restaurant_id});
+});
+
+
+
 export default router;

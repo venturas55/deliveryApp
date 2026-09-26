@@ -10,7 +10,6 @@
 </head>
 <body class="{{#if clientArea}}client-area{{/if}}{{#if adminArea}} admin-area{{/if}}"{{#if refresh}} data-refresh="5000"{{/if}}>
   {{> header}}
-  {{#if adminArea}}{{#if adminLoggedIn}}{{> admin/navigation}}{{/if}}{{/if}}
   <main>{{{body}}}</main>
   <script src="/page-behavior.js" defer></script>
   <script src="/address-picker.js?v=2" defer></script>

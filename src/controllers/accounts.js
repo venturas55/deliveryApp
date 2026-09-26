@@ -29,7 +29,7 @@ export async function loginAdmin(body={}){
   return rows[0];
 }
 export async function customerProfile(id){
-  const rows=await query("SELECT id,name,email,phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,delivery_apartment,delivery_patio FROM customers WHERE id=?",[id]);
+  const rows=await query("SELECT * FROM customers WHERE id=?",[id]);
   if(!rows.length)throw httpError(401,"Cuenta no disponible");
   return rows[0];
 }

@@ -1,0 +1,115 @@
+<section id="adminMain" class="orders-page section-page admin-page">
+
+  <header class="orders-header admin-page-header">
+    <div>
+      <span class="orders-eyebrow">GESTIÓN DE CLIENTES</span>
+      <h1>Clientes</h1>
+      <p>Consulta y gestiona los clientes del restaurante.</p>
+    </div>
+
+    <div class="orders-counter">
+      <strong>{{clientes.length}}</strong>
+      <span>clientes </span>
+    </div>
+  </header>
+
+  <div id="orders" class="orders-grid">
+
+    {{#each clientes}}
+
+      <article class="order-card">
+        <header class="order-card-header">
+          <div class="order-number">
+            <span>Cliente</span>
+            <h2>#{{id}}</h2>
+          </div>
+          <span class="order-status order-status--{{status}}">
+            {{phone}}
+          </span>
+
+        </header>
+
+        <div class="order-card-body">
+
+          <div class="order-customer">
+
+            <div class="order-info-row">
+              <span class="order-info-icon" aria-hidden="true">👤{{id}}</span>
+              <div>
+                <span class="order-info-label">Cliente</span>
+                <strong>{{name}}</strong>
+                <p>{{delivery_address}}
+                  n{{delivery_number}}
+                  {{delivery_patio}}</p>
+                <p></p>
+                <span>{{phone}}</span>
+              </div>
+            </div>
+            <div class="order-info-row">
+              <div>
+                <span class="order-info-label">Últimos pedidos</span>
+
+                {{#if orders.[0]}}
+                  <p>
+                    <strong>{{money orders.[0].total_cents}}</strong>
+                    {{date orders.[0].created_at}} Pago: {{orders.[0].payment_status}} Reparto:  {{orders.[0].status}}
+                  </p>
+                {{/if}}
+
+                {{#if orders.[1]}}
+                  <p>
+                    <strong>{{money orders.[1].total_cents}}</strong>
+                    {{date orders.[1].created_at}} Pago: {{orders.[1].payment_status}} Reparto:  {{orders.[1].status}}
+                  </p>
+                {{/if}}
+
+                {{#if orders.[2]}}
+                  <p>
+                    <strong>{{money orders.[2].total_cents}}</strong>
+                    {{date orders.[2].created_at}} Pago: {{orders.[2].payment_status}} Reparto:  {{orders.[2].status}}
+                  </p>
+                {{/if}}
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="order-card-footer">
+
+          <div class="order-total">
+            <span>Total gastado</span>
+            <p>
+              <strong>{{money total_spent_cents}}</strong>
+              en
+              {{total_orders}}
+              pedidos</p>
+          </div>
+
+          <div class="order-date">
+            <span>Ultimo pedido</span>
+            <strong>{{date created_at}}</strong>
+          </div>
+
+          <a class="order-manage-button" href="/admin/cliente/{{id}}">
+            Gestionar
+            <span aria-hidden="true">→</span>
+          </a>
+
+        </footer>
+
+      </article>
+
+    {{else}}
+
+      <div class="orders-empty">
+        <div class="orders-empty-icon">▤</div>
+        <h2>No hay pedidos</h2>
+        <p>No hay pedidos para el filtro seleccionado.</p>
+      </div>
+
+    {{/each}}
+
+  </div>
+
+</section>

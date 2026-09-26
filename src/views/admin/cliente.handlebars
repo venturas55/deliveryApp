@@ -1,0 +1,371 @@
+<section class="card customer-detail">
+
+  <header class="customer-detail-header">
+
+    <div>
+      <span class="customer-eyebrow">CLIENTE</span>
+      <h1>{{customer.name}}</h1>
+
+      <p class="customer-contact">
+        {{customer.email}}
+        {{#if customer.phone}}
+          · {{customer.phone}}
+        {{/if}}
+      </p>
+    </div>
+
+    <div class="customer-summary">
+
+      <div class="customer-stat">
+        <span>Pedidos</span>
+        <strong>{{customer.total_orders}}</strong>
+      </div>
+
+      <div class="customer-stat">
+        <span>Total gastado</span>
+        <strong>{{money customer.total_spent_cents}}</strong>
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <div class="customer-detail-grid">
+
+    {{!-- DATOS DEL CLIENTE --}}
+    <section class="customer-info-panel">
+
+      <h2>Datos del cliente</h2>
+
+      <div class="customer-info-list">
+
+        <div class="customer-info-row">
+          <span class="customer-info-label">Nombre</span>
+          <strong>{{customer.name}}</strong>
+        </div>
+
+        <div class="customer-info-row">
+          <span class="customer-info-label">Email</span>
+          <strong>{{customer.email}}</strong>
+        </div>
+
+        {{#if customer.phone}}
+          <div class="customer-info-row">
+            <span class="customer-info-label">Teléfono</span>
+            <strong>{{customer.phone}}</strong>
+          </div>
+        {{/if}}
+
+        <div class="customer-info-row">
+          <span class="customer-info-label">Cliente desde</span>
+          <strong>{{date customer.created_at}}</strong>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    {{!-- DIRECCIÓN --}}
+    <section class="customer-info-panel">
+
+      <h2>Dirección habitual</h2>
+
+      {{#if customer.delivery_address}}
+
+        <div class="customer-address">
+
+          <strong>{{customer.delivery_address}}</strong>
+
+          {{#if customer.delivery_apartment}}
+            <p>
+              Piso / puerta:
+              {{customer.delivery_apartment}}
+            </p>
+          {{/if}}
+
+          {{#if customer.delivery_patio}}
+            <p>
+              Patio:
+              {{customer.delivery_patio}}
+            </p>
+          {{/if}}
+
+          {{#if customer.delivery_notes}}
+            <div class="customer-notes">
+              <span>Indicaciones de entrega</span>
+              <p>{{customer.delivery_notes}}</p>
+            </div>
+          {{/if}}
+
+        </div>
+
+      {{else}}
+
+        <p class="customer-empty-text">
+          El cliente no tiene una dirección guardada.
+        </p>
+
+      {{/if}}
+
+    </section>
+
+  </div>
+
+
+  <nav class="order-navigation" aria-label="Navegación del cliente">
+
+    <a
+      href="/admin/customers"
+      class="admin-action admin-action--back"
+    >
+      <span aria-hidden="true">←</span>
+      Volver a clientes
+    </a>
+
+    <a
+      href="/admin/customers/{{customer.id}}"
+      class="admin-action admin-action--refresh"
+    >
+      <span aria-hidden="true">↻</span>
+      Actualizar
+    </a>
+
+  </nav>
+
+</section>
+
+
+
+{{!-- =====================================================
+     HISTORIAL DE PEDIDOS
+     ===================================================== --}}
+
+<section class="card customer-orders">
+
+  <header class="customer-orders-header">
+
+    <div>
+      <span class="customer-eyebrow">HISTORIAL</span>
+      <h2>Pedidos del cliente</h2>
+    </div>
+
+    <span class="customer-orders-count">
+      {{customer.total_orders}} pedidos
+    </span>
+
+  </header>
+
+
+  {{#if customer.orders.length}}
+
+    <div class="customer-orders-list">
+
+      {{#each customer.orders}}
+
+        <article class="customer-order">
+
+          {{!-- CABECERA --}}
+          <header class="customer-order-header">
+
+            <div>
+              <span class="customer-order-label">Pedido</span>
+
+              <a
+                href="/admin/orders/{{id}}"
+                class="customer-order-number"
+              >
+                #{{id}}
+              </a>
+            </div>
+
+
+            <div class="customer-order-header-right">
+
+              <span class="order-status order-status--{{status}}">
+                {{status}}
+              </span>
+
+              <strong class="customer-order-total">
+                {{money total_cents}}
+              </strong>
+
+            </div>
+
+          </header>
+
+
+          {{!-- INFORMACIÓN --}}
+          <div class="customer-order-body">
+
+            <div class="customer-order-info">
+
+              <span>Fecha</span>
+              <strong>{{date created_at}}</strong>
+
+            </div>
+
+
+            <div class="customer-order-info">
+
+              <span>Entrega</span>
+
+              {{#if (eq delivery_method "delivery")}}
+                <strong>A domicilio</strong>
+              {{else}}
+                <strong>Recogida</strong>
+              {{/if}}
+
+            </div>
+
+
+            <div class="customer-order-info">
+
+              <span>Forma de pago</span>
+
+              {{#if (eq payment_method "online")}}
+
+                <strong>💳 Tarjeta online</strong>
+
+              {{else if (eq payment_method "cash")}}
+
+                <strong>💶 Efectivo</strong>
+
+              {{else if (eq payment_method "card_on_delivery")}}
+
+                <strong>💳 Tarjeta al repartidor</strong>
+
+              {{/if}}
+
+            </div>
+
+
+            <div class="customer-order-info">
+
+              <span>Estado del pago</span>
+
+              {{#if (eq payment_status "paid")}}
+
+                <span class="payment-badge payment-badge--paid">
+                  ✓ Pagado
+                </span>
+
+              {{else if (eq payment_status "refund_pending")}}
+
+                <span class="payment-badge payment-badge--pending">
+                  ↩ Devolución en curso
+                </span>
+
+              {{else if (eq payment_status "refunded")}}
+
+                <span class="payment-badge payment-badge--refunded">
+                  ↩ Reembolsado
+                </span>
+
+              {{else if (eq payment_status "failed")}}
+
+                <span class="payment-badge payment-badge--failed">
+                  ✕ Fallido
+                </span>
+
+              {{else if (eq payment_status "cancelled")}}
+
+                <span class="payment-badge payment-badge--cancelled">
+                  ✕ Cancelado
+                </span>
+
+              {{else}}
+
+                <span class="payment-badge payment-badge--pending">
+                  ⏱ Pendiente
+                </span>
+
+              {{/if}}
+
+            </div>
+
+          </div>
+
+
+          {{!-- DIRECCIÓN DEL PEDIDO --}}
+          {{#if delivery_address}}
+
+            <div class="customer-order-address">
+
+              <span>⌖</span>
+
+              <div>
+                <span class="customer-order-address-label">
+                  Dirección de entrega
+                </span>
+
+                <strong>
+                  {{delivery_address}}
+                </strong>
+
+                {{#if delivery_notes}}
+                  <p>{{delivery_notes}}</p>
+                {{/if}}
+              </div>
+
+            </div>
+
+          {{/if}}
+
+
+          {{!-- PIE --}}
+          <footer class="customer-order-footer">
+
+            <div class="customer-order-amounts">
+
+              <span>
+                Productos
+                <strong>{{money subtotal_cents}}</strong>
+              </span>
+
+              <span>
+                Envío
+                <strong>{{money delivery_cents}}</strong>
+              </span>
+
+              <span class="customer-order-final-total">
+                Total
+                <strong>{{money total_cents}}</strong>
+              </span>
+
+            </div>
+
+
+            <a
+              href="/admin/orders/{{id}}"
+              class="order-manage-button"
+            >
+              Ver pedido
+              <span aria-hidden="true">→</span>
+            </a>
+
+          </footer>
+
+        </article>
+
+      {{/each}}
+
+    </div>
+
+
+  {{else}}
+
+    <div class="customer-orders-empty">
+      <strong>Este cliente todavía no tiene pedidos.</strong>
+    </div>
+
+  {{/if}}
+
+</section>
+  <nav class="product-detail-navigation" >
+   <a href="javascript:history.back()" class="product-back">
+      <span aria-hidden="true">←</span>
+      Volver a la lista de clientes
+    </a>
+  </nav>
