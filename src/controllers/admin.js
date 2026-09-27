@@ -137,7 +137,7 @@ export async function createAdminCustomer(req) {
         ],
       );
       await transporter.sendMail({
-        from: process.env.EMAIL_FROM || process.env.EMAIL_ACCOUNT,
+        from: process.env.EMAIL_USER_NAME || process.env.EMAIL_ACCOUNT,
         to: email,
         subject: "Establece la contraseña de tu cuenta",
         text: `Hola ${name},\n\nEl restaurante ha creado una cuenta para ti. Establece tu contraseña desde este enlace (válido durante 24 horas):\n${new URL("/client/set-password?token=" + encodeURIComponent(token), base).toString()}`,
