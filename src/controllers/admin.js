@@ -73,9 +73,9 @@ export async function createAdminCustomer(req) {
   if (addressError) throw orderError(400, addressError);
   const address = cleanAddress(addressData);
   if (
-    !process.env.SMTP_HOST ||
-    !process.env.SMTP_USER ||
-    !process.env.SMTP_PASSWORD
+    !process.env.EMAIL_HOST ||
+    !process.env.EMAIL_ACCOUNT ||
+    !process.env.EMAIL_PASS
   )
     throw orderError(503, "Configura SMTP antes de crear clientes");
   let base;
