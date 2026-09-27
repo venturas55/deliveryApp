@@ -1,8 +1,9 @@
 import {query} from "../db.js";
-import {createHash} from "node:crypto";
+import {createHash,randomBytes} from "node:crypto";
 import {hashPassword,checkPassword} from "../auth.js";
 import {httpError} from "../services/http-error.js";
 import {cleanAddress,validateAddress} from "../services/geocoding.js";
+import {sendEmail} from "../services/email.js";
 
 export const emailValue=value=>typeof value==="string"?value.trim().toLowerCase():"";
 export const validEmail=value=>value.length<=190&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -63,9 +64,50 @@ export async function passwordSetupAvailable(token){
   const hash=createHash("sha256").update(token).digest("hex");
   return (await query("SELECT id FROM customers WHERE password_setup_token_hash=? AND password_setup_expires_at>NOW()",[hash])).length>0;
 }
-export async function setPasswordFromSetup(token,password){
+export async function setPasswordFromSetup(token,password,confirmation){
   if(typeof token!=="string"||token.length<32||token.length>100||typeof password!=="string"||password.length<8||Buffer.byteLength(password)>72)throw httpError(400,"El enlace o la contraseña no son válidos");
+  if(password!==confirmation)throw httpError(400,"Las contraseñas no coinciden.");
   const hash=createHash("sha256").update(token).digest("hex"),passwordHash=await hashPassword(password);
-  const result=await query("UPDATE customers SET password_hash=?,password_setup_token_hash=NULL,password_setup_expires_at=NULL WHERE password_setup_token_hash=? AND password_setup_expires_at>NOW()",[passwordHash,hash]);
+  const result=await query("UPDATE customers SET password_hash=?,password_setup_token_hash=NULL,password_setup_expires_at=NULL,password_reset_token_hash=NULL,password_reset_expires_at=NULL WHERE password_setup_token_hash=? AND password_setup_expires_at>NOW()",[passwordHash,hash]);
   if(!result.affectedRows)throw httpError(400,"El enlace ha caducado o ya se utilizó. Solicita otro al restaurante.");
+}
+
+export async function requestPasswordReset(rawEmail){
+  const email=emailValue(rawEmail);
+  if(!validEmail(email))return;
+  const rows=await query("SELECT id,name,email FROM customers WHERE email=? AND password_hash IS NOT NULL",[email]);
+  if(!rows.length)return;
+  let base;
+  try{base=new URL(process.env.PUBLIC_URL)}catch{throw httpError(503,"PUBLIC_URL no está configurada para enviar el enlace.")}
+  const customer=rows[0];
+  const token=randomBytes(32).toString("base64url");
+  const tokenHash=createHash("sha256").update(token).digest("hex");
+  await query("UPDATE customers SET password_reset_token_hash=?,password_reset_expires_at=DATE_ADD(NOW(),INTERVAL 1 HOUR) WHERE id=?",[tokenHash,customer.id]);
+  const resetUrl=new URL("/client/reset-password?token="+encodeURIComponent(token),base).toString();
+  try{
+    await sendEmail({
+      to:customer.email,
+      subject:"Restablece la contraseña de tu cuenta",
+      text:`Hola ${customer.name},\n\nRecibimos una solicitud para cambiar la contraseña de tu cuenta. Usa este enlace durante la próxima hora:\n${resetUrl}\n\nSi no solicitaste el cambio, ignora este mensaje.`,
+    });
+  }catch(error){
+    await query("UPDATE customers SET password_reset_token_hash=NULL,password_reset_expires_at=NULL WHERE id=? AND password_reset_token_hash=?",[customer.id,tokenHash]);
+    throw error;
+  }
+}
+
+export async function passwordResetAvailable(token){
+  if(typeof token!=="string"||token.length<32||token.length>100)return false;
+  const hash=createHash("sha256").update(token).digest("hex");
+  return (await query("SELECT id FROM customers WHERE password_reset_token_hash=? AND password_reset_expires_at>NOW()",[hash])).length>0;
+}
+
+export async function resetCustomerPassword(token,password,confirmation){
+  if(typeof token!=="string"||token.length<32||token.length>100||typeof password!=="string"||password.length<8||Buffer.byteLength(password)>72)
+    throw httpError(400,"El enlace o la contraseña no son válidos.");
+  if(password!==confirmation)throw httpError(400,"Las contraseñas no coinciden.");
+  const hash=createHash("sha256").update(token).digest("hex");
+  const passwordHash=await hashPassword(password);
+  const result=await query("UPDATE customers SET password_hash=?,password_setup_token_hash=NULL,password_setup_expires_at=NULL,password_reset_token_hash=NULL,password_reset_expires_at=NULL WHERE password_reset_token_hash=? AND password_reset_expires_at>NOW()",[passwordHash,hash]);
+  if(!result.affectedRows)throw httpError(400,"El enlace ha caducado o ya se utilizó. Solicita otro.");
 }

@@ -22,6 +22,7 @@ import { createRedsysPayment } from "../services/redsys.js";
 import { quotePromotion } from "../controllers/promotions.js";
 const router = Router();
 const loginLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 });
+const passwordResetLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 8 });
 const addressLimit = rateLimit({ windowMs: 60 * 1000, max: 30 });
 
 router.get("/client/set-password",async(req,res)=>{
@@ -30,8 +31,26 @@ router.get("/client/set-password",async(req,res)=>{
   res.render("client/set-password",{title:"Establecer contraseña",token:req.query.token});
 });
 router.post("/client/set-password",validateCsrf,async(req,res)=>{
-  await accounts.setPasswordFromSetup(req.body.token,req.body.password);
+  await accounts.setPasswordFromSetup(req.body.token,req.body.password,req.body.confirmation);
   res.redirect(303,"/client/login?password_set=1");
+});
+router.get("/client/forgot-password",(req,res)=>res.render("client/forgot-password",{
+  title:"Recuperar contraseña",
+  sent:req.query.sent==="1",
+}));
+router.post("/client/forgot-password",passwordResetLimit,validateCsrf,async(req,res)=>{
+  try{await accounts.requestPasswordReset(req.body.email)}
+  catch(error){console.error("Password reset request failed",{code:error.code,status:error.status})}
+  res.redirect(303,"/client/forgot-password?sent=1");
+});
+router.get("/client/reset-password",async(req,res)=>{
+  const available=await accounts.passwordResetAvailable(req.query.token);
+  if(!available)throw httpError(400,"El enlace ha caducado o ya se utilizó. Solicita otro.");
+  res.render("client/set-password",{title:"Restablecer contraseña",token:req.query.token,action:"/client/reset-password"});
+});
+router.post("/client/reset-password",passwordResetLimit,validateCsrf,async(req,res)=>{
+  await accounts.resetCustomerPassword(req.body.token,req.body.password,req.body.confirmation);
+  res.redirect(303,"/client/login?password_reset=1");
 });
 
 router.get(["/", "/index.html"], async (req, res) => {
@@ -337,6 +356,8 @@ router.get("/client/login", (req, res) =>
     loginActive: true,
     next: safeNext(req.query.next, "/client/orders"),
     googleEnabled: !!process.env.GOOGLE_CLIENT_ID,
+    passwordSet:req.query.password_set==="1",
+    passwordReset:req.query.password_reset==="1",
   }),
 );
 router.post("/client/login", loginLimit, async (req, res) => {
