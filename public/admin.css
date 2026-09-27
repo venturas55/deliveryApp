@@ -2338,3 +2338,20 @@ body.admin-area main {
     width: auto;
   }
 }
+.customer-broadcast-page form > label[for] {
+  display: block;
+  margin-top: 1rem;
+}
+
+.customer-broadcast-page .broadcast-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  margin: 1rem 0;
+}
+
+.customer-broadcast-page .broadcast-confirm input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: auto;
+  margin: .2rem 0 0;
+}

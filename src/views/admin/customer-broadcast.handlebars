@@ -1,0 +1,33 @@
+<section class="orders-page section-page admin-page customer-broadcast-page">
+  <header class="orders-header admin-page-header">
+    <div>
+      <span class="orders-eyebrow">GESTIÓN DE CLIENTES</span>
+      <h1>Correo de difusión</h1>
+      <p>Envía un mensaje individual a las direcciones guardadas de tus clientes.</p>
+    </div>
+    <a class="order-manage-button" href="/admin/clientes">Volver a clientes</a>
+  </header>
+
+  <section class="card" aria-labelledby="broadcast-heading">
+    <h2 id="broadcast-heading">Preparar envío</h2>
+    <p>Destinatarios: <strong>{{total}}</strong>. Cada cliente recibe un correo separado.</p>
+    {{#if problem}}<p class="notice" role="alert">{{problem}}</p>{{/if}}
+    {{#if hasResult}}
+      <p class="notice" role="status">Envío terminado: {{sent}} enviados, {{failed}} fallidos, de {{resultTotal}} destinatarios.</p>
+    {{/if}}
+    <form method="post" action="/admin/clientes/difusion">
+      {{> csrf}}
+      <label for="broadcast-subject">Asunto</label>
+      <input id="broadcast-subject" name="subject" type="text" maxlength="160" required>
+
+      <label for="broadcast-message">Mensaje</label>
+      <textarea id="broadcast-message" name="message" rows="10" maxlength="10000" required></textarea>
+
+      <label class="broadcast-confirm">
+        <input name="confirm" type="checkbox" value="yes" required>
+        Confirmo el envío a {{total}} direcciones de clientes.
+      </label>
+      <button type="submit">Enviar correo a todos</button>
+    </form>
+  </section>
+</section>

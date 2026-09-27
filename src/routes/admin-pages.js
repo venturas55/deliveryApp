@@ -6,6 +6,7 @@ import path from "node:path";
 import rateLimit from "express-rate-limit";
 import {signAdmin} from "../auth.js";
 import * as admin from "../controllers/admin.js";
+import * as adminBroadcast from "../controllers/admin-broadcast.js";
 import * as accounts from "../controllers/accounts.js";
 import {httpError} from "../services/http-error.js";
 import {presentOrder,labels,eventLabels} from "../services/order-presenter.js";
@@ -147,6 +148,27 @@ router.get("/admin/configs",async(req,res)=>{
 });
 router.post("/admin/configs",async(req,res)=>{console.log(req.body);await admin.updateAdminConfigs(req);res.redirect(303,"/admin/configs?saved=1")});
 
+router.get("/admin/clientes/difusion",async(req,res)=>{
+  const total=await adminBroadcast.countBroadcastRecipients();
+  res.render("admin/customer-broadcast",{
+    title:"Correo a clientes",
+    clientesActive:true,
+    total,
+    sent:req.query.sent==null?null:Number(req.query.sent),
+    failed:req.query.failed==null?null:Number(req.query.failed),
+    resultTotal:req.query.total==null?null:Number(req.query.total),
+    hasResult:req.query.total!=null,
+    problem:typeof req.query.problem==="string"?req.query.problem:null,
+  });
+});
+router.post("/admin/clientes/difusion",validateCsrf,async(req,res)=>{
+  try {
+    const result=await adminBroadcast.sendCustomerBroadcast(req.body);
+    res.redirect(303,"/admin/clientes/difusion?sent="+result.sent+"&failed="+result.failed+"&total="+result.total);
+  } catch(error) {
+    res.redirect(303,"/admin/clientes/difusion?problem="+encodeURIComponent(error.message));
+  }
+});
 router.get("/admin/clientes",async(req,res)=>{
   const clientes= await admin.getClientes();
   console.log(clientes);
