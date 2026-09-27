@@ -7,6 +7,7 @@
       <button type="submit">Comprobar cliente</button>
     </form>
     {{#if phone}}
+      {{#if createError}}<p class="notice" role="alert">{{createError}}</p>{{/if}}
       {{#if customer}}
         <p>Cliente encontrado: <strong>{{customer.name}}</strong> · {{customer.email}} · {{customer.phone}}</p>
         {{#if created}}<p class="notice">Cuenta creada. Enviamos un correo para que establezca su contraseña.</p>{{/if}}

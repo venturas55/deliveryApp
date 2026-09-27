@@ -41,73 +41,260 @@ function eurosToCents(value) {
 }
 
 export async function telephoneCustomer(phone, restaurantId) {
-  if (typeof phone !== "string" || phone.trim().length > 40) throw orderError(400, "Teléfono no válido");
+  if (typeof phone !== "string" || phone.trim().length > 40)
+    throw orderError(400, "Teléfono no válido");
   const digits = phone.replace(/\D/g, "");
   if (digits.length < 7) throw orderError(400, "Introduce un teléfono válido");
-  const candidates=[digits];
-  if(digits.length===9)candidates.push("34"+digits);
-  if(digits.startsWith("34")&&digits.length===11)candidates.push(digits.slice(2));
-  const rows = await query(`SELECT id,name,email,phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id FROM customers WHERE REGEXP_REPLACE(phone,'[^0-9]','') IN (${candidates.map(()=>"?").join(",")}) LIMIT 1`, candidates);
+  const candidates = [digits];
+  if (digits.length === 9) candidates.push("34" + digits);
+  if (digits.startsWith("34") && digits.length === 11)
+    candidates.push(digits.slice(2));
+  const rows = await query(
+    `SELECT id,name,email,phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id FROM customers WHERE REGEXP_REPLACE(phone,'[^0-9]','') IN (${candidates.map(() => "?").join(",")}) LIMIT 1`,
+    candidates,
+  );
   return rows[0] || null;
 }
 
 export async function createAdminCustomer(req) {
-  const body=req.body||{},name=String(body.name||"").trim(),phone=String(body.phone||"").trim(),email=emailValue(body.email);
-  if(!name||name.length>120||phone.length>40||!validEmail(email))throw orderError(400,"Revisa nombre, teléfono y correo electrónico");
-  let addressData;try{addressData=JSON.parse(body.delivery_address_data||"{}")}catch{throw orderError(400,"Dirección seleccionada no válida")}
-  const addressError=validateAddress(addressData);if(addressError)throw orderError(400,addressError);
-  const address=cleanAddress(addressData);
-  if(!process.env.SMTP_HOST||!process.env.SMTP_USER||!process.env.SMTP_PASSWORD)throw orderError(503,"Configura SMTP antes de crear clientes");
-  let base;try{base=new URL(process.env.PUBLIC_URL)}catch{throw orderError(503,"Configura PUBLIC_URL como una URL completa para enviar el enlace")}
-  const phoneMatch=await telephoneCustomer(phone,req.user.restaurant_id);
-  if(phoneMatch)throw orderError(409,"Ya existe un cliente con ese teléfono");
-  const token=randomBytes(32).toString("base64url"),tokenHash=createHash("sha256").update(token).digest("hex");
-  const nodemailer=(await import("nodemailer")).default;
-  const transporter=nodemailer.createTransport({host:process.env.SMTP_HOST,port:Number(process.env.SMTP_PORT||587),secure:process.env.SMTP_SECURE==="true",auth:{user:process.env.SMTP_USER,pass:process.env.SMTP_PASSWORD}});
-  try{await transporter.verify()}catch{throw orderError(503,"No se pudo conectar al servidor SMTP; no se creó el usuario")}
-  try{
-    await transaction(async c=>{
-      const result=await c.query("INSERT INTO customers(name,email,password_hash,phone,delivery_address,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,password_setup_token_hash,password_setup_expires_at) VALUES(?,?,NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,DATE_ADD(NOW(),INTERVAL 24 HOUR))",[name,email,phone,address.formatted_address,address.formatted_address,address.street,address.number,address.city,address.province,address.postal_code,address.country,address.latitude,address.longitude,address.place_id,tokenHash]);
-      await transporter.sendMail({from:process.env.SMTP_FROM||process.env.SMTP_USER,to:email,subject:"Establece la contraseña de tu cuenta",text:`Hola ${name},\n\nEl restaurante ha creado una cuenta para ti. Establece tu contraseña desde este enlace (válido durante 24 horas):\n${new URL("/client/set-password?token="+encodeURIComponent(token),base).toString()}`});
+  const body = req.body || {},
+    name = String(body.name || "").trim(),
+    phone = String(body.phone || "").trim(),
+    email = emailValue(body.email);
+  if (!name || name.length > 120 || phone.length > 40 || !validEmail(email))
+    throw orderError(400, "Revisa nombre, teléfono y correo electrónico");
+  let addressData;
+  try {
+    addressData = JSON.parse(body.delivery_address_data || "{}");
+  } catch {
+    throw orderError(400, "Dirección seleccionada no válida");
+  }
+  const addressError = validateAddress(addressData);
+  if (addressError) throw orderError(400, addressError);
+  const address = cleanAddress(addressData);
+  if (
+    !process.env.SMTP_HOST ||
+    !process.env.SMTP_USER ||
+    !process.env.SMTP_PASSWORD
+  )
+    throw orderError(503, "Configura SMTP antes de crear clientes");
+  let base;
+  try {
+    base = new URL(process.env.PUBLIC_URL);
+  } catch {
+    throw orderError(
+      503,
+      "Configura PUBLIC_URL como una URL completa para enviar el enlace",
+    );
+  }
+  const phoneMatch = await telephoneCustomer(phone, req.user.restaurant_id);
+  if (phoneMatch)
+    throw orderError(409, "Ya existe un cliente con ese teléfono");
+  const token = randomBytes(32).toString("base64url"),
+    tokenHash = createHash("sha256").update(token).digest("hex");
+  const nodemailer = (await import("nodemailer")).default;
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
+  });
+  try {
+    await transporter.verify();
+  } catch (error) {
+    console.error("SMTP verify failed", {
+      code: error.code,
+      responseCode: error.responseCode,
+      command: error.command,
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 587),
+    });
+    throw orderError(
+      503,
+      "No se pudo conectar al servidor SMTP; no se creó el usuario",
+    );
+  }
+  try {
+    await transaction(async (c) => {
+      const result = await c.query(
+        "INSERT INTO customers(name,email,password_hash,phone,delivery_address,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,password_setup_token_hash,password_setup_expires_at) VALUES(?,?,NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,DATE_ADD(NOW(),INTERVAL 24 HOUR))",
+        [
+          name,
+          email,
+          phone,
+          address.formatted_address,
+          address.formatted_address,
+          address.street,
+          address.number,
+          address.city,
+          address.province,
+          address.postal_code,
+          address.country,
+          address.latitude,
+          address.longitude,
+          address.place_id,
+          tokenHash,
+        ],
+      );
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: email,
+        subject: "Establece la contraseña de tu cuenta",
+        text: `Hola ${name},\n\nEl restaurante ha creado una cuenta para ti. Establece tu contraseña desde este enlace (válido durante 24 horas):\n${new URL("/client/set-password?token=" + encodeURIComponent(token), base).toString()}`,
+      });
       return result.insertId;
     });
-  }catch(error){if(error.code==="ER_DUP_ENTRY")throw orderError(409,"Ya existe una cuenta con ese correo o teléfono");if(error.status)throw error;throw orderError(502,"No se pudo enviar el correo; no se creó el usuario")}
+  } catch (error) {
+    console.error("Admin customer creation failed", {
+      code: error.code,
+      responseCode: error.responseCode,
+      command: error.command,
+      response: error.response,
+    });
+    if (error.code === "ER_DUP_ENTRY")
+      throw orderError(409, "Ya existe una cuenta con ese correo o teléfono");
+    if (error.status) throw error;
+    throw orderError(502, "No se pudo enviar el correo; no se creó el usuario");
+  }
   return true;
 }
 
-export async function updateAdminOrderCart(req){
-  const cart=readAdminOrderCart(req),action=req.body.action,id=Number(req.body.product_id);
-  if(!Number.isInteger(id)||id<1||!["add","decrease","remove"].includes(action))throw orderError(400,"Acción de carrito no válida");
-  const products=await query("SELECT id FROM products WHERE id=? AND restaurant_id=? AND active=1",[id,req.user.restaurant_id]);
-  if(!products.length)throw orderError(404,"Artículo no disponible");
-  let item=cart.find(entry=>Number(entry.product_id)===id);
-  if(action==="remove")return cart.filter(entry=>Number(entry.product_id)!==id);
-  if(!item&&action==="add")cart.push({product_id:id,quantity:1});
-  else if(item){item.quantity+=action==="add"?1:-1;if(item.quantity<=0)return cart.filter(entry=>Number(entry.product_id)!==id);if(item.quantity>50)throw orderError(400,"Máximo 50 unidades por artículo")}
+export async function updateAdminOrderCart(req) {
+  const cart = readAdminOrderCart(req),
+    action = req.body.action,
+    id = Number(req.body.product_id);
+  if (
+    !Number.isInteger(id) ||
+    id < 1 ||
+    !["add", "decrease", "remove"].includes(action)
+  )
+    throw orderError(400, "Acción de carrito no válida");
+  const products = await query(
+    "SELECT id FROM products WHERE id=? AND restaurant_id=? AND active=1",
+    [id, req.user.restaurant_id],
+  );
+  if (!products.length) throw orderError(404, "Artículo no disponible");
+  let item = cart.find((entry) => Number(entry.product_id) === id);
+  if (action === "remove")
+    return cart.filter((entry) => Number(entry.product_id) !== id);
+  if (!item && action === "add") cart.push({ product_id: id, quantity: 1 });
+  else if (item) {
+    item.quantity += action === "add" ? 1 : -1;
+    if (item.quantity <= 0)
+      return cart.filter((entry) => Number(entry.product_id) !== id);
+    if (item.quantity > 50)
+      throw orderError(400, "Máximo 50 unidades por artículo");
+  }
   return cart;
 }
 
 export async function createAdminOrder(req) {
-  const body=req.body||{},restaurantId=req.user.restaurant_id,channel=body.channel,deliveryMethod=body.delivery_method;
-  if(!["telephone","counter"].includes(channel))throw orderError(400,"Canal de pedido no válido");
-  if(!["delivery","pickup"].includes(deliveryMethod))throw orderError(400,"Tipo de pedido no válido");
-  const customerRows=await query("SELECT * FROM customers WHERE id=?",[body.customer_id]);
-  if(!customerRows.length)throw orderError(404,"Cliente no encontrado");
-  const customer=customerRows[0];
-  const cart=readAdminOrderCart(req);
-  if(!cart.length)throw orderError(400,"Añade artículos al carrito");
-  const products=await query(`SELECT id,name,price_cents FROM products WHERE restaurant_id=? AND active=1 AND id IN (${cart.map(()=>"?").join(",")})`,[restaurantId,...cart.map(item=>item.product_id)]);
-  const productMap=new Map(products.map(item=>[Number(item.id),item]));let subtotal=0;
-  const items=cart.map(item=>{const product=productMap.get(Number(item.product_id)),quantity=Number(item.quantity);if(!product||!Number.isInteger(quantity)||quantity<1||quantity>50)throw orderError(400,"Revisa el carrito");subtotal+=product.price_cents*quantity;return {...product,quantity}});
-  let address=customer.delivery_place_id?{formatted_address:customer.delivery_formatted_address,street:customer.delivery_street,number:customer.delivery_number,city:customer.delivery_city,province:customer.delivery_province,postal_code:customer.delivery_postal_code,country:customer.delivery_country,latitude:customer.delivery_latitude,longitude:customer.delivery_longitude,place_id:customer.delivery_place_id}:null;
-  if(body.delivery_address_data){try{address=JSON.parse(body.delivery_address_data)}catch{throw orderError(400,"Dirección seleccionada no válida")}}
-  if(deliveryMethod==="delivery"){const addressError=validateAddress(address);if(addressError)throw orderError(400,addressError);address=cleanAddress(address)}
-  const deliveryAddress=deliveryMethod==="pickup"?"Recogida en local":address.formatted_address;
-  const delivery=deliveryMethod==="delivery"&&subtotal<Number(process.env.FREE_DELIVERY_FROM_CENTS||3000)?Number(process.env.DELIVERY_BASE_CENTS||399):0;
-  return transaction(async c=>{
-    const result=await c.query("INSERT INTO orders(customer_id,restaurant_id,customer_name,customer_phone,delivery_address,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,payment_method,delivery_method,sales_channel,subtotal_cents,delivery_cents,total_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",[customer.id,restaurantId,customer.name,customer.phone,deliveryAddress,deliveryMethod==="pickup"?null:address.formatted_address,deliveryMethod==="pickup"?null:address.street,deliveryMethod==="pickup"?null:address.number,deliveryMethod==="pickup"?null:address.city,deliveryMethod==="pickup"?null:address.province,deliveryMethod==="pickup"?null:address.postal_code,deliveryMethod==="pickup"?null:address.country,deliveryMethod==="pickup"?null:address.latitude,deliveryMethod==="pickup"?null:address.longitude,deliveryMethod==="pickup"?null:address.place_id,body.payment_method==="card_on_delivery"?"card_on_delivery":"cash",deliveryMethod,channel,subtotal,delivery,subtotal+delivery]);
-    const id=Number(result.insertId);for(const item of items)await c.query("INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price_cents) VALUES(?,?,?,?,?)",[id,item.id,item.name,item.quantity,item.price_cents]);
-    await logEvent(c,id,"order.created",{status:"new",source:channel});return id;
+  const body = req.body || {},
+    restaurantId = req.user.restaurant_id,
+    channel = body.channel,
+    deliveryMethod = body.delivery_method;
+  if (!["telephone", "counter"].includes(channel))
+    throw orderError(400, "Canal de pedido no válido");
+  if (!["delivery", "pickup"].includes(deliveryMethod))
+    throw orderError(400, "Tipo de pedido no válido");
+  const customerRows = await query("SELECT * FROM customers WHERE id=?", [
+    body.customer_id,
+  ]);
+  if (!customerRows.length) throw orderError(404, "Cliente no encontrado");
+  const customer = customerRows[0];
+  const cart = readAdminOrderCart(req);
+  if (!cart.length) throw orderError(400, "Añade artículos al carrito");
+  const products = await query(
+    `SELECT id,name,price_cents FROM products WHERE restaurant_id=? AND active=1 AND id IN (${cart.map(() => "?").join(",")})`,
+    [restaurantId, ...cart.map((item) => item.product_id)],
+  );
+  const productMap = new Map(products.map((item) => [Number(item.id), item]));
+  let subtotal = 0;
+  const items = cart.map((item) => {
+    const product = productMap.get(Number(item.product_id)),
+      quantity = Number(item.quantity);
+    if (
+      !product ||
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > 50
+    )
+      throw orderError(400, "Revisa el carrito");
+    subtotal += product.price_cents * quantity;
+    return { ...product, quantity };
+  });
+  let address = customer.delivery_place_id
+    ? {
+        formatted_address: customer.delivery_formatted_address,
+        street: customer.delivery_street,
+        number: customer.delivery_number,
+        city: customer.delivery_city,
+        province: customer.delivery_province,
+        postal_code: customer.delivery_postal_code,
+        country: customer.delivery_country,
+        latitude: customer.delivery_latitude,
+        longitude: customer.delivery_longitude,
+        place_id: customer.delivery_place_id,
+      }
+    : null;
+  if (body.delivery_address_data) {
+    try {
+      address = JSON.parse(body.delivery_address_data);
+    } catch {
+      throw orderError(400, "Dirección seleccionada no válida");
+    }
+  }
+  if (deliveryMethod === "delivery") {
+    const addressError = validateAddress(address);
+    if (addressError) throw orderError(400, addressError);
+    address = cleanAddress(address);
+  }
+  const deliveryAddress =
+    deliveryMethod === "pickup"
+      ? "Recogida en local"
+      : address.formatted_address;
+  const delivery =
+    deliveryMethod === "delivery" &&
+    subtotal < Number(process.env.FREE_DELIVERY_FROM_CENTS || 3000)
+      ? Number(process.env.DELIVERY_BASE_CENTS || 399)
+      : 0;
+  return transaction(async (c) => {
+    const result = await c.query(
+      "INSERT INTO orders(customer_id,restaurant_id,customer_name,customer_phone,delivery_address,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,payment_method,delivery_method,sales_channel,subtotal_cents,delivery_cents,total_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      [
+        customer.id,
+        restaurantId,
+        customer.name,
+        customer.phone,
+        deliveryAddress,
+        deliveryMethod === "pickup" ? null : address.formatted_address,
+        deliveryMethod === "pickup" ? null : address.street,
+        deliveryMethod === "pickup" ? null : address.number,
+        deliveryMethod === "pickup" ? null : address.city,
+        deliveryMethod === "pickup" ? null : address.province,
+        deliveryMethod === "pickup" ? null : address.postal_code,
+        deliveryMethod === "pickup" ? null : address.country,
+        deliveryMethod === "pickup" ? null : address.latitude,
+        deliveryMethod === "pickup" ? null : address.longitude,
+        deliveryMethod === "pickup" ? null : address.place_id,
+        body.payment_method === "card_on_delivery"
+          ? "card_on_delivery"
+          : "cash",
+        deliveryMethod,
+        channel,
+        subtotal,
+        delivery,
+        subtotal + delivery,
+      ],
+    );
+    const id = Number(result.insertId);
+    for (const item of items)
+      await c.query(
+        "INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price_cents) VALUES(?,?,?,?,?)",
+        [id, item.id, item.name, item.quantity, item.price_cents],
+      );
+    await logEvent(c, id, "order.created", { status: "new", source: channel });
+    return id;
   });
 }
 async function changeOrder(req, fn) {
@@ -935,7 +1122,6 @@ function extractByPrefix(row, prefix) {
 }
 
 export async function getClientes(id = null) {
-
   const params = [];
   let where = "";
 
@@ -945,8 +1131,8 @@ export async function getClientes(id = null) {
     params.push(id);
   }
 
-
-  const rows = await query(`
+  const rows = await query(
+    `
     SELECT
       c.id AS customer_id,
       c.name AS customer_name,
@@ -1010,54 +1196,41 @@ export async function getClientes(id = null) {
     ORDER BY
       c.name ASC,
       o.created_at DESC
-  `, params);
-
+  `,
+    params,
+  );
 
   const customersMap = new Map();
 
-
   for (const row of rows) {
-
     // Creamos el cliente una sola vez
     if (!customersMap.has(row.customer_id)) {
-
       customersMap.set(row.customer_id, {
         ...extractByPrefix(row, "customer_"),
         orders: [],
         total_orders: 0,
-        total_spent_cents: 0
+        total_spent_cents: 0,
       });
-
     }
-
 
     // Si esta fila contiene un pedido
     if (row.order_id) {
-
       const customer = customersMap.get(row.customer_id);
 
-      customer.orders.push(
-        extractByPrefix(row, "order_")
-      );
+      customer.orders.push(extractByPrefix(row, "order_"));
 
       customer.total_orders++;
 
-      customer.total_spent_cents +=
-        Number(row.order_total_cents || 0);
-
+      customer.total_spent_cents += Number(row.order_total_cents || 0);
     }
-
   }
 
-
   const customers = [...customersMap.values()];
-
 
   // Si hemos solicitado un cliente concreto
   if (id !== null && id !== undefined) {
     return customers[0] ?? null;
   }
-
 
   // Sin ID devolvemos todos
   return customers;

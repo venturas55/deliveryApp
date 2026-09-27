@@ -57,10 +57,15 @@ router.get("/admin/pedidotelefonico",async(req,res)=>{
   const phone=String(req.query.phone||"").slice(0,40);
   const cart=readAdminOrderCart(req),quantities=new Map(cart.map(item=>[Number(item.product_id),Number(item.quantity)]));
   const cartItems=products.filter(item=>quantities.has(Number(item.id))).map(item=>({...item,quantity:quantities.get(Number(item.id)),line_cents:item.price_cents*quantities.get(Number(item.id))}));
-  res.render("admin/admin-order-create",{title:"Nuevo pedido",pedidotelefonicoActive:true,products,cartItems,cartTotal:cartItems.reduce((sum,item)=>sum+item.line_cents,0),phone,customer,created:req.query.created==="1",addressData:customer?.delivery_place_id?{formatted_address:customer.delivery_formatted_address,street:customer.delivery_street,number:customer.delivery_number,city:customer.delivery_city,province:customer.delivery_province,postal_code:customer.delivery_postal_code,country:customer.delivery_country,latitude:customer.delivery_latitude,longitude:customer.delivery_longitude,place_id:customer.delivery_place_id}:null});
+  res.render("admin/admin-order-create",{title:"Nuevo pedido",pedidotelefonicoActive:true,products,cartItems,cartTotal:cartItems.reduce((sum,item)=>sum+item.line_cents,0),phone,customer,created:req.query.created==="1",createError:typeof req.query.create_error==="string"?req.query.create_error:null,addressData:customer?.delivery_place_id?{formatted_address:customer.delivery_formatted_address,street:customer.delivery_street,number:customer.delivery_number,city:customer.delivery_city,province:customer.delivery_province,postal_code:customer.delivery_postal_code,country:customer.delivery_country,latitude:customer.delivery_latitude,longitude:customer.delivery_longitude,place_id:customer.delivery_place_id}:null});
 });
-router.post("/admin/pedidotelefonico/cliente",validateCsrf,async(req,res)=>{
-  await admin.createAdminCustomer(req);res.redirect(303,"/admin/pedidotelefonico?phone="+encodeURIComponent(req.body.phone)+"&created=1");
+  router.post("/admin/pedidotelefonico/cliente",validateCsrf,async(req,res)=>{
+    try {
+      await admin.createAdminCustomer(req);
+      res.redirect(303,"/admin/pedidotelefonico?phone="+encodeURIComponent(req.body.phone)+"&created=1");
+    } catch (error) {
+      res.redirect(303,"/admin/pedidotelefonico?phone="+encodeURIComponent(req.body.phone||"")+"&create_error="+encodeURIComponent(error.status>=500?error.message:"No se pudo crear el usuario: "+error.message));
+    }
 });
 router.post("/admin/pedidotelefonico/carrito/:action",validateCsrf,async(req,res)=>{
   req.body.action=req.params.action;const cart=await admin.updateAdminOrderCart(req);writeAdminOrderCart(res,cart);res.redirect(303,"/admin/pedidotelefonico?phone="+encodeURIComponent(req.body.phone||""));
