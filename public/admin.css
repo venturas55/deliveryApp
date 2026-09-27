@@ -2355,3 +2355,49 @@ body.admin-area main {
   width: auto;
   margin: .2rem 0 0;
 }
+.promotion-manager {
+  max-width: 1180px;
+  margin: 2rem auto;
+}
+
+.promotion-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.promotion-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.promotion-card h3,
+.promotion-card p {
+  margin: 0 0 .5rem;
+}
+
+.promotion-editor {
+  max-width: 760px;
+  margin: 1.5rem 0;
+}
+
+.promotion-editor label {
+  display: block;
+  margin: .8rem 0;
+}
+
+.promotion-editor fieldset {
+  display: grid;
+  gap: .5rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+}
+
+@media (max-width: 700px) {
+  .promotion-card {
+    flex-direction: column;
+  }
+}

@@ -7,6 +7,7 @@ import {httpError} from "../services/http-error.js";
 import {cleanAddress,validateAddress} from "../services/geocoding.js";
 import {getConfiguredDeliveryProvider} from "../delivery/index.js";
 import {normalizeDelivery,applyDeliveryUpdate} from "../services/delivery-tracking.js";
+import {quotePromotion} from "./promotions.js";
 
 async function syncCustomerDelivery(order,customerId){
   if(order.provider!=="uber"||!order.provider_order_id||["delivered","cancelled"].includes(order.status))return;
@@ -73,24 +74,25 @@ export async function createOrder(req){
   const ids=items.map(x=>Number(x?.product_id)).filter(id=>Number.isInteger(id)&&id>0);
   if(ids.length!==items.length)throw httpError(400,"Productos no validos");
   if(!["cash","online","card_on_delivery"].includes(payment_method))throw httpError(400,"Forma de pago no valida");
-  const products=await query(`SELECT id,name,price_cents FROM products WHERE restaurant_id=? AND active=1 AND id IN (${ids.map(()=>"?").join(",")})`,[r.id,...ids]);
+  const products=await query(`SELECT id,name,category,price_cents FROM products WHERE restaurant_id=? AND active=1 AND id IN (${ids.map(()=>"?").join(",")})`,[r.id,...ids]);
   const map=new Map(products.map(p=>[Number(p.id),p])); let subtotal=0; const normalized=[];
   for(const x of items){
     const p=map.get(Number(x.product_id)),q=Number(x.quantity);
     if(!p||!Number.isInteger(q)||q<1||q>50)throw httpError(400,"Producto/cantidad inválidos");
-    subtotal+=p.price_cents*q;normalized.push({product_id:p.id,product_name:p.name,quantity:q,unit_price_cents:p.price_cents});
+    subtotal+=p.price_cents*q;normalized.push({id:p.id,product_id:p.id,product_name:p.name,category:p.category,price_cents:p.price_cents,quantity:q,unit_price_cents:p.price_cents});
   }
+  const promotion=await quotePromotion(r.id,body.promo_code,normalized);
   const delivery=isPickup?0:subtotal>=Number(process.env.FREE_DELIVERY_FROM_CENTS||3000)?0:Number(process.env.DELIVERY_BASE_CENTS||399);
-  const total=subtotal+delivery;
+  const total=subtotal-promotion.discount_cents+delivery;
   const orderId=await transaction(async c=>{
-    const result=await c.query(`INSERT INTO orders(customer_id,restaurant_id,customer_name,customer_phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,delivery_apartment,delivery_patio,payment_method,delivery_method,subtotal_cents,delivery_cents,total_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [req.customer.sub,r.id,customer_name,customer_phone,delivery_address,delivery_notes,address.formatted_address,address.street,address.number,address.city,address.province,address.postal_code,address.country,address.latitude,address.longitude,address.place_id,delivery_apartment,delivery_patio,payment_method,delivery_method,subtotal,delivery,total]);
+    const result=await c.query(`INSERT INTO orders(customer_id,restaurant_id,customer_name,customer_phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,delivery_apartment,delivery_patio,payment_method,delivery_method,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [req.customer.sub,r.id,customer_name,customer_phone,delivery_address,delivery_notes,address.formatted_address,address.street,address.number,address.city,address.province,address.postal_code,address.country,address.latitude,address.longitude,address.place_id,delivery_apartment,delivery_patio,payment_method,delivery_method,subtotal,promotion.code||null,promotion.discount_cents,delivery,total]);
     const id=Number(result.insertId);
     for(const i of normalized)await c.query("INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price_cents) VALUES(?,?,?,?,?)",[id,i.product_id,i.product_name,i.quantity,i.unit_price_cents]);
     await logEvent(c,id,"order.created",{status:"new"});
     return id;
   });
-  return ({id:orderId,total_cents:total,status:"new",delivery_method});
+  return ({id:orderId,total_cents:total,status:"new",delivery_method,discount_cents:promotion.discount_cents,promo_code:promotion.code||null});
 }
 
 export async function customerOrders(req){
@@ -101,10 +103,10 @@ export async function customerOrders(req){
 }
 
 export async function customerOrder(req){
-  const rows=await query("SELECT id,restaurant_id,customer_name,delivery_address,delivery_method,status,subtotal_cents,delivery_cents,total_cents,provider,provider_order_id,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
+  const rows=await query("SELECT id,restaurant_id,customer_name,delivery_address,delivery_method,status,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents,provider,provider_order_id,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
   if(!rows.length)throw httpError(404,"Pedido no encontrado");
   await syncCustomerDelivery(rows[0],req.customer.sub);
-  const refreshed=await query("SELECT id,customer_name,delivery_address,delivery_method,status,subtotal_cents,delivery_cents,total_cents,provider,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
+  const refreshed=await query("SELECT id,customer_name,delivery_address,delivery_method,status,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents,provider,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
   const current=refreshed[0]||rows[0];
   const items=await query("SELECT product_name,quantity,unit_price_cents FROM order_items WHERE order_id=?",[req.params.id]);
   const {delivery_details_json,delivery_verification_code,...order}=current,details=parseDetails(delivery_details_json);

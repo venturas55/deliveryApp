@@ -53,7 +53,8 @@
 
     </div>
   </div><p>{{order.customer_name}} · {{order.customer_phone}}<br>{{order.delivery_address}}</p><p>{{order.delivery_notes}}</p>
-  <ul>{{#each order.items}}<li>{{quantity}} × {{product_name}} — {{money (multiply quantity unit_price_cents)}}</li>{{/each}}</ul><p>Total: <strong>{{money order.total_cents}}</strong></p>
+  <ul>{{#each order.items}}<li>{{quantity}} × {{product_name}} — {{money (multiply quantity unit_price_cents)}}</li>{{/each}}</ul>
+  <p>Subtotal: {{money order.subtotal_cents}}{{#if order.discount_cents}}<br>Descuento{{#if order.promo_code}} ({{order.promo_code}}){{/if}}: −{{money order.discount_cents}}{{/if}}<br>Envío: {{money order.delivery_cents}}</p><p>Total: <strong>{{money order.total_cents}}</strong></p>
   {{#if (eq order.payment_status "refunded")}}
   <div class="refund-info">
     <strong>↩ Pago reembolsado</strong>

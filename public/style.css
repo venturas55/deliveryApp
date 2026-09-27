@@ -1013,3 +1013,28 @@ a:focus-visible {
     padding: 0;
   }
 }
+.promo-code-form {
+  margin: 1rem 0;
+}
+
+.promo-code-form label {
+  display: block;
+  font-weight: 600;
+}
+
+.promo-code-controls {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+
+.promo-code-controls input {
+  min-width: 0;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.promo-code-controls button {
+  width: auto;
+  flex: 0 0 auto;
+}

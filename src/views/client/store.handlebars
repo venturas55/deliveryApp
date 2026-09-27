@@ -136,16 +136,32 @@
         </strong>
     </p>
 
+    {{#if promo.discount_cents}}
+    <p><span>Descuento ({{promo.code}})</span><strong>−{{money promo.discount_cents}}</strong></p>
+    {{/if}}
+
     <p class="cart-total">
         <span>Total</span>
         <strong
             data-cart-total
             data-subtotal-cents="{{subtotal}}"
+            data-discount-cents="{{promo.discount_cents}}"
         >
             {{money total}}
         </strong>
     </p>
 </div>
+
+    <form method="post" action="/cart/promo" class="promo-code-form">
+      {{> csrf}}
+      <label for="promo-code">Código de descuento</label>
+      <div class="promo-code-controls">
+        <input id="promo-code" name="promo_code" type="text" maxlength="32" value="{{promoCode}}" autocomplete="off">
+        <button type="submit">Aplicar</button>
+      </div>
+      {{#if promo.description}}<p role="status">{{promo.description}}</p>{{/if}}
+      {{#if promoError}}<p class="notice" role="alert">{{promoError}}</p>{{/if}}
+    </form>
 
     {{#if customerLoggedIn}}
       <p>Datos habituales de <a href="/client/account">Mi cuenta</a>. Puedes cambiarlos para esta entrega.</p>
@@ -200,6 +216,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const subtotalCents =
         Number(cartTotal.dataset.subtotalCents);
 
+    const promoDiscountCents =
+        Number(cartTotal.dataset.discountCents || 0);
+
     const money = cents =>
         new Intl.NumberFormat('es-ES', {
             style: 'currency',
@@ -243,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         /* Total */
 
         const finalTotal =
-            subtotalCents +
+            subtotalCents - promoDiscountCents +
             (isPickup ? 0 : deliveryCents);
 
         cartTotal.textContent =

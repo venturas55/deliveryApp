@@ -80,4 +80,55 @@
     </div>
   </form>
 </aside>
+
+<section class="promotion-manager" id="promotions" aria-labelledby="promotions-heading">
+  <header class="products-list-heading">
+    <div><h2 id="promotions-heading">Promociones y códigos de descuento</h2><p>Los códigos se aplican en la cesta y se vuelven a calcular al confirmar el pedido.</p></div>
+    <a class="products-primary-link" href="#promotionForm">＋ Nueva promoción</a>
+  </header>
+
+  <div class="promotion-list">
+    {{#each promotionList}}
+      <article class="promotion-card">
+        <div><h3>{{name}}</h3><p><strong>{{code}}</strong> · {{#if (eq promotion_type "percentage")}}{{percentage}}% descuento{{else}}Compra {{trigger_quantity}}, regala {{reward_quantity}}{{/if}}</p>
+          {{#if trigger_product_name}}<p>Compra: {{trigger_product_name}}</p>{{else if trigger_category}}<p>Compra categoría: {{trigger_category}}</p>{{/if}}
+          {{#if reward_product_name}}<p>Gratis: {{reward_product_name}}</p>{{else if reward_category}}<p>Gratis categoría: {{reward_category}}</p>{{/if}}
+          <span>{{#if active}}Activa{{else}}Pausada{{/if}}</span>
+        </div>
+        <div class="product-card-actions">
+          <a class="product-button product-button--primary" href="/admin/products?promotion_edit={{id}}#promotions">Editar</a>
+          <form method="post" action="/admin/promotions/{{id}}/toggle">{{> csrf}}<input type="hidden" name="active" value="{{#if active}}0{{else}}1{{/if}}"><button class="product-button product-button--secondary">{{#if active}}Pausar{{else}}Activar{{/if}}</button></form>
+          <form method="post" action="/admin/promotions/{{id}}/delete" data-confirm="¿Eliminar el código {{code}}?">{{> csrf}}<button class="product-delete-link">Eliminar</button></form>
+        </div>
+      </article>
+    {{else}}
+      <p>Aún no hay promociones.</p>
+    {{/each}}
+  </div>
+
+  <aside class="card promotion-editor" id="promotionForm">
+    <h3>{{#if promotion.id}}Editar promoción{{else}}Crear promoción{{/if}}</h3>
+    <form method="post" action="{{#if promotion.id}}/admin/promotions/{{promotion.id}}/edit{{else}}/admin/promotions{{/if}}">
+      {{> csrf}}
+      <label>Nombre<input name="name" maxlength="120" value="{{promotion.name}}" required></label>
+      <label>Código<input name="code" maxlength="32" pattern="[A-Za-z0-9_-]{3,32}" value="{{promotion.code}}" aria-describedby="promotion-code-help" required><small id="promotion-code-help">3-32 letras, números, guion o guion bajo.</small></label>
+      <label>Tipo<select name="promotion_type" required>
+        <option value="percentage"{{#if (eq promotion.promotion_type "percentage")}} selected{{/if}}>Porcentaje de descuento</option>
+        <option value="buy_get"{{#if (eq promotion.promotion_type "buy_get")}} selected{{/if}}>Compra productos y recibe unidades gratis</option>
+      </select></label>
+      <label>Porcentaje<input name="percentage" type="number" min="1" max="100" value="{{promotion.percentage}}"><small>Se descuenta del subtotal de artículos.</small></label>
+
+      <fieldset><legend>Regla de compra y regalo</legend>
+        <label>Compra categoría<select name="trigger_category"><option value="">Elige categoría</option>{{#each productCategories}}<option value="{{this}}"{{#if (eq this ../promotion.trigger_category)}} selected{{/if}}>{{this}}</option>{{/each}}</select></label>
+        <label>O compra producto<select name="trigger_product_id"><option value="">Cualquier producto de la categoría</option>{{#each products}}<option value="{{id}}"{{#if (eq id ../promotion.trigger_product_id)}} selected{{/if}}>{{name}} ({{category}})</option>{{/each}}</select></label>
+        <label>Unidades necesarias<input name="trigger_quantity" type="number" min="1" max="50" value="{{promotion.trigger_quantity}}"><small>Ejemplo: 2 para 2x1; 3 para regalar algo por cada 3 pizzas.</small></label>
+        <label>Regalo categoría<select name="reward_category"><option value="">Elige categoría</option>{{#each productCategories}}<option value="{{this}}"{{#if (eq this ../promotion.reward_category)}} selected{{/if}}>{{this}}</option>{{/each}}</select></label>
+        <label>O regalo producto<select name="reward_product_id"><option value="">Cualquier producto de la categoría</option>{{#each products}}<option value="{{id}}"{{#if (eq id ../promotion.reward_product_id)}} selected{{/if}}>{{name}} ({{category}})</option>{{/each}}</select></label>
+        <label>Unidades gratis por regla<input name="reward_quantity" type="number" min="1" max="50" value="{{#if promotion.reward_quantity}}{{promotion.reward_quantity}}{{else}}1{{/if}}"></label>
+      </fieldset>
+      <button class="product-button product-button--primary" type="submit">{{#if promotion.id}}Guardar promoción{{else}}Crear promoción{{/if}}</button>
+      {{#if promotion.id}}<a class="product-cancel-link" href="/admin/products#promotions">Cancelar edición</a>{{/if}}
+    </form>
+  </aside>
+</section>
 </div>

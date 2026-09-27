@@ -6,6 +6,7 @@ import path from "node:path";
 import rateLimit from "express-rate-limit";
 import {signAdmin} from "../auth.js";
 import * as admin from "../controllers/admin.js";
+import * as promotions from "../controllers/promotions.js";
 import * as adminBroadcast from "../controllers/admin-broadcast.js";
 import * as accounts from "../controllers/accounts.js";
 import {httpError} from "../services/http-error.js";
@@ -97,6 +98,11 @@ router.post("/admin/orders/:id/:action",async(req,res)=>{
 });
 router.get("/admin/products",async(req,res)=>{
   const products=await admin.adminProducts(req);
+  const productCategories=[...new Set(products.map(product=>product.category).filter(Boolean))].sort();
+  const promotionList=await promotions.adminPromotions(req.user.restaurant_id);
+  res.locals.promotionList=promotionList;
+  res.locals.productCategories=productCategories;
+  res.locals.promotion=promotionList.find(item=>String(item.id)===String(req.query.promotion_edit))||null;
   const product=req.query.edit?products.find(p=>String(p.id)===req.query.edit):{category:"Pizzas",active:1,sort_order:0};
   if(!product)throw httpError(404,"Artículo no encontrado");
   res.render("admin/products",{title:"Gestionar artículos",productsActive:true,products,product,productCount:products.length,activeProductCount:products.filter(item=>Number(item.active)===1).length});
@@ -127,6 +133,10 @@ router.get("/admin/products/:id/delete",async(req,res)=>{
   res.render("admin/delete-product",{title:"Eliminar artículo",productsActive:true,product});
 });
 router.post("/admin/products/:id/delete",async(req,res)=>{await admin.deleteProduct(req);res.redirect(303,"/admin/products")});
+router.post("/admin/promotions",validateCsrf,async(req,res)=>{await promotions.savePromotion(req);res.redirect(303,"/admin/products#promotions")});
+router.post("/admin/promotions/:id/edit",validateCsrf,async(req,res)=>{await promotions.savePromotion(req);res.redirect(303,"/admin/products#promotions")});
+router.post("/admin/promotions/:id/toggle",validateCsrf,async(req,res)=>{await promotions.togglePromotion(req);res.redirect(303,"/admin/products#promotions")});
+router.post("/admin/promotions/:id/delete",validateCsrf,async(req,res)=>{await promotions.deletePromotion(req);res.redirect(303,"/admin/products#promotions")});
 
 
 

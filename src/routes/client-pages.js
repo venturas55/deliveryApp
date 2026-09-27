@@ -13,11 +13,13 @@ import {
   clearSession,
   safeNext,
   readCart,
+  readCartPromo,
   writeCart,
   validateCsrf,
 } from "../services/web-session.js";
 import { searchAddresses } from "../services/geocoding.js";
 import { createRedsysPayment } from "../services/redsys.js";
+import { quotePromotion } from "../controllers/promotions.js";
 const router = Router();
 const loginLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 });
 const addressLimit = rateLimit({ windowMs: 60 * 1000, max: 30 });
@@ -64,6 +66,13 @@ router.get(["/", "/index.html"], async (req, res) => {
     subtotal < Number(configsData.free_delivery_from_cents)
       ? Number(configsData.delivery_base_cents) 
       : 0;
+  const promoCode=readCartPromo(req);
+  let promo={code:promoCode,discount_cents:0,description:""};
+  let promoError=typeof req.query.promo_error==="string"?req.query.promo_error:"";
+  if(promoCode){
+    try{promo=await quotePromotion(data.restaurant.id,promoCode,cart)}
+    catch{promoError="El código guardado ya no está disponible. Introduce otro o elimínalo."}
+  }
 
   const profile = req.customer
     ? await accounts.customerProfile(req.customer.sub)
@@ -121,7 +130,10 @@ router.get(["/", "/index.html"], async (req, res) => {
     subtotal,
     delivery,
     configsData,
-    total: subtotal + delivery,
+    total: subtotal - promo.discount_cents + delivery,
+    promo,
+    promoCode,
+    promoError,
     profile,
     addressData: profile?.addressData,
   });
@@ -163,14 +175,33 @@ router.post("/cart", async (req, res) => {
   writeCart(
     res,
     cart.filter((i) => i.quantity > 0),
+    readCartPromo(req),
   );
   res.redirect(303, "/#cartPanel");
+});
+router.post("/cart/promo",validateCsrf,async(req,res)=>{
+  const code=String(req.body.promo_code||"").trim().toUpperCase();
+  if(!code){writeCart(res,readCart(req),"");return res.redirect(303,"/#cartPanel")}
+  try{
+    const data=await clients.menu({query:{slug:"demo"}});
+    const products=new Map(data.products.map(product=>[Number(product.id),product]));
+    const cart=readCart(req).flatMap(item=>{
+      const product=products.get(Number(item.product_id));
+      return product?[{...product,quantity:Number(item.quantity)}]:[];
+    });
+    await quotePromotion(data.restaurant.id,code,cart);
+    writeCart(res,readCart(req),code);
+    return res.redirect(303,"/#cartPanel");
+  }catch(error){
+    return res.redirect(303,"/?promo_error="+encodeURIComponent(error.message)+"#cartPanel");
+  }
 });
 router.post("/checkout", requireCustomer, async (req, res) => {
   req.body = {
     ...req.body,
     slug: "demo",
     items: readCart(req),
+    promo_code: readCartPromo(req),
   };
   const order = await clients.createOrder(req);
   console.log("ORDER CHECKOUT:", order);

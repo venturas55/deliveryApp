@@ -48,9 +48,13 @@ export function readCart(req){
   const value=readToken(req.cookies.customer_cart);
   return value?.purpose==="cart"&&Array.isArray(value.items)?value.items:[];
 }
-export function writeCart(res,items){
+export function readCartPromo(req){
+  const value=readToken(req.cookies.customer_cart);
+  return value?.purpose==="cart"&&typeof value.promoCode==="string"?value.promoCode:"";
+}
+export function writeCart(res,items,promoCode=""){
   if(!items.length)return res.clearCookie("customer_cart",cookieOptions());
-  res.cookie("customer_cart",jwt.sign({purpose:"cart",items},process.env.JWT_SECRET,{expiresIn:"7d"}),{...cookieOptions(),maxAge:7*24*60*60*1000});
+  res.cookie("customer_cart",jwt.sign({purpose:"cart",items,promoCode},process.env.JWT_SECRET,{expiresIn:"7d"}),{...cookieOptions(),maxAge:7*24*60*60*1000});
 }
 export function readAdminOrderCart(req){
   const value=readToken(req.cookies.admin_order_cart);

@@ -49,6 +49,26 @@ CREATE TABLE IF NOT EXISTS products (
   FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS promotions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  restaurant_id INT NOT NULL,
+  code VARCHAR(32) NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  promotion_type ENUM('percentage','buy_get') NOT NULL,
+  percentage TINYINT UNSIGNED NULL,
+  trigger_category VARCHAR(80) NULL,
+  trigger_product_id INT NULL,
+  trigger_quantity SMALLINT UNSIGNED NULL,
+  reward_category VARCHAR(80) NULL,
+  reward_product_id INT NULL,
+  reward_quantity SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_promotions_restaurant_code (restaurant_id, code),
+  INDEX idx_promotions_restaurant_active (restaurant_id, active),
+  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS delivery_zones (
   id INT AUTO_INCREMENT PRIMARY KEY,
   restaurant_id INT NOT NULL,
@@ -73,6 +93,8 @@ CREATE TABLE IF NOT EXISTS orders (
   sales_channel ENUM('web','phone','telephone','counter') NOT NULL DEFAULT 'web',
   status ENUM('new','accepted','preparing','ready','delivery_requested','courier_assigned','out_for_delivery','delivered','cancelled') NOT NULL DEFAULT 'new',
   subtotal_cents INT NOT NULL,
+  promo_code VARCHAR(32) NULL,
+  discount_cents INT NOT NULL DEFAULT 0,
   delivery_cents INT NOT NULL DEFAULT 0,
   total_cents INT NOT NULL,
   provider VARCHAR(40),
