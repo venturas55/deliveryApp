@@ -81,14 +81,20 @@ router.get("/admin/stats",async(req,res)=>{
 });
 router.get("/admin/orders/:id",async(req,res)=>{
   const order=presentOrder(await admin.adminOrder(req));
+  order.canMarkPaid=["cash","card_on_delivery"].includes(order.payment_method)&&order.payment_status!=="paid"&&!['cancelled','refunded'].includes(order.payment_status)&&order.status!=="cancelled";
   const event=order.events.find(e=>e.event_type==="delivery.quoted");
   const payload=event?JSON.parse(event.payload_json):null;
   const quotes=order.canQuote?(payload?.quotes||((payload?.quoteId)?[payload]:[])).filter(item=>item.expiresAt>Date.now()):[];
   const quoteErrors=payload?.errors||[];
   const events=order.events.map(e=>{const p=JSON.parse(e.payload_json||"{}");return {...e,label:eventLabels[e.event_type]||e.event_type,statusLabel:p.ignored?null:labels[p.status],reason:p.reason,feeCents:p.feeCents}});
+  for(const item of events)if(item.event_type==="payment.manual_paid")item.label="Pago marcado como recibido manualmente";
   res.render("admin/order",{title:"Pedido #"+order.id,ordersActive:true,order,events,quotes,quoteErrors,refresh:!order.finished});
 });
 router.get("/admin/orders/:id/pickup-qr",async(req,res)=>res.set("Cache-Control","no-store").type("png").send(await admin.pickupQr(req)));
+router.post("/admin/orders/:id/mark-paid",validateCsrf,async(req,res)=>{
+  await admin.markOrderPaid(req);
+  res.redirect(303,"/admin/orders/"+req.params.id);
+});
 router.post("/admin/orders/:id/:action",async(req,res)=>{
   const operations={status:admin.setOrderStatus,quote:admin.deliveryQuote,dispatch:admin.dispatchDelivery,simulate:admin.simulateDelivery,sync:admin.syncDelivery};
   const operation=operations[req.params.action];

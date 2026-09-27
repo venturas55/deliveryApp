@@ -75,6 +75,7 @@
 {{/if}}
   <div class="order-actions">
     {{#if order.nextStatus}}<form method="post" action="/admin/orders/{{order.id}}/status">{{> csrf}}<input type="hidden" name="status" value="{{order.nextStatus}}"><button>{{order.nextLabel}}</button></form>{{/if}}
+    {{#if order.canMarkPaid}}<form method="post" action="/admin/orders/{{order.id}}/mark-paid" data-confirm="¿Confirmas que has recibido el pago de este pedido?">{{> csrf}}<button>Marcar como pagado</button></form>{{/if}}
     {{#if order.canCancel}}
 
   {{#if (eq order.payment_method "online")}}

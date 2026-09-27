@@ -543,6 +543,24 @@ export async function adminOrder(req) {
   return { ...rows[0], items, events };
 }
 
+export async function markOrderPaid(req) {
+  return changeOrder(req, async (c, order) => {
+    if (!["cash", "card_on_delivery"].includes(order.payment_method))
+      throw orderError(409, "El pago manual solo admite efectivo o tarjeta al entregar");
+    if (order.status === "cancelled" || ["paid", "cancelled", "refunded"].includes(order.payment_status))
+      throw orderError(409, "Este pedido no admite marcar el pago como recibido");
+    await c.query(
+      "UPDATE orders SET payment_status='paid',paid_at=COALESCE(paid_at,NOW()) WHERE id=?",
+      [order.id],
+    );
+    await logEvent(c, order.id, "payment.manual_paid", {
+      method: order.payment_method,
+      admin_id: req.user.sub,
+    });
+    return { ok: true };
+  });
+}
+
 export async function setOrderStatus(req) {
   const transitions = {
     new: ["accepted", "cancelled"],
