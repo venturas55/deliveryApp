@@ -14,12 +14,23 @@ import {
   safeNext,
   readCart,
   writeCart,
+  validateCsrf,
 } from "../services/web-session.js";
 import { searchAddresses } from "../services/geocoding.js";
 import { createRedsysPayment } from "../services/redsys.js";
 const router = Router();
 const loginLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 });
 const addressLimit = rateLimit({ windowMs: 60 * 1000, max: 30 });
+
+router.get("/client/set-password",async(req,res)=>{
+  const available=await accounts.passwordSetupAvailable(req.query.token);
+  if(!available)throw httpError(400,"El enlace ha caducado o ya se utilizó. Solicita otro al restaurante.");
+  res.render("client/set-password",{title:"Establecer contraseña",token:req.query.token});
+});
+router.post("/client/set-password",validateCsrf,async(req,res)=>{
+  await accounts.setPasswordFromSetup(req.body.token,req.body.password);
+  res.redirect(303,"/client/login?password_set=1");
+});
 
 router.get(["/", "/index.html"], async (req, res) => {
   const data = await clients.menu({ query: { name: "Massa e fuoco" } });

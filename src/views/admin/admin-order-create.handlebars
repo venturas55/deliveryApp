@@ -1,0 +1,56 @@
+<section id="adminMain" class="orders-page section-page admin-page">
+  <header class="section-header"><div><p class="eyebrow">VENTA ASISTIDA</p><h1>Nuevo pedido</h1><p>Localiza al cliente, crea su cuenta si hace falta y prepara el pedido en el carrito.</p></div></header>
+  <section class="card">
+    <h2>1. Buscar cliente</h2>
+    <form method="get" action="/admin/pedidotelefonico" class="field-grid">
+      <label>Teléfono<input name="phone" type="tel" value="{{phone}}" maxlength="40" required></label>
+      <button type="submit">Comprobar cliente</button>
+    </form>
+    {{#if phone}}
+      {{#if customer}}
+        <p>Cliente encontrado: <strong>{{customer.name}}</strong> · {{customer.email}} · {{customer.phone}}</p>
+        {{#if created}}<p class="notice">Cuenta creada. Enviamos un correo para que establezca su contraseña.</p>{{/if}}
+
+        <h2>2. Añadir artículos</h2>
+        <div class="field-grid">{{#each products}}
+          <article class="card"><h3>{{name}}</h3><p>{{description}}</p><strong>{{money price_cents}}</strong>
+            <form method="post" action="/admin/pedidotelefonico/carrito/add">{{> csrf}}<input type="hidden" name="phone" value="{{../phone}}"><input type="hidden" name="product_id" value="{{id}}"><button>Añadir al carrito</button></form>
+          </article>
+        {{/each}}</div>
+
+        <h2>Carrito</h2>
+        {{#if cartItems.length}}
+          <ul class="admin-order-cart">{{#each cartItems}}
+            <li><strong>{{name}}</strong> · {{quantity}} × {{money price_cents}} = {{money line_cents}}
+              <form method="post" action="/admin/pedidotelefonico/carrito/add">{{> csrf}}<input type="hidden" name="phone" value="{{../phone}}"><input type="hidden" name="product_id" value="{{id}}"><button aria-label="Añadir una unidad de {{name}}">+</button></form>
+              <form method="post" action="/admin/pedidotelefonico/carrito/decrease">{{> csrf}}<input type="hidden" name="phone" value="{{../phone}}"><input type="hidden" name="product_id" value="{{id}}"><button aria-label="Quitar una unidad de {{name}}">−</button></form>
+              <form method="post" action="/admin/pedidotelefonico/carrito/remove">{{> csrf}}<input type="hidden" name="phone" value="{{../phone}}"><input type="hidden" name="product_id" value="{{id}}"><button>Quitar</button></form>
+            </li>
+          {{/each}}</ul>
+          <p><strong>Total artículos: {{money cartTotal}}</strong></p>
+          <h2>3. Confirmar pedido</h2>
+          <form method="post" action="/admin/pedidotelefonico">{{> csrf}}<input type="hidden" name="customer_id" value="{{customer.id}}">
+            <div class="field-grid">
+              <label>Origen<select name="channel"><option value="telephone">Teléfono</option><option value="counter">Mostrador</option></select></label>
+              <label>Entrega<select name="delivery_method"><option value="delivery">A domicilio</option><option value="pickup">Recogida en local</option></select></label>
+              <label>Pago<select name="payment_method"><option value="cash">Efectivo</option><option value="card_on_delivery">Tarjeta al entregar</option></select></label>
+            </div>
+            <h3>Dirección de envío</h3>{{> admin/address-picker}}
+            <button type="submit">Crear pedido</button>
+          </form>
+        {{else}}<p>El carrito está vacío. Añade productos de la carta.</p>{{/if}}
+      {{else}}
+        <p>No encontramos un cliente con ese teléfono. Crea su cuenta; recibirá un enlace para establecer su contraseña.</p>
+        <h2>Crear usuario</h2>
+        <form method="post" action="/admin/pedidotelefonico/cliente">{{> csrf}}<input type="hidden" name="phone" value="{{phone}}">
+          <div class="field-grid">
+            <label>Nombre completo<input name="name" maxlength="120" required></label>
+            <label>Correo electrónico<input name="email" type="email" maxlength="190" required></label>
+          </div>
+          <h3>Dirección de envío</h3>{{> admin/address-picker}}
+          <button type="submit">Crear usuario</button>
+        </form>
+      {{/if}}
+    {{/if}}
+  </section>
+</section>

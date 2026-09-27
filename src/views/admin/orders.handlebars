@@ -15,7 +15,6 @@
 
 
   <div class="orders-toolbar">
-
     <form method="get" action="/admin/orders" class="orders-filter">
       <label for="orders-filter">Mostrar</label>
 
@@ -58,7 +57,6 @@
     {{#each orders}}
 
       <article class="order-card">
-
         <header class="order-card-header">
 
           <div class="order-number">
@@ -133,31 +131,22 @@
             {{/if}}
 
           </div>
-
-
           <div class="order-customer">
-
+            <div class="order-info-row">
+              <span class="order-info-icon" aria-hidden="true">⌖</span>
+              <div>
+                <span class="order-info-label">Entrega</span>
+                <strong>{{delivery_address}}</strong>
+              </div>
+            </div>
             <div class="order-info-row">
               <span class="order-info-icon" aria-hidden="true">👤</span>
-
               <div>
                 <span class="order-info-label">Cliente</span>
                 <strong>{{customer_name}}</strong>
                 <span>{{customer_phone}}</span>
               </div>
             </div>
-
-
-            <div class="order-info-row">
-              <span class="order-info-icon" aria-hidden="true">⌖</span>
-
-              <div>
-                <span class="order-info-label">Entrega</span>
-                <strong>{{delivery_address}}</strong>
-              </div>
-            </div>
-
-
             {{#if delivery_notes}}
               <div class="order-notes">
                 <span>Nota del cliente</span>

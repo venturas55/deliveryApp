@@ -1,4 +1,5 @@
 import {query} from "../db.js";
+import {createHash} from "node:crypto";
 import {hashPassword,checkPassword} from "../auth.js";
 import {httpError} from "../services/http-error.js";
 import {cleanAddress,validateAddress} from "../services/geocoding.js";
@@ -55,4 +56,16 @@ export async function updateProfile(id,body={}){
   await customerProfile(id);
   await query(`UPDATE customers SET ${Object.keys(data).map(key=>key+"=?").join(",")} WHERE id=?`,[...Object.values(data),id]);
   return {ok:true};
+}
+
+export async function passwordSetupAvailable(token){
+  if(typeof token!=="string"||token.length<32||token.length>100) return false;
+  const hash=createHash("sha256").update(token).digest("hex");
+  return (await query("SELECT id FROM customers WHERE password_setup_token_hash=? AND password_setup_expires_at>NOW()",[hash])).length>0;
+}
+export async function setPasswordFromSetup(token,password){
+  if(typeof token!=="string"||token.length<32||token.length>100||typeof password!=="string"||password.length<8||Buffer.byteLength(password)>72)throw httpError(400,"El enlace o la contraseña no son válidos");
+  const hash=createHash("sha256").update(token).digest("hex"),passwordHash=await hashPassword(password);
+  const result=await query("UPDATE customers SET password_hash=?,password_setup_token_hash=NULL,password_setup_expires_at=NULL WHERE password_setup_token_hash=? AND password_setup_expires_at>NOW()",[passwordHash,hash]);
+  if(!result.affectedRows)throw httpError(400,"El enlace ha caducado o ya se utilizó. Solicita otro al restaurante.");
 }

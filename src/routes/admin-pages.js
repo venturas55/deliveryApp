@@ -9,7 +9,7 @@ import * as admin from "../controllers/admin.js";
 import * as accounts from "../controllers/accounts.js";
 import {httpError} from "../services/http-error.js";
 import {presentOrder,labels,eventLabels} from "../services/order-presenter.js";
-import {requireAdmin,setSession,clearSession,validateCsrf} from "../services/web-session.js";
+import {requireAdmin,setSession,clearSession,validateCsrf,readAdminOrderCart,writeAdminOrderCart} from "../services/web-session.js";
 import {searchAddresses} from "../services/geocoding.js";
 const router=Router();
 const loginLimit=rateLimit({windowMs:15*60*1000,max:30});
@@ -50,6 +50,23 @@ router.get("/admin/address-search",addressLimit,async(req,res)=>{
 router.get("/admin/orders",async(req,res)=>{
   const orders=await admin.adminOrders(req);
   res.render("admin/orders",{title:"Pedidos",ordersActive:true,filter:req.query.filter||"all",orders:orders.map(presentOrder),refresh:true});
+});
+router.get("/admin/pedidotelefonico",async(req,res)=>{
+  const products=(await admin.adminProducts(req)).filter(item=>Number(item.active)===1);
+  const customer=req.query.phone?await admin.telephoneCustomer(req.query.phone,req.user.restaurant_id):null;
+  const phone=String(req.query.phone||"").slice(0,40);
+  const cart=readAdminOrderCart(req),quantities=new Map(cart.map(item=>[Number(item.product_id),Number(item.quantity)]));
+  const cartItems=products.filter(item=>quantities.has(Number(item.id))).map(item=>({...item,quantity:quantities.get(Number(item.id)),line_cents:item.price_cents*quantities.get(Number(item.id))}));
+  res.render("admin/admin-order-create",{title:"Nuevo pedido",pedidotelefonicoActive:true,products,cartItems,cartTotal:cartItems.reduce((sum,item)=>sum+item.line_cents,0),phone,customer,created:req.query.created==="1",addressData:customer?.delivery_place_id?{formatted_address:customer.delivery_formatted_address,street:customer.delivery_street,number:customer.delivery_number,city:customer.delivery_city,province:customer.delivery_province,postal_code:customer.delivery_postal_code,country:customer.delivery_country,latitude:customer.delivery_latitude,longitude:customer.delivery_longitude,place_id:customer.delivery_place_id}:null});
+});
+router.post("/admin/pedidotelefonico/cliente",validateCsrf,async(req,res)=>{
+  await admin.createAdminCustomer(req);res.redirect(303,"/admin/pedidotelefonico?phone="+encodeURIComponent(req.body.phone)+"&created=1");
+});
+router.post("/admin/pedidotelefonico/carrito/:action",validateCsrf,async(req,res)=>{
+  req.body.action=req.params.action;const cart=await admin.updateAdminOrderCart(req);writeAdminOrderCart(res,cart);res.redirect(303,"/admin/pedidotelefonico?phone="+encodeURIComponent(req.body.phone||""));
+});
+router.post("/admin/pedidotelefonico",validateCsrf,async(req,res)=>{
+  const id=await admin.createAdminOrder(req);writeAdminOrderCart(res,[]);res.redirect(303,"/admin/orders/"+id);
 });
 router.get("/admin/stats",async(req,res)=>{
   const stats=await admin.adminOrderStats(req);

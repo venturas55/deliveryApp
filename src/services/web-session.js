@@ -52,6 +52,14 @@ export function writeCart(res,items){
   if(!items.length)return res.clearCookie("customer_cart",cookieOptions());
   res.cookie("customer_cart",jwt.sign({purpose:"cart",items},process.env.JWT_SECRET,{expiresIn:"7d"}),{...cookieOptions(),maxAge:7*24*60*60*1000});
 }
+export function readAdminOrderCart(req){
+  const value=readToken(req.cookies.admin_order_cart);
+  return value?.purpose==="admin_order_cart"&&Array.isArray(value.items)?value.items:[];
+}
+export function writeAdminOrderCart(res,items){
+  if(!items.length)return res.clearCookie("admin_order_cart",cookieOptions());
+  res.cookie("admin_order_cart",jwt.sign({purpose:"admin_order_cart",items},process.env.JWT_SECRET,{expiresIn:"2h"}),{...cookieOptions(),maxAge:2*60*60*1000});
+}
 
 export function validateCsrf(req, res, next) {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
