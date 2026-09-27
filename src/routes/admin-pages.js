@@ -185,7 +185,6 @@ router.get("/admin/clientes",async(req,res)=>{
   res.render("admin/clientes",{title:"Clientes",clientesActive:true,clientes,restaurantId:req.user.restaurant_id});
 });
 router.get("/admin/cliente/:id",async(req,res)=>{
-
   const customer= await admin.getClientes(req.params.id);
   //console.log(customer);
   res.render("admin/cliente",{title:"Cliente",clientesActive:true,customer,restaurantId:req.user.restaurant_id});

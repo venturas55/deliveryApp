@@ -23,7 +23,9 @@ import { refundOrderPayment } from "./redsys-payments.js";
 import { createHash, randomBytes } from "node:crypto";
 import { emailValue, validEmail } from "./accounts.js";
 import { readAdminOrderCart } from "../services/web-session.js";
+import { createEmailTransport, sendEmail } from "../services/email.js";
 // Lock the order so each state change and its event are committed together.
+
 function orderError(status, message) {
   return Object.assign(new Error(message), { status });
 }
@@ -72,12 +74,6 @@ export async function createAdminCustomer(req) {
   const addressError = validateAddress(addressData);
   if (addressError) throw orderError(400, addressError);
   const address = cleanAddress(addressData);
-  if (
-    !process.env.EMAIL_HOST ||
-    !process.env.EMAIL_ACCOUNT ||
-    !process.env.EMAIL_PASS
-  )
-    throw orderError(503, "Configura SMTP antes de crear clientes");
   let base;
   try {
     base = new URL(process.env.PUBLIC_URL);
@@ -92,29 +88,10 @@ export async function createAdminCustomer(req) {
     throw orderError(409, "Ya existe un cliente con ese teléfono");
   const token = randomBytes(32).toString("base64url"),
     tokenHash = createHash("sha256").update(token).digest("hex");
-  const nodemailer = (await import("nodemailer")).default;
-  const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT || 587),
-    secure: process.env.EMAIL_SECURITY === "true",
-    auth: { user: process.env.EMAIL_ACCOUNT, pass: process.env.EMAIL_PASS },
-  });
+
+  let transporter;
   try {
-    await transporter.verify();
-  } catch (error) {
-    console.error("SMTP verify failed", {
-      code: error.code,
-      responseCode: error.responseCode,
-      command: error.command,
-      host: process.env.EMAIL_HOST,
-      port: Number(process.env.EMAIL_PORT || 587),
-    });
-    throw orderError(
-      503,
-      "No se pudo conectar al servidor SMTP; no se creó el usuario",
-    );
-  }
-  try {
+    transporter = await createEmailTransport();
     await transaction(async (c) => {
       const result = await c.query(
         "INSERT INTO customers(name,email,password_hash,phone,delivery_address,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,password_setup_token_hash,password_setup_expires_at) VALUES(?,?,NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,DATE_ADD(NOW(),INTERVAL 24 HOUR))",
@@ -136,12 +113,11 @@ export async function createAdminCustomer(req) {
           tokenHash,
         ],
       );
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER_NAME || process.env.EMAIL_ACCOUNT,
-        to: email,
-        subject: "Establece la contraseña de tu cuenta",
-        text: `Hola ${name},\n\nEl restaurante ha creado una cuenta para ti. Establece tu contraseña desde este enlace (válido durante 24 horas):\n${new URL("/client/set-password?token=" + encodeURIComponent(token), base).toString()}`,
-      });
+      await sendEmail({
+          to: email,
+          subject: "Establece la contraseña de tu cuenta",
+          text: `Hola ${name},\n\nEl restaurante ha creado una cuenta para ti. Establece tu contraseña desde este enlace (válido durante 24 horas):\n${new URL("/client/set-password?token=" + encodeURIComponent(token), base).toString()}`,
+        }, transporter);
       return result.insertId;
     });
   } catch (error) {
@@ -155,6 +131,8 @@ export async function createAdminCustomer(req) {
       throw orderError(409, "Ya existe una cuenta con ese correo o teléfono");
     if (error.status) throw error;
     throw orderError(502, "No se pudo enviar el correo; no se creó el usuario");
+  } finally {
+    transporter?.close();
   }
   return true;
 }
