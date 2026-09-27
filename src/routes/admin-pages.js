@@ -181,13 +181,13 @@ router.post("/admin/clientes/difusion",validateCsrf,async(req,res)=>{
 });
 router.get("/admin/clientes",async(req,res)=>{
   const clientes= await admin.getClientes();
-  console.log(clientes);
+  //console.log(clientes);
   res.render("admin/clientes",{title:"Clientes",clientesActive:true,clientes,restaurantId:req.user.restaurant_id});
 });
 router.get("/admin/cliente/:id",async(req,res)=>{
 
   const customer= await admin.getClientes(req.params.id);
-  console.log(customer);
+  //console.log(customer);
   res.render("admin/cliente",{title:"Cliente",clientesActive:true,customer,restaurantId:req.user.restaurant_id});
 });
 

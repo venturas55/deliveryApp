@@ -139,7 +139,7 @@ router.get(["/", "/index.html"], async (req, res) => {
   });
 });
 router.get("/product/:id", async (req, res) => {
-  console.log(req.params.id);
+  //console.log(req.params.id);
    const product = await clients.product(req.params.id);
   res.render("client/product", {
     title: "Carta item",
@@ -204,7 +204,7 @@ router.post("/checkout", requireCustomer, async (req, res) => {
     promo_code: readCartPromo(req),
   };
   const order = await clients.createOrder(req);
-  console.log("ORDER CHECKOUT:", order);
+  //console.log("ORDER CHECKOUT:", order);
   // ─────────────────────────────────────────────
   // PAGO ONLINE → REDSYS
   // ─────────────────────────────────────────────
@@ -314,12 +314,12 @@ router.get(
   addressLimit,
   async (req, res) => {
     try {
-      console.log("BUSQUEDA:", JSON.stringify(req.query.q));
-      console.log("USER AGENT:", req.get("user-agent"));
+      //console.log("BUSQUEDA:", JSON.stringify(req.query.q));
+      //console.log("USER AGENT:", req.get("user-agent"));
 
       const results = await searchAddresses(req.query.q);
 
-      console.log("RESULTADOS:", results);
+      //console.log("RESULTADOS:", results);
 
       return res.json(results);
     } catch (error) {
