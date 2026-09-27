@@ -94,10 +94,10 @@ export async function createAdminCustomer(req) {
     tokenHash = createHash("sha256").update(token).digest("hex");
   const nodemailer = (await import("nodemailer")).default;
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
+    host: process.env.EMAIL_HOST,
+    port: Number(process.env.EMAIL_PORT || 587),
+    secure: process.env.EMAIL_SECURITY === "true",
+    auth: { user: process.env.EMAIL_ACCOUNT, pass: process.env.EMAIL_PASS },
   });
   try {
     await transporter.verify();
@@ -106,8 +106,8 @@ export async function createAdminCustomer(req) {
       code: error.code,
       responseCode: error.responseCode,
       command: error.command,
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT || 587),
+      host: process.env.EMAIL_HOST,
+      port: Number(process.env.EMAIL_PORT || 587),
     });
     throw orderError(
       503,
@@ -137,7 +137,7 @@ export async function createAdminCustomer(req) {
         ],
       );
       await transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        from: process.env.EMAIL_FROM || process.env.EMAIL_ACCOUNT,
         to: email,
         subject: "Establece la contraseña de tu cuenta",
         text: `Hola ${name},\n\nEl restaurante ha creado una cuenta para ti. Establece tu contraseña desde este enlace (válido durante 24 horas):\n${new URL("/client/set-password?token=" + encodeURIComponent(token), base).toString()}`,
