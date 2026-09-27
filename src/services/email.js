@@ -2,28 +2,57 @@ import { createTransport } from "nodemailer";
 import { httpError } from "./http-error.js";
 
 export async function createEmailTransport() {
-  const host = process.env.EMAIL_HOST;
-  const account = process.env.EMAIL_ACCOUNT;
-  const password = process.env.EMAIL_PASS;
-  const port = Number(process.env.EMAIL_PORT || 587);
-  const authenticationRequired = process.env.EMAIL_AUTH_NEEDED === "true";
-  if (!host || !account || (authenticationRequired && !password))
-    throw httpError(503, "Configura el correo SMTP antes de enviar mensajes.");
-  if (!Number.isInteger(port) || port < 1 || port > 65535)
-    throw httpError(503, "EMAIL_PORT no es válido.");
-
-  const options = {
-    host,
-    port,
-    secure: process.env.EMAIL_SECURITY === undefined
-      ? port === 465
-      : process.env.EMAIL_SECURITY === "true",
-  };
-  if (authenticationRequired) options.auth = { user: account, pass: password };
-
-  const transporter = createTransport(options);
   try {
-    await transporter.verify();
+    var transporter;
+    console.log("EMAIL_AUTH_NEEDED: " + process.env.EMAIL_AUTH_NEEDED);
+    if (process.env.EMAIL_AUTH_NEEDED == "true") {
+      console.log("IF con AUTH");
+
+      transporter = createTransport({
+        //service: config.EMAIL_SERVICE,
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        secure: process.env.EMAIL_SECURITY,
+        auth: {
+          user: process.env.EMAIL_ACCOUNT,
+          pass: process.env.EMAIL_PASS,
+        },
+        secureConnection: false // TLS requires secureConnection to be false
+/*         attachments: [
+          {
+            filename: "ccby.png",
+            path: join(__dirname, "../public/img/ccby.png"),
+            cid: "ccby",
+          },
+        ], */
+      });
+    } else {
+      let seguridad;
+      if (process.env.EMAIL_PORT == 465) seguridad = true;
+      else seguridad = false;
+      console.log(
+        `Intentando enviar email con la siguiente configuracion \n \t host: ${process.env.EMAIL_HOST} \n \t port:  ${process.env.EMAIL_PORT} \n \t secure:  ${process.env.EMAIL_SECURITY}`,
+      );
+      transporter = createTransport({
+        //service: process.env.EMAIL_SERVICE,
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        secure: seguridad,
+        /*    tls: {
+                   rejectUnauthorized: false // (opcional) si es un servidor que usa TLS autofirmado
+                         ciphers: 'SSLv3'
+               } */
+        //secureConnection: false, // TLS requires secureConnection to be false
+      });
+    }
+
+    transporter.verify(function (error, success) {
+      if (error) {
+        console.log(">", error);
+      } else {
+        console.log("Server is ready to take our messages");
+      }
+    });
     return transporter;
   } catch (error) {
     transporter.close();
@@ -38,7 +67,8 @@ export async function createEmailTransport() {
 
 export async function sendEmail(message, transporter = null) {
   const ownsTransport = !transporter;
-  const activeTransport = transporter || await createEmailTransport();
+  //const activeTransport = transporter || (await createEmailTransport());
+  const activeTransport = await createEmailTransport();
   const account = process.env.EMAIL_ACCOUNT;
   const senderName = process.env.EMAIL_USER_NAME;
   try {

@@ -75,7 +75,7 @@ export async function setPasswordFromSetup(token,password,confirmation){
 export async function requestPasswordReset(rawEmail){
   const email=emailValue(rawEmail);
   if(!validEmail(email))return;
-  const rows=await query("SELECT id,name,email FROM customers WHERE email=? AND password_hash IS NOT NULL",[email]);
+  const rows=await query("SELECT id,name,email FROM customers WHERE email=?",[email]);
   if(!rows.length)return;
   let base;
   try{base=new URL(process.env.PUBLIC_URL)}catch{throw httpError(503,"PUBLIC_URL no está configurada para enviar el enlace.")}

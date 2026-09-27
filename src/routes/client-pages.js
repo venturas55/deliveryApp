@@ -25,38 +25,80 @@ const loginLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 });
 const passwordResetLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 8 });
 const addressLimit = rateLimit({ windowMs: 60 * 1000, max: 30 });
 
-router.get("/client/set-password",async(req,res)=>{
-  const available=await accounts.passwordSetupAvailable(req.query.token);
-  if(!available)throw httpError(400,"El enlace ha caducado o ya se utilizó. Solicita otro al restaurante.");
-  res.render("client/set-password",{title:"Establecer contraseña",token:req.query.token});
+router.get("/client/set-password", async (req, res) => {
+  const available = await accounts.passwordSetupAvailable(req.query.token);
+  if (!available)
+    throw httpError(
+      400,
+      "El enlace ha caducado o ya se utilizó. Solicita otro al restaurante.",
+    );
+  res.render("client/set-password", {
+    title: "Establecer contraseña",
+    token: req.query.token,
+  });
 });
-router.post("/client/set-password",validateCsrf,async(req,res)=>{
-  await accounts.setPasswordFromSetup(req.body.token,req.body.password,req.body.confirmation);
-  res.redirect(303,"/client/login?password_set=1");
+router.post("/client/set-password", validateCsrf, async (req, res) => {
+  await accounts.setPasswordFromSetup(
+    req.body.token,
+    req.body.password,
+    req.body.confirmation,
+  );
+  res.redirect(303, "/client/login?password_set=1");
 });
-router.get("/client/forgot-password",(req,res)=>res.render("client/forgot-password",{
-  title:"Recuperar contraseña",
-  sent:req.query.sent==="1",
-}));
-router.post("/client/forgot-password",passwordResetLimit,validateCsrf,async(req,res)=>{
-  try{await accounts.requestPasswordReset(req.body.email)}
-  catch(error){console.error("Password reset request failed",{code:error.code,status:error.status})}
-  res.redirect(303,"/client/forgot-password?sent=1");
+router.get("/client/forgot-password", (req, res) =>
+  res.render("client/forgot-password", {
+    title: "Recuperar contraseña",
+    sent: req.query.sent === "1",
+  }),
+);
+router.post(
+  "/client/forgot-password",
+  passwordResetLimit,
+  validateCsrf,
+  async (req, res) => {
+    console.log("Empiezo forgot-password");
+    try {
+      await accounts.requestPasswordReset(req.body.email);
+    } catch (error) {
+      console.error("Password reset request failed", {
+        code: error.code,
+        status: error.status,
+      });
+    }
+    res.redirect(303, "/client/forgot-password?sent=1");
+  },
+);
+router.get("/client/reset-password", async (req, res) => {
+  const available = await accounts.passwordResetAvailable(req.query.token);
+  if (!available)
+    throw httpError(
+      400,
+      "El enlace ha caducado o ya se utilizó. Solicita otro.",
+    );
+  res.render("client/set-password", {
+    title: "Restablecer contraseña",
+    token: req.query.token,
+    action: "/client/reset-password",
+  });
 });
-router.get("/client/reset-password",async(req,res)=>{
-  const available=await accounts.passwordResetAvailable(req.query.token);
-  if(!available)throw httpError(400,"El enlace ha caducado o ya se utilizó. Solicita otro.");
-  res.render("client/set-password",{title:"Restablecer contraseña",token:req.query.token,action:"/client/reset-password"});
-});
-router.post("/client/reset-password",passwordResetLimit,validateCsrf,async(req,res)=>{
-  await accounts.resetCustomerPassword(req.body.token,req.body.password,req.body.confirmation);
-  res.redirect(303,"/client/login?password_reset=1");
-});
+router.post(
+  "/client/reset-password",
+  passwordResetLimit,
+  validateCsrf,
+  async (req, res) => {
+    await accounts.resetCustomerPassword(
+      req.body.token,
+      req.body.password,
+      req.body.confirmation,
+    );
+    res.redirect(303, "/client/login?password_reset=1");
+  },
+);
 
 router.get(["/", "/index.html"], async (req, res) => {
   const data = await clients.menu({ query: { name: "Massa e fuoco" } });
-    const configsData = await adminConfigs(req);
-    //console.log("CONFIGS DATA:", configsData);
+  const configsData = await adminConfigs(req);
+  //console.log("CONFIGS DATA:", configsData);
   const products = data.products.map((p) => ({ ...p, id: Number(p.id) }));
   //console.log("PRODUCTS:", products);
   const groups = new Map();
@@ -81,16 +123,20 @@ router.get(["/", "/index.html"], async (req, res) => {
   });
   const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
   const delivery =
-    cart.length &&
-    subtotal < Number(configsData.free_delivery_from_cents)
-      ? Number(configsData.delivery_base_cents) 
+    cart.length && subtotal < Number(configsData.free_delivery_from_cents)
+      ? Number(configsData.delivery_base_cents)
       : 0;
-  const promoCode=readCartPromo(req);
-  let promo={code:promoCode,discount_cents:0,description:""};
-  let promoError=typeof req.query.promo_error==="string"?req.query.promo_error:"";
-  if(promoCode){
-    try{promo=await quotePromotion(data.restaurant.id,promoCode,cart)}
-    catch{promoError="El código guardado ya no está disponible. Introduce otro o elimínalo."}
+  const promoCode = readCartPromo(req);
+  let promo = { code: promoCode, discount_cents: 0, description: "" };
+  let promoError =
+    typeof req.query.promo_error === "string" ? req.query.promo_error : "";
+  if (promoCode) {
+    try {
+      promo = await quotePromotion(data.restaurant.id, promoCode, cart);
+    } catch {
+      promoError =
+        "El código guardado ya no está disponible. Introduce otro o elimínalo.";
+    }
   }
 
   const profile = req.customer
@@ -101,9 +147,12 @@ router.get(["/", "/index.html"], async (req, res) => {
     name: data.restaurant.name,
     phone: data.restaurant.phone,
     phoneHref: data.restaurant.phone
-      ? `tel:${String(data.restaurant.phone).replace(/[^\d+]/g, "").replace(/(?!^)\+/g, "")}`
+      ? `tel:${String(data.restaurant.phone)
+          .replace(/[^\d+]/g, "")
+          .replace(/(?!^)\+/g, "")}`
       : "",
-    address: data.restaurant.delivery_formatted_address || data.restaurant.address,
+    address:
+      data.restaurant.delivery_formatted_address || data.restaurant.address,
     city: data.restaurant.delivery_formatted_address
       ? ""
       : data.restaurant.delivery_city || data.restaurant.city,
@@ -115,15 +164,20 @@ router.get(["/", "/index.html"], async (req, res) => {
     data.restaurant.delivery_longitude !== undefined;
   const mapQuery = hasRestaurantCoordinates
     ? `${data.restaurant.delivery_latitude},${data.restaurant.delivery_longitude}`
-    : [restaurantContact.name, restaurantContact.address, restaurantContact.city]
+    : [
+        restaurantContact.name,
+        restaurantContact.address,
+        restaurantContact.city,
+      ]
         .filter(Boolean)
         .join(", ");
   restaurantContact.mapUrl = mapQuery
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
     : "";
-  restaurantContact.mapEmbedUrl = process.env.GOOGLE_MAPS_EMBED_API_KEY && mapQuery
-    ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(process.env.GOOGLE_MAPS_EMBED_API_KEY)}&q=${encodeURIComponent(mapQuery)}`
-    : "";
+  restaurantContact.mapEmbedUrl =
+    process.env.GOOGLE_MAPS_EMBED_API_KEY && mapQuery
+      ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(process.env.GOOGLE_MAPS_EMBED_API_KEY)}&q=${encodeURIComponent(mapQuery)}`
+      : "";
 
   if (profile)
     profile.addressData = {
@@ -159,14 +213,12 @@ router.get(["/", "/index.html"], async (req, res) => {
 });
 router.get("/product/:id", async (req, res) => {
   //console.log(req.params.id);
-   const product = await clients.product(req.params.id);
+  const product = await clients.product(req.params.id);
   res.render("client/product", {
     title: "Carta item",
-    product 
+    product,
   });
 });
-
-
 
 router.post("/cart", async (req, res) => {
   const id = Number(req.body.product_id),
@@ -198,21 +250,31 @@ router.post("/cart", async (req, res) => {
   );
   res.redirect(303, "/#cartPanel");
 });
-router.post("/cart/promo",validateCsrf,async(req,res)=>{
-  const code=String(req.body.promo_code||"").trim().toUpperCase();
-  if(!code){writeCart(res,readCart(req),"");return res.redirect(303,"/#cartPanel")}
-  try{
-    const data=await clients.menu({query:{slug:"demo"}});
-    const products=new Map(data.products.map(product=>[Number(product.id),product]));
-    const cart=readCart(req).flatMap(item=>{
-      const product=products.get(Number(item.product_id));
-      return product?[{...product,quantity:Number(item.quantity)}]:[];
+router.post("/cart/promo", validateCsrf, async (req, res) => {
+  const code = String(req.body.promo_code || "")
+    .trim()
+    .toUpperCase();
+  if (!code) {
+    writeCart(res, readCart(req), "");
+    return res.redirect(303, "/#cartPanel");
+  }
+  try {
+    const data = await clients.menu({ query: { slug: "demo" } });
+    const products = new Map(
+      data.products.map((product) => [Number(product.id), product]),
+    );
+    const cart = readCart(req).flatMap((item) => {
+      const product = products.get(Number(item.product_id));
+      return product ? [{ ...product, quantity: Number(item.quantity) }] : [];
     });
-    await quotePromotion(data.restaurant.id,code,cart);
-    writeCart(res,readCart(req),code);
-    return res.redirect(303,"/#cartPanel");
-  }catch(error){
-    return res.redirect(303,"/?promo_error="+encodeURIComponent(error.message)+"#cartPanel");
+    await quotePromotion(data.restaurant.id, code, cart);
+    writeCart(res, readCart(req), code);
+    return res.redirect(303, "/#cartPanel");
+  } catch (error) {
+    return res.redirect(
+      303,
+      "/?promo_error=" + encodeURIComponent(error.message) + "#cartPanel",
+    );
   }
 });
 router.post("/checkout", requireCustomer, async (req, res) => {
@@ -356,8 +418,8 @@ router.get("/client/login", (req, res) =>
     loginActive: true,
     next: safeNext(req.query.next, "/client/orders"),
     googleEnabled: !!process.env.GOOGLE_CLIENT_ID,
-    passwordSet:req.query.password_set==="1",
-    passwordReset:req.query.password_reset==="1",
+    passwordSet: req.query.password_set === "1",
+    passwordReset: req.query.password_reset === "1",
   }),
 );
 router.post("/client/login", loginLimit, async (req, res) => {
