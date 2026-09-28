@@ -58,6 +58,11 @@ export async function updateProfile(id,body={}){
   await query(`UPDATE customers SET ${Object.keys(data).map(key=>key+"=?").join(",")} WHERE id=?`,[...Object.values(data),id]);
   return {ok:true};
 }
+export async function updateProfileImage(id,imageUrl){
+  await customerProfile(id);
+  await query("UPDATE customers SET profile_image_url=? WHERE id=?",[imageUrl,id]);
+  return {ok:true};
+}
 
 export async function passwordSetupAvailable(token){
   if(typeof token!=="string"||token.length<32||token.length>100) return false;

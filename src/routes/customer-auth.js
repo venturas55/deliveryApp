@@ -37,13 +37,24 @@ router.post("/google",limit,async(req,res)=>{
     if(!payload?.sub||!payload.email_verified||payload.nonce!==challenge.nonce||!validEmail(emailValue(payload.email)))throw new Error();
   }catch{return res.status(401).json({error:"No se pudo verificar el acceso con Google. Recarga e inténtalo de nuevo."})}
   res.clearCookie("google_nonce",{path:"/api/customer-auth"});
+  let picture=null;
+  try{
+    const image=new URL(payload.picture);
+    if(image.protocol==="https:"&&image.hostname.endsWith("googleusercontent.com"))picture=image.href.slice(0,2048);
+  }catch{}
   const rows=await query("SELECT * FROM customers WHERE google_sub=?",[payload.sub]);
-  if(rows.length)return session(res,rows[0]);
+  if(rows.length){
+    if(picture&&picture!==rows[0].profile_image_url){
+      await query("UPDATE customers SET profile_image_url=? WHERE id=?",[picture,rows[0].id]);
+      rows[0].profile_image_url=picture;
+    }
+    return session(res,rows[0]);
+  }
   // Never silently link a password account by email alone.
   const email=emailValue(payload.email),name=(payload.name||email).slice(0,120);
   try{
-    const result=await query("INSERT INTO customers(name,email,google_sub) VALUES(?,?,?)",[name,email,payload.sub]);
-    session(res,{id:Number(result.insertId),name,email},201);
+    const result=await query("INSERT INTO customers(name,email,google_sub,profile_image_url) VALUES(?,?,?,?)",[name,email,payload.sub,picture]);
+    session(res,{id:Number(result.insertId),name,email,profile_image_url:picture},201);
   }catch(error){if(error.code==="ER_DUP_ENTRY")return res.status(409).json({error:"Ya existe una cuenta con este correo. Usa su método de acceso original."});throw error}
 });
 export default router;

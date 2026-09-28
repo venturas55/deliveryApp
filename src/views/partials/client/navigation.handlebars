@@ -1,4 +1,7 @@
 <nav class="client-navigation" aria-label="Navegación del cliente">
+  <details class="navigation-disclosure">
+    <summary class="navigation-toggle"><span aria-hidden="true">☰</span><span>Menú</span></summary>
+    <div class="navigation-items">
   <a href="/"{{#if cartActive}} aria-current="page"{{/if}}>Carta</a>
   {{#if customerLoggedIn}}
     <a href="/client/orders"{{#if ordersActive}} aria-current="page"{{/if}}>Mis pedidos</a>
@@ -14,4 +17,6 @@
     <a class="login-link" href="/admin/login" >Soy restaurante</a>
   {{/if}}
   <a class="login-link" href="/#contact">Donde estamos</a>
+    </div>
+  </details>
 </nav>

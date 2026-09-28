@@ -1,4 +1,7 @@
 <nav class="admin-navigation" aria-label="Administración del restaurante">
+  <details class="navigation-disclosure">
+    <summary class="navigation-toggle"><span aria-hidden="true">☰</span><span>Menú</span></summary>
+    <div class="navigation-items">
   <a href="/admin/orders"{{#if ordersActive}} aria-current="page"{{/if}}>Pedidos</a>
   <a href="/admin/pedidotelefonico"{{#if pedidotelefonicoActive}} aria-current="page"{{/if}}>Nuevo pedido</a>
   <a href="/admin/clientes"{{#if clientesActive}} aria-current="page"{{/if}}>Clientes</a>
@@ -7,4 +10,6 @@
   <a href="/admin/providers"{{#if providersActive}} aria-current="page"{{/if}}>Proveedores de reparto</a>
   <a href="/admin/configs"{{#if configsActive}} aria-current="page"{{/if}}>Configuración</a>
   <form method="post" action="/admin/logout">{{> csrf}}<button>Cerrar sesión</button></form>
+    </div>
+  </details>
 </nav>

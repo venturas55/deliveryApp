@@ -200,6 +200,7 @@ CREATE TABLE IF NOT EXISTS customers (
   password_reset_token_hash CHAR(64) NULL,
   password_reset_expires_at DATETIME NULL,
   google_sub VARCHAR(255) UNIQUE,
+  profile_image_url VARCHAR(2048) NULL,
   phone VARCHAR(40) NOT NULL DEFAULT '',
   delivery_address VARCHAR(500) NOT NULL DEFAULT '',
   delivery_notes VARCHAR(500) NOT NULL DEFAULT '',

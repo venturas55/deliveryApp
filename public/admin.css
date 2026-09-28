@@ -80,6 +80,10 @@
   cursor: pointer;
 }
 
+.admin-navigation .navigation-disclosure { display: contents; }
+.admin-navigation .navigation-toggle { display: none; }
+.admin-navigation .navigation-items { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+
 /* Provider tabs use the same border, radius, surface, and active color. */
 .provider-tabs {
   padding: 0.5rem;
@@ -118,9 +122,46 @@
   .admin-navigation {
     margin-top: 0.5rem;
     padding: 0 1rem 0.65rem;
+    position: relative;
+    justify-content: flex-end;
   }
 
-  .admin-navigation form {
+  .admin-navigation .navigation-disclosure { display: block; }
+  .admin-navigation .navigation-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 42px;
+    padding: 0.5rem 0.8rem;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-text);
+    background: var(--admin-surface);
+    cursor: pointer;
+    list-style: none;
+  }
+  .admin-navigation .navigation-toggle::-webkit-details-marker { display: none; }
+  .admin-navigation .navigation-items {
+    display: none;
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 0.5rem);
+    right: 1rem;
+    left: 1rem;
+    padding: 0.6rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-md);
+    background: var(--admin-surface);
+    box-shadow: var(--admin-shadow-card);
+  }
+  .admin-navigation .navigation-disclosure[open] .navigation-items { display: flex; }
+  .admin-navigation .navigation-items a,
+  .admin-navigation .navigation-items form,
+  .admin-navigation .navigation-items form button { width: 100%; }
+  .admin-navigation .navigation-items form {
     margin-left: 0;
   }
 }

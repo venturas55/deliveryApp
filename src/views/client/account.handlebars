@@ -1,5 +1,12 @@
-<section class="card"><h1>Mi cuenta</h1><p>Datos y dirección habitual para tus pedidos.</p>
+<section class="card account-profile"><header class="account-profile-heading">
+  {{#if profile.profile_image_url}}<img class="account-profile-image" src="{{profile.profile_image_url}}" alt="Foto de perfil de {{profile.name}}" referrerpolicy="no-referrer">{{else}}<span class="account-profile-placeholder" aria-hidden="true">👤</span>{{/if}}
+  <div><h1>Mi cuenta</h1><p>Datos y dirección habitual para tus pedidos.</p></div>
+  </header>
   {{#if saved}}<p class="success" role="status">Datos guardados.</p>{{/if}}
+  <form class="account-photo-form" method="post" action="/client/account/photo" enctype="multipart/form-data">{{> csrf}}
+    <label for="profileImage">Cambiar foto de perfil</label><input id="profileImage" name="image" type="file" accept="image/jpeg,image/png,image/webp">
+    <button type="submit">Subir foto</button><small>JPG, PNG o WebP; máximo 5 MB.</small>
+  </form>
   <form id="accountForm" method="post" action="/client/account">{{> csrf}}
     <label>Email de acceso<input type="email" value="{{profile.email}}" readonly></label>
     <label>Nombre<input name="name" value="{{profile.name}}" maxlength="120" autocomplete="name" required></label>
