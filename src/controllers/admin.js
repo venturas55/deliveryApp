@@ -489,6 +489,17 @@ export async function adminOrderStats(req) {
     [restaurantId],
   );
   const byDay = new Map(days.map((row) => [row.day, Number(row.total)]));
+  const hourlyDays = await query(
+    `SELECT DATE_FORMAT(created_at,'%Y-%m-%d') AS day,HOUR(created_at) AS hour,COUNT(*) AS total FROM orders
+    WHERE restaurant_id=? AND created_at>=CURRENT_DATE - INTERVAL 13 DAY
+    GROUP BY DATE(created_at),HOUR(created_at)`,
+    [restaurantId],
+  );
+  const hourlyByDay = new Map();
+  for (const row of hourlyDays) {
+    if (!hourlyByDay.has(row.day)) hourlyByDay.set(row.day, new Map());
+    hourlyByDay.get(row.day).set(Number(row.hour), Number(row.total));
+  }
   const daily = Array.from({ length: 14 }, (_, index) => {
     const date = new Date();
     date.setDate(date.getDate() - 13 + index);
@@ -498,6 +509,7 @@ export async function adminOrderStats(req) {
         day: "2-digit",
         month: "short",
       }),
+      day: key,
       total: byDay.get(key) || 0,
     };
   });
@@ -516,10 +528,22 @@ export async function adminOrderStats(req) {
   const dailyMax = Math.max(1, ...daily.map((row) => row.total));
   const hourlyMax = Math.max(1, ...hourly.map((row) => row.total));
   return {
-    daily: daily.map((row) => ({
-      ...row,
-      width: Math.round((row.total / dailyMax) * 100),
-    })),
+    daily: daily.map((row) => {
+      const dayHours = hourlyByDay.get(row.day) || new Map();
+      const hourly = Array.from({ length: 24 }, (_, hour) => ({
+        label: `${String(hour).padStart(2, "0")}:00`,
+        total: dayHours.get(hour) || 0,
+      }));
+      const max = Math.max(1, ...hourly.map((item) => item.total));
+      return {
+        ...row,
+        width: Math.round((row.total / dailyMax) * 100),
+        hourly: hourly.map((item) => ({
+          ...item,
+          width: Math.round((item.total / max) * 100),
+        })),
+      };
+    }),
     hourly: hourly.map((row) => ({
       ...row,
       width: Math.round((row.total / hourlyMax) * 100),

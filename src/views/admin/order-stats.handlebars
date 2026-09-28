@@ -12,11 +12,18 @@
     <div class="stats-panel-heading"><div><h2 id="daily-title">Pedidos por día</h2><p>Últimos 14 días</p></div></div>
     <div class="stats-bars stats-bars--daily">
       {{#each stats.daily}}
-        <div class="stats-bar-item" title="{{total}} pedidos">
+        <button class="stats-bar-item stats-day-button" type="button" data-day="{{day}}" aria-label="Ver pedidos por hora del {{label}}: {{total}} pedidos">
           <span class="stats-bar-value">{{total}}</span>
           <div class="stats-bar-track"><span class="stats-bar-fill" style="height:{{width}}%"></span></div>
           <span class="stats-bar-label">{{label}}</span>
-        </div>
+        </button>
+        <template id="hours-{{day}}">
+          <div class="stats-hours stats-hours--dialog">
+            {{#each hourly}}
+              <div class="stats-hour-item"><span class="stats-hour-label">{{label}}</span><span class="stats-hour-track"><span class="stats-hour-fill" style="width:{{width}}%"></span></span><strong>{{total}}</strong></div>
+            {{/each}}
+          </div>
+        </template>
       {{/each}}
     </div>
   </section>
@@ -29,4 +36,9 @@
       {{/each}}
     </div>
   </section>
+  <dialog class="stats-day-dialog" aria-labelledby="stats-day-dialog-title">
+    <div class="stats-day-dialog-header"><h2 id="stats-day-dialog-title">Pedidos por hora</h2><button type="button" class="stats-day-dialog-close" aria-label="Cerrar">×</button></div>
+    <div class="stats-day-dialog-content"></div>
+  </dialog>
 </section>
+<script src="/admin-order-stats.js" defer></script>
