@@ -185,6 +185,26 @@ router.post("/admin/clientes/difusion",validateCsrf,async(req,res)=>{
     res.redirect(303,"/admin/clientes/difusion?problem="+encodeURIComponent(error.message));
   }
 });
+
+router.get("/admin/clientes/email/:id",async(req,res)=>{
+  const customer=await admin.getClientes(req.params.id);
+
+  res.render("admin/customer-email",{
+    title:"Correo a cliente",
+    customer,
+  });
+});
+router.post("/admin/clientes/email/:id",validateCsrf,async(req,res)=>{
+  try {
+      const customer=await admin.getClientes(req.params.id);
+    console.log("PARAMS:",req.params);
+    console.log("customer:",customer);
+    const result=await adminBroadcast.sendCustomerEmail(customer,req.body);
+    res.redirect(303,"/admin/clientes/email/"+req.params.id+"?sent="+result.sent+"&failed="+result.failed+"&success="+encodeURIComponent("Mensaje enviado correctamente"));
+  } catch(error) {
+    res.redirect(303,"/admin/clientes/email/"+req.params.id+"?problem="+encodeURIComponent(error.message));
+  }
+});
 router.get("/admin/clientes",async(req,res)=>{
   const clientes= await admin.getClientes();
   //console.log(clientes);

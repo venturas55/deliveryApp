@@ -4,9 +4,9 @@ import { httpError } from "./http-error.js";
 export async function createEmailTransport() {
   try {
     var transporter;
-    console.log("EMAIL_AUTH_NEEDED: " + process.env.EMAIL_AUTH_NEEDED);
+    //console.log("EMAIL_AUTH_NEEDED: " + process.env.EMAIL_AUTH_NEEDED);
     if (process.env.EMAIL_AUTH_NEEDED == "true") {
-      console.log("IF con AUTH");
+      //console.log("IF con AUTH");
 
       transporter = createTransport({
         //service: config.EMAIL_SERVICE,
@@ -17,8 +17,8 @@ export async function createEmailTransport() {
           user: process.env.EMAIL_ACCOUNT,
           pass: process.env.EMAIL_PASS,
         },
-        secureConnection: false // TLS requires secureConnection to be false
-/*         attachments: [
+        secureConnection: false, // TLS requires secureConnection to be false
+        /*         attachments: [
           {
             filename: "ccby.png",
             path: join(__dirname, "../public/img/ccby.png"),
@@ -30,9 +30,7 @@ export async function createEmailTransport() {
       let seguridad;
       if (process.env.EMAIL_PORT == 465) seguridad = true;
       else seguridad = false;
-      console.log(
-        `Intentando enviar email con la siguiente configuracion \n \t host: ${process.env.EMAIL_HOST} \n \t port:  ${process.env.EMAIL_PORT} \n \t secure:  ${process.env.EMAIL_SECURITY}`,
-      );
+      //console.log(        `Intentando enviar email con la siguiente configuracion \n \t host: ${process.env.EMAIL_HOST} \n \t port:  ${process.env.EMAIL_PORT} \n \t secure:  ${process.env.EMAIL_SECURITY}`,      );
       transporter = createTransport({
         //service: process.env.EMAIL_SERVICE,
         host: process.env.EMAIL_HOST,

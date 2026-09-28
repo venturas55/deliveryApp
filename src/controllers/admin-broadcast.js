@@ -12,37 +12,127 @@ export async function countBroadcastRecipients() {
   return Number(rows[0]?.total || 0);
 }
 
-export async function sendCustomerBroadcast(body = {}) {
+/**
+ * Valida asunto y mensaje.
+ */
+function validateCustomerEmail(body = {}) {
   const subject = typeof body.subject === "string" ? body.subject.trim() : "";
+
   const text = typeof body.message === "string" ? body.message.trim() : "";
-  if (!subject || subject.length > 160 || /[\r\n]/.test(subject))
+
+  if (!subject || subject.length > 160 || /[\r\n]/.test(subject)) {
     throw broadcastError(
       400,
       "Indica un asunto válido (máximo 160 caracteres).",
     );
-  if (!text || text.length > 10000)
+  }
+
+  if (!text || text.length > 10000) {
     throw broadcastError(400, "Escribe el mensaje (máximo 10.000 caracteres).");
-  if (body.confirm !== "yes")
+  }
+
+  return {
+    subject,
+    text,
+  };
+}
+
+/**
+ * Envía un correo a UN cliente.
+ */
+export async function sendCustomerEmail(customer, body = {}) {
+  if (!customer?.email) {
+    throw broadcastError(
+      400,
+      "El cliente no tiene una dirección de correo electrónico.",
+    );
+  }
+  const email = customer.email.trim().toLowerCase();
+  if (!email) {
+    throw broadcastError(
+      400,
+      "El cliente no tiene una dirección de correo electrónico.",
+    );
+  }
+  
+  const { subject, text } = validateCustomerEmail(body);
+  const transporter = await createEmailTransport();
+  try {
+    await sendEmail(
+      {
+        to: email,
+        subject,
+        text,
+      },
+      transporter,
+    );
+
+    return {
+      sent: 1,
+      failed: 0,
+      total: 1,
+    };
+  } finally {
+    transporter.close();
+  }
+}
+/**
+ * Envía un correo a TODOS los clientes.
+ */
+export async function sendCustomerBroadcast(body = {}) {
+  const { subject, text } = validateCustomerEmail(body);
+
+  if (body.confirm !== "yes") {
     throw broadcastError(400, "Confirma el envío a todos los clientes.");
-  const recipients = await query(
-    "SELECT DISTINCT LOWER(TRIM(email)) AS email FROM customers WHERE email IS NOT NULL AND TRIM(email) <> '' ORDER BY email",
-  );
-  if (!recipients.length) return { sent: 0, failed: 0, total: 0 };
+  }
+
+  const recipients = await query(`
+    SELECT DISTINCT
+      LOWER(TRIM(email)) AS email
+    FROM customers
+    WHERE email IS NOT NULL
+      AND TRIM(email) <> ''
+    ORDER BY email
+  `);
+
+  if (!recipients.length) {
+    return {
+      sent: 0,
+      failed: 0,
+      total: 0,
+    };
+  }
 
   const transporter = await createEmailTransport();
+
   let sent = 0;
   let failed = 0;
+
   try {
     for (const { email } of recipients) {
       try {
-        await sendEmail({ to: email, subject, text }, transporter);
-        sent += 1;
-      } catch {
-        failed += 1;
+        await sendEmail(
+          {
+            to: email,
+            subject,
+            text,
+          },
+          transporter,
+        );
+
+        sent++;
+      } catch (error) {
+        failed++;
+
+        console.error(`Error enviando email a ${email}:`, error.message);
       }
     }
   } finally {
     transporter.close();
   }
-  return { sent, failed, total: recipients.length };
+  return {
+    sent,
+    failed,
+    total: recipients.length,
+  };
 }

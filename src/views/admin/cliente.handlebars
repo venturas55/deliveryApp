@@ -132,6 +132,15 @@
       Actualizar
     </a>
 
+    
+    <a
+      href="/admin/clientes/email/{{customer.id}}"
+      class="admin-action admin-action--refresh"
+    >
+      <span aria-hidden="true">↻</span>
+      Mandar email
+    </a>
+
   </nav>
 
 </section>
@@ -335,8 +344,6 @@
               </span>
 
             </div>
-
-
             <a
               href="/admin/orders/{{id}}"
               class="order-manage-button"
@@ -344,11 +351,8 @@
               Ver pedido
               <span aria-hidden="true">→</span>
             </a>
-
           </footer>
-
         </article>
-
       {{/each}}
 
     </div>
