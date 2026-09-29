@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <title>{{title}} · {{restaurantName}}</title>
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('delivery-theme')==='dark'?'dark':'light'}catch{}</script>
   <link rel="stylesheet" href="/style.css">
   {{#if clientArea}}<link rel="stylesheet" href="/client.css">{{/if}}
   {{#if adminArea}}<link rel="stylesheet" href="/admin.css">{{/if}}

@@ -32,7 +32,8 @@
 }
 
 .admin-navigation a,
-.admin-navigation form button {
+.admin-navigation form button,
+.admin-navigation .theme-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -51,7 +52,8 @@
 }
 
 .admin-navigation a:hover,
-.admin-navigation form button:hover {
+.admin-navigation form button:hover,
+.admin-navigation .theme-toggle:hover {
   border-color: var(--admin-border);
   background: var(--admin-surface-soft);
   color: var(--admin-text);
@@ -79,8 +81,12 @@
   margin: 0;
   cursor: pointer;
 }
+.admin-navigation .theme-toggle {
+  cursor: pointer;
+  font-family: inherit;
+}
 
-.admin-navigation .navigation-disclosure { display: contents; }
+.admin-navigation .navigation-checkbox { display: none; }
 .admin-navigation .navigation-toggle { display: none; }
 .admin-navigation .navigation-items { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 
@@ -126,7 +132,13 @@
     justify-content: flex-end;
   }
 
-  .admin-navigation .navigation-disclosure { display: block; }
+  .admin-navigation .navigation-checkbox {
+    display: block;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
   .admin-navigation .navigation-toggle {
     display: flex;
     align-items: center;
@@ -138,9 +150,12 @@
     color: var(--admin-text);
     background: var(--admin-surface);
     cursor: pointer;
-    list-style: none;
+    user-select: none;
   }
-  .admin-navigation .navigation-toggle::-webkit-details-marker { display: none; }
+  .admin-navigation .navigation-checkbox:focus-visible + .navigation-toggle {
+    outline: none;
+    box-shadow: var(--admin-focus);
+  }
   .admin-navigation .navigation-items {
     display: none;
     position: absolute;
@@ -157,8 +172,9 @@
     background: var(--admin-surface);
     box-shadow: var(--admin-shadow-card);
   }
-  .admin-navigation .navigation-disclosure[open] .navigation-items { display: flex; }
+  .admin-navigation .navigation-checkbox:checked ~ .navigation-items { display: flex; }
   .admin-navigation .navigation-items a,
+  .admin-navigation .navigation-items .theme-toggle,
   .admin-navigation .navigation-items form,
   .admin-navigation .navigation-items form button { width: 100%; }
   .admin-navigation .navigation-items form {
@@ -2511,4 +2527,48 @@ body.admin-area main {
   .promotion-card {
     flex-direction: column;
   }
+}
+
+html[data-theme="dark"] {
+  --admin-text: #e2e8f0;
+  --admin-muted: #a8b4c4;
+  --admin-border: #39485a;
+  --admin-surface: #1e2937;
+  --admin-surface-soft: #17212e;
+  --admin-green: #4ade80;
+  --admin-green-dark: #86efac;
+  --admin-focus: 0 0 0 3px rgba(74, 222, 128, 0.2);
+}
+
+html[data-theme="dark"] body.admin-area {
+  background: #111827;
+  color: var(--admin-text);
+}
+html[data-theme="dark"] .admin-area header,
+html[data-theme="dark"] .admin-area main,
+html[data-theme="dark"] .admin-page,
+html[data-theme="dark"] .admin-area article,
+html[data-theme="dark"] .admin-area .card,
+html[data-theme="dark"] .admin-area section,
+html[data-theme="dark"] .admin-area .product-card,
+html[data-theme="dark"] .admin-area .settings-card,
+html[data-theme="dark"] .admin-area .order-card,
+html[data-theme="dark"] .admin-area .stats-panel,
+html[data-theme="dark"] .admin-area .provider-panel {
+  background-color: var(--admin-surface);
+  border-color: var(--admin-border);
+  color: var(--admin-text);
+}
+html[data-theme="dark"] .admin-area h1,
+html[data-theme="dark"] .admin-area h2,
+html[data-theme="dark"] .admin-area h3,
+html[data-theme="dark"] .admin-area label {
+  color: var(--admin-text);
+}
+html[data-theme="dark"] .admin-area input:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="dark"] .admin-area textarea,
+html[data-theme="dark"] .admin-area select {
+  background: var(--admin-surface-soft);
+  border-color: var(--admin-border);
+  color: var(--admin-text);
 }

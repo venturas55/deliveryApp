@@ -1,5 +1,19 @@
 // Progressive enhancement only: no data loading or HTML generation.
 let submitting=false,dirty=false;
+document.querySelectorAll("[data-theme-toggle]").forEach(button=>{
+  const sync=()=>{
+    const dark=document.documentElement.dataset.theme==="dark";
+    button.textContent=dark?"Usar tema claro":"Usar tema oscuro";
+    button.setAttribute("aria-pressed",String(dark));
+  };
+  sync();
+  button.addEventListener("click",()=>{
+    const theme=document.documentElement.dataset.theme==="dark"?"light":"dark";
+    document.documentElement.dataset.theme=theme;
+    try{localStorage.setItem("delivery-theme",theme)}catch{}
+    sync();
+  });
+});
 document.addEventListener("input",()=>{dirty=true});
 document.addEventListener("change",()=>{dirty=true});
 document.addEventListener("submit",event=>{

@@ -4,6 +4,7 @@
     --green-color: rgb(39, 79, 45);
     --background-color: rgb(39, 79, 45);
 }
+
  */
 
 .client-area {
@@ -49,12 +50,15 @@
     flex-wrap: nowrap
 }
 
-.client-navigation .navigation-disclosure { display: contents; }
+.client-navigation .navigation-checkbox { display: none; }
 .client-navigation .navigation-toggle { display: none; }
 .client-navigation .navigation-items { display: flex; align-items: center; gap: 6px; }
 
-.client-navigation>a,
+.client-navigation .navigation-items>a,
+.client-navigation .theme-toggle,
 .account-menu>summary {
+    display: inline-flex;
+    align-items: center;
     padding: 10px 15px;
     font-size: .9rem;
     font-weight: 600;
@@ -64,20 +68,31 @@
     cursor: pointer
 }
 
-.client-navigation>a:hover,
+.client-navigation .navigation-items>a:hover,
+.client-navigation .theme-toggle:hover,
 .account-menu>summary:hover {
     background: #eaf0e9;
     color: var(--green-color);
 }
 
-.client-navigation>a[aria-current=page],
+.client-navigation .navigation-items>a[aria-current=page],
 .account-menu>summary.is-active {
     background: var(--green-color);
     color: #fff
 }
 
-.client-navigation>a.login-link {
+.client-navigation .navigation-items>a.login-link {
     border: 1px solid #becfc1
+}
+
+.client-navigation .theme-toggle {
+    border: 1px solid #becfc1;
+    background: transparent;
+    font: inherit;
+    font-size: .9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
 }
 
 .account-menu {
@@ -978,7 +993,13 @@ html {
         justify-content: flex-end
     }
 
-    .client-navigation .navigation-disclosure { display: block; }
+    .client-navigation .navigation-checkbox {
+        display: block;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+    }
     .client-navigation .navigation-toggle {
         display: flex;
         align-items: center;
@@ -991,9 +1012,12 @@ html {
         font: inherit;
         font-weight: 600;
         cursor: pointer;
-        list-style: none
+        user-select: none
     }
-    .client-navigation .navigation-toggle::-webkit-details-marker { display: none; }
+    .client-navigation .navigation-checkbox:focus-visible + .navigation-toggle {
+        outline: 3px solid #b07a36;
+        outline-offset: 3px;
+    }
     .client-navigation .navigation-items {
         display: none;
         position: absolute;
@@ -1010,14 +1034,15 @@ html {
         background: #fff;
         box-shadow: 0 12px 30px #193e3220
     }
-    .client-navigation .navigation-disclosure[open] .navigation-items { display: flex; }
+    .client-navigation .navigation-checkbox:checked ~ .navigation-items { display: flex; }
     .client-navigation .navigation-items>a { width: 100%; }
     .client-navigation .navigation-items>.account-menu { margin-left: 0; }
     .client-navigation .navigation-items>.account-menu>summary { justify-content: space-between; }
     .client-navigation .navigation-items .account-dropdown { position: static; margin-top: 5px; box-shadow: none; }
     .client-navigation .navigation-items>.login-link { margin-left: 0; }
 
-    .client-area .client-navigation>a,
+    .client-area .client-navigation .navigation-items>a,
+    .client-navigation .theme-toggle,
     .account-menu>summary {
         font-size: .85rem;
         padding: 9px 13px
@@ -1048,4 +1073,53 @@ html {
     .client-area .cart {
         padding: 20px
     }
+}
+
+html[data-theme="dark"] body.client-area {
+    background: #111815;
+    color: #e4ece6;
+}
+html[data-theme="dark"] .client-area header,
+html[data-theme="dark"] .client-area article,
+html[data-theme="dark"] .client-area .cart,
+html[data-theme="dark"] .client-area .card,
+html[data-theme="dark"] .client-area .restaurant-contact,
+html[data-theme="dark"] .client-area .account-profile,
+html[data-theme="dark"] .client-area .account-orders {
+    background-color: #1b2520;
+    border-color: #35453b;
+    color: #e4ece6;
+}
+html[data-theme="dark"] .client-area .store-intro,
+html[data-theme="dark"] .client-area .restaurant-contact__map-prompt {
+    background: #202d25;
+    border-color: #35453b;
+}
+html[data-theme="dark"] .client-area h1,
+html[data-theme="dark"] .client-area h2,
+html[data-theme="dark"] .client-area h3,
+html[data-theme="dark"] .client-area .restaurant-contact__heading h2,
+html[data-theme="dark"] .client-area .restaurant-contact__details strong,
+html[data-theme="dark"] .client-area .restaurant-contact__details a {
+    color: #e4ece6;
+}
+html[data-theme="dark"] .client-area input,
+html[data-theme="dark"] .client-area textarea,
+html[data-theme="dark"] .client-area select,
+html[data-theme="dark"] .client-area .account-dropdown {
+    background: #17201b;
+    border-color: #3a4b40;
+    color: #e4ece6;
+}
+html[data-theme="dark"] .client-area .navigation-items,
+html[data-theme="dark"] .client-area .navigation-toggle,
+html[data-theme="dark"] .client-area .theme-toggle {
+    background: #1b2520;
+    border-color: #3a4b40;
+    color: #e4ece6;
+}
+html[data-theme="dark"] .client-area .account-dropdown a,
+html[data-theme="dark"] .client-area .account-dropdown button,
+html[data-theme="dark"] .client-area .navigation-items>a {
+    color: #e4ece6;
 }

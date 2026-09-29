@@ -1,6 +1,6 @@
 <nav class="admin-navigation" aria-label="Administración del restaurante">
-  <details class="navigation-disclosure">
-    <summary class="navigation-toggle"><span aria-hidden="true">☰</span><span>Menú</span></summary>
+  <input class="navigation-checkbox" type="checkbox" id="admin-navigation-toggle">
+  <label class="navigation-toggle" for="admin-navigation-toggle"><span aria-hidden="true">☰</span><span>Menú</span></label>
     <div class="navigation-items">
   <a href="/admin/orders"{{#if ordersActive}} aria-current="page"{{/if}}>Pedidos</a>
   <a href="/admin/pedidotelefonico"{{#if pedidotelefonicoActive}} aria-current="page"{{/if}}>Nuevo pedido</a>
@@ -10,6 +10,6 @@
   <a href="/admin/providers"{{#if providersActive}} aria-current="page"{{/if}}>Proveedores de reparto</a>
   <a href="/admin/configs"{{#if configsActive}} aria-current="page"{{/if}}>Configuración</a>
   <form method="post" action="/admin/logout">{{> csrf}}<button>Cerrar sesión</button></form>
+  <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">Usar tema oscuro</button>
     </div>
-  </details>
 </nav>
