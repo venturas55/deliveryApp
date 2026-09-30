@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Massa e fuoco",
+    "slug": "massa-e-fuoco-client",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#f7f4ee"
+    },
+    "android": {
+      "package": "com.massaefuoco.client"
+    },
+    "ios": {
+      "bundleIdentifier": "com.massaefuoco.client"
+    },
+    "plugins": [
+      "expo-status-bar"
+    ]
+  }
+}
