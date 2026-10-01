@@ -170,9 +170,11 @@
           <select name="payment_method">
             <option value="cash">Efectivo</option>
             <option value="online">Tarjeta</option>
+            {{#if walletsEnabled}}<option value="wallet">Google Pay / Apple Pay</option>{{/if}}
             <option value="card_on_delivery">Al entregar</option>
           </select>
         </label>
+        {{#if walletsEnabled}}<p>Con Google Pay / Apple Pay podrás elegir una tarjeta guardada en la pantalla de pago seguro, según tu dispositivo.</p>{{/if}}
         <button>Confirmar pedido</button>
       </form>
     {{else}}<a class="primary-link" href="/client/login?next=/">Acceder y continuar</a><p class="cart-login-note">Inicia sesión o crea tu cuenta para confirmar. Conservaremos tu carrito.</p>{{/if}}

@@ -116,13 +116,30 @@ function createSignature(
     .replace(/=+$/g, "");
 }
 
+export function redsysWalletsEnabled() {
+  return process.env.REDSYS_WALLETS_ENABLED === "true";
+}
+
+export function resolveRedsysCheckoutMethod(method) {
+  if (method !== "wallet") return { paymentMethod: method, wallet: false };
+  if (!redsysWalletsEnabled()) {
+    const error = new Error("Google Pay y Apple Pay no están disponibles. Selecciona otra forma de pago.");
+    error.status = 422;
+    throw error;
+  }
+  // Wallets are online card payments: notification/refund handling is shared.
+  return { paymentMethod: "online", wallet: true };
+}
+
 export function createRedsysPayment({
   order,
   amountCents,
   merchantUrl,
   urlOk,
   urlKo,
+  wallet = false,
 }) {
+  if (wallet) resolveRedsysCheckoutMethod("wallet");
   const { merchantCode, terminal, secretKey } = getConfig();
 
   const parameters = {
@@ -143,6 +160,7 @@ export function createRedsysPayment({
     DS_MERCHANT_URLOK: urlOk,
 
     DS_MERCHANT_URLKO: urlKo,
+    ...(wallet ? { DS_MERCHANT_PAYMETHODS: "xpay" } : {}),
   };
 
   const merchantParameters = base64UrlEncode(JSON.stringify(parameters));

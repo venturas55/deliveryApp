@@ -363,3 +363,15 @@ La carta, los productos activos del restaurante y las páginas legales incluyen 
 La portada publica JSON-LD de tipo Restaurant con datos guardados del comercio, sin inventar horarios ni valoraciones. Tras desplegar, comprobar el dominio definitivo, validar los datos en Google Rich Results Test y enviar `/sitemap.xml` en Search Console. La implementación no garantiza indexación ni posiciones.
 
 Pruebas específicas: `node --test test/seo.test.js`.
+
+## Google Pay y Apple Pay con Redsys
+
+El checkout ofrece una opción conjunta `Google Pay / Apple Pay` cuando `REDSYS_WALLETS_ENABLED=true`. Antes de habilitarla, solicitar al banco la activación de ambos métodos para el código de comercio y terminal utilizados, incluido el entorno de pruebas si procede. Reiniciar la aplicación tras cambiar la variable. Por defecto está desactivada.
+
+El cliente confirma el pedido y accede a la pantalla alojada de Redsys para elegir su wallet y autorizar el pago. Redsys decide qué botones mostrar según la habilitación del terminal y la compatibilidad del dispositivo. No son botones de pago nativos integrados en nuestra página. Se envía `DS_MERCHANT_PAYMETHODS=xpay` dentro de los parámetros firmados; la opción Tarjeta conserva el formulario habitual. Cuando las wallets están habilitadas por el banco, Redsys también puede ofrecerlas en ese formulario habitual.
+
+Los pedidos wallet se almacenan como `payment_method=online`; comparten importe calculado en servidor, notificación firmada y devolución Redsys. La redirección del navegador no confirma el pago en base de datos. No se guardan tarjetas ni tokens wallet en la aplicación. Una petición wallet con la función deshabilitada se rechaza antes de crear el pedido.
+
+Validación antes de producción: probar Google Pay y Apple Pay en dispositivos compatibles con el terminal habilitado; verificar notificación autorizada, cancelación/rechazo y devolución. Las pruebas locales (`node --test test/redsys-wallets.test.js`) cubren parámetros firmados, selección de método, bloqueo y renderizado, pero no activación bancaria ni cobros reales.
+
+Documentación Redsys: [Google Pay](https://pagosonline.redsys.es/desarrolladores-inicio/documentacion-otros-metodos-de-pago/otros-metodos-de-pago-google-pay/) y [Apple Pay](https://pagosonline.redsys.es/desarrolladores-inicio/documentacion-otros-metodos-de-pago/otros-metodos-de-pago-apple-pay/).

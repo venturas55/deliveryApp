@@ -23,7 +23,7 @@ import {
 } from "../services/web-session.js";
 import { searchAddresses } from "../services/geocoding.js";
 import { getRestaurant } from "../services/restaurants.js";
-import { createRedsysPayment } from "../services/redsys.js";
+import { createRedsysPayment, redsysWalletsEnabled, resolveRedsysCheckoutMethod } from "../services/redsys.js";
 import { quotePromotion } from "../controllers/promotions.js";
 import {pageSeo,restaurantSchema,publicOrigin,sitemapXml} from "../services/seo.js";
 const router = Router();
@@ -248,6 +248,7 @@ router.get("/", async (req, res) => {
       structuredData:restaurantSchema(data.restaurant,products.find(product=>product.image_url)?.image_url)
     }),
     title: "Carta",
+    walletsEnabled: redsysWalletsEnabled(),
     cartActive: true,
     restaurant: data.restaurant,
     restaurantContact,
@@ -334,8 +335,10 @@ router.post("/cart/promo", validateCsrf, async (req, res) => {
   }
 });
 router.post("/checkout", requireCustomer, async (req, res) => {
+  const checkoutMethod = resolveRedsysCheckoutMethod(req.body.payment_method);
   req.body = {
     ...req.body,
+    payment_method: checkoutMethod.paymentMethod,
     slug: "demo",
     items: readCart(req),
     promo_code: readCartPromo(req),
@@ -371,6 +374,7 @@ router.post("/checkout", requireCustomer, async (req, res) => {
       order.total_cents,
     );
     const payment = createRedsysPayment({
+      wallet: checkoutMethod.wallet,
       order: redsysOrder,
       amountCents: order.total_cents,
       merchantUrl: `${publicUrl}/payment/redsys/notification`,
