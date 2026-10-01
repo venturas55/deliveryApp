@@ -99,7 +99,6 @@ router.get("/payment/redsys/test", (req, res, next) => {
 
 router.get("/payment/redsys/success", (req, res) => {
   const orderId = req.query.order;
-  console.log("PAGO OK:", req.query);
 
   const trackingUrl = `/tracking?id=${encodeURIComponent(orderId)}`;
   if (!orderId) {

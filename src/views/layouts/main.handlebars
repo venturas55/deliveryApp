@@ -4,7 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="/favicon.ico" sizes="any">
-  <title>{{title}} · {{restaurantName}}</title>
+  <title>{{#if seo.title}}{{seo.title}}{{else}}{{title}} · {{restaurantName}}{{/if}}</title>
+  <meta name="robots" content="{{#if seo}}{{seo.robots}}{{else}}noindex, follow{{/if}}">
+  {{#if seo.description}}<meta name="description" content="{{seo.description}}">{{/if}}
+  {{#if seo.canonical}}<link rel="canonical" href="{{seo.canonical}}">{{/if}}
+  {{#if seo}}
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="es_ES">
+    <meta property="og:site_name" content="{{restaurantName}}">
+    <meta property="og:title" content="{{seo.title}}">
+    <meta property="og:description" content="{{seo.description}}">
+    {{#if seo.canonical}}<meta property="og:url" content="{{seo.canonical}}">{{/if}}
+    {{#if seo.image}}<meta property="og:image" content="{{seo.image}}">{{/if}}
+    <meta name="twitter:card" content="{{#if seo.image}}summary_large_image{{else}}summary{{/if}}">
+    <meta name="twitter:title" content="{{seo.title}}">
+    <meta name="twitter:description" content="{{seo.description}}">
+    {{#if seo.image}}<meta name="twitter:image" content="{{seo.image}}">{{/if}}
+    {{#if seo.structuredData}}<script type="application/ld+json">{{{seo.structuredData}}}</script>{{/if}}
+  {{/if}}
   <script>try{document.documentElement.dataset.theme=localStorage.getItem('delivery-theme')==='dark'?'dark':'light'}catch{}</script>
   <link rel="stylesheet" href="/style.css">
   {{#if clientArea}}<link rel="stylesheet" href="/client.css">{{/if}}

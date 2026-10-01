@@ -1,5 +1,5 @@
 <section>
-  <div class="store-intro"><p class="eyebrow">PEDIDOS A DOMICILIO</p><h1>Hoy, elige lo que te apetece.</h1><p>Explora nuestra carta y prepara tu pedido. Nosotros nos encargamos de cocinarlo.</p></div>
+  <div class="store-intro"><p class="eyebrow">PEDIDOS A DOMICILIO</p><h1>Carta de {{restaurant.name}}{{#if restaurant.delivery_city}} en {{restaurant.delivery_city}}{{/if}}</h1><p>Explora nuestra carta y prepara tu pedido. Nosotros nos encargamos de cocinarlo.</p></div>
   {{#if categories.length}}<nav class="category-navigation" aria-label="Categorías de la carta">{{#each categories}}<a href="#category-{{@index}}">{{name}}</a>{{/each}}</nav>{{/if}}
   <div id="menu">
     {{#each categories}}
@@ -15,7 +15,7 @@
     
           {{else}}
 
-              <img src="/img/default.png" class="product-image" loading="lazy">
+              <img src="/img/default.png" class="product-image" alt="{{name}}" loading="lazy">
           {{/if}}
           </a>
 

@@ -25,6 +25,7 @@ import { searchAddresses } from "../services/geocoding.js";
 import { getRestaurant } from "../services/restaurants.js";
 import { createRedsysPayment } from "../services/redsys.js";
 import { quotePromotion } from "../controllers/promotions.js";
+import {pageSeo,restaurantSchema,publicOrigin,sitemapXml} from "../services/seo.js";
 const router = Router();
 const loginLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 });
 const passwordResetLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 8 });
@@ -42,6 +43,17 @@ const legalPages = [
   { path: "/declaracion-de-privacidad", title: "Declaración de privacidad", view: "legal-privacy" },
 ];
 
+router.get("/robots.txt",(req,res)=>{
+  const origin=publicOrigin();
+  res.type("text/plain").send(`User-agent: *\nAllow: /\n${origin?`Sitemap: ${origin}/sitemap.xml\n`:""}`);
+});
+router.get("/sitemap.xml",async(req,res)=>{
+  const origin=publicOrigin();
+  if(!origin)return res.status(503).type("text/plain").send("PUBLIC_URL debe contener el origen público del sitio.");
+  const data=await clients.menu({query:{slug:"demo"}});
+  res.type("application/xml").send(sitemapXml(["/",...legalPages.map(page=>page.path),...data.products.map(product=>`/product/${product.id}`)],origin));
+});
+
 for (const page of legalPages) {
   router.get(page.path, async (req, res) => {
     const legal = await getRestaurant("demo");
@@ -51,6 +63,7 @@ for (const page of legalPages) {
       legal.legal_name && legal.tax_id && legalAddress && legal.legal_email && legal.phone,
     );
     res.render(`client/${page.view}`, {
+      seo:pageSeo(res,{title:`${page.title} · ${legal.name}`,description:`${page.title} de ${legal.name}. Consulta la información y las condiciones aplicables.`,path:page.path}),
       title: page.title,
       clientArea: true,
       legal,
@@ -90,7 +103,6 @@ router.post(
   passwordResetLimit,
   validateCsrf,
   async (req, res) => {
-    console.log("Empiezo forgot-password");
     try {
       await accounts.requestPasswordReset(req.body.email);
     } catch (error) {
@@ -129,7 +141,8 @@ router.post(
   },
 );
 
-router.get(["/", "/index.html"], async (req, res) => {
+router.get("/index.html",(req,res)=>res.redirect(301,"/"));
+router.get("/", async (req, res) => {
   const data = await clients.menu({ query: { name: "Massa e fuoco" } });
   const configsData = await adminConfigs(req);
   //console.log("CONFIGS DATA:", configsData);
@@ -156,12 +169,10 @@ router.get(["/", "/index.html"], async (req, res) => {
       : [];
   });
   const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
-  console.log("CART:", cart.length, "SUBTOTAL:", subtotal, "DELIVERY:", configsData.delivery_base_cents, "FREE FROM:", configsData.free_delivery_from_cents);
   const delivery =
     cart.length && subtotal < Number(configsData.free_delivery_from_cents)
       ? Number(configsData.delivery_base_cents)
       : 0;
-      console.log("DELIVERY:", delivery, "TOTAL:", subtotal + delivery);
   const promoCode = readCartPromo(req);
   let promo = { code: promoCode, discount_cents: 0, description: "" };
   let promoError =
@@ -230,6 +241,12 @@ router.get(["/", "/index.html"], async (req, res) => {
     };
 
   res.render("client/store", {
+    seo:pageSeo(res,{
+      title:`${data.restaurant.name}${data.restaurant.delivery_city?` en ${data.restaurant.delivery_city}`:""} · Carta y pedidos`,
+      description:`Consulta la carta de ${data.restaurant.name}${data.restaurant.delivery_city?` en ${data.restaurant.delivery_city}`:""}. Descubre nuestros platos, precios y ubicación y prepara tu pedido a domicilio.`,
+      path:"/",image:products.find(product=>product.image_url)?.image_url,
+      structuredData:restaurantSchema(data.restaurant,products.find(product=>product.image_url)?.image_url)
+    }),
     title: "Carta",
     cartActive: true,
     restaurant: data.restaurant,
@@ -250,8 +267,11 @@ router.get(["/", "/index.html"], async (req, res) => {
 router.get("/product/:id", async (req, res) => {
   //console.log(req.params.id);
   const product = await clients.product(req.params.id);
+  const restaurant=await getRestaurant("demo");
+  if(!product||!product.active||!restaurant||String(product.restaurant_id)!==String(restaurant.id))throw httpError(404,"Artículo no disponible");
   res.render("client/product", {
-    title: "Carta item",
+    title: product.name,
+    seo:pageSeo(res,{title:`${product.name} · ${restaurant.name}`,description:product.description||`Consulta ${product.name} en la carta de ${restaurant.name}: precio y detalles del plato.`,path:`/product/${product.id}`,image:product.image_url}),
     product,
   });
 });

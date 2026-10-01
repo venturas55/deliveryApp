@@ -353,3 +353,13 @@ npm run glovo:test -- "Carrer de Colón 20, Valencia, Spain"
 ```
 
 La API de Glovo documenta OAuth 2.0, `POST /oauth/token`, `POST /v2/laas/quotes` y el uso obligatorio de `addressBook` para el pickup en las cotizaciones. La cotización no crea el reparto y tiene una validez limitada.
+
+## SEO
+
+Configura `PUBLIC_URL` con el origen público definitivo, por ejemplo `https://restaurante.example`, sin rutas, parámetros ni credenciales. Se reutiliza para canonical, imágenes sociales y sitemap; nunca se toma el dominio del encabezado Host. Si falta o es inválido, las páginas llevan `noindex` y `/sitemap.xml` devuelve 503.
+
+La carta, los productos activos del restaurante y las páginas legales incluyen título, descripción y canonical. `/index.html` redirige con 301 a `/`. El sitemap se genera desde los productos activos; no incluye cuentas, pedidos, pagos ni administración. Estas rutas reciben `X-Robots-Tag: noindex, follow`, y las vistas privadas también incluyen la etiqueta meta correspondiente. `robots.txt` permite rastrear para que el buscador pueda leer `noindex`; esto no sustituye la autenticación.
+
+La portada publica JSON-LD de tipo Restaurant con datos guardados del comercio, sin inventar horarios ni valoraciones. Tras desplegar, comprobar el dominio definitivo, validar los datos en Google Rich Results Test y enviar `/sitemap.xml` en Search Console. La implementación no garantiza indexación ni posiciones.
+
+Pruebas específicas: `node --test test/seo.test.js`.

@@ -9,6 +9,7 @@ import apiRoutes from "./routes/api.js";
 import pageRoutes from "./routes/pages.js";
 import paymentRoutes from "./routes/payments.js";
 import {safeNext} from "./services/web-session.js";
+import {defaultRobots} from "./services/seo.js";
 
 dotenv.config();
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
@@ -37,6 +38,7 @@ app.use("/api/webhooks/delivery",express.raw({type:"application/json",limit:"100
 app.use(express.json({limit:"100kb"}));
 app.use(express.urlencoded({extended:false,limit:"100kb"}));
 app.use(express.static(path.join(__dirname,"../public")));
+app.use(defaultRobots);
 
 app.use("/api",apiRoutes);
 app.use(paymentRoutes);
@@ -47,6 +49,7 @@ app.use((req, res) => {
 });
 app.use((err,req,res,next)=>{
   if(res.headersSent)return next(err);
+  res.set("X-Robots-Tag","noindex, follow");
   const status=err.status||500;
   //if(status>=500)console.error("Request failed:",err.code||err.name);
   if (status >= 500) {
