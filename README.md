@@ -356,7 +356,7 @@ La API de Glovo documenta OAuth 2.0, `POST /oauth/token`, `POST /v2/laas/quotes`
 
 ## Avisos sonoros de pedidos
 
-En `/admin/orders`, pulsar **Activar sonido**: reproduce un tono de prueba y avisa cuando aparece un pedido nuevo del restaurante, independientemente del filtro seleccionado. Consulta cada cinco segundos; los pedidos existentes no generan aviso y los cambios de estado no repiten sonido. Varias entradas entre consultas generan un único aviso. También se notifican pedidos online pendientes de pago: el sonido indica entrada, no cobro confirmado.
+En `/admin/orders`, pulsar **Activar sonido**: reproduce un tono de prueba. Consulta cada cinco segundos, independientemente del filtro seleccionado. Los pedidos en efectivo avisan al entrar (tres notas); los de tarjeta online, wallets y tarjeta al entregar avisan con otro tono (cuatro notas) solo cuando constan como pagados. También detecta el pago de un pedido pendiente anterior a la apertura de la pantalla. Los pagos ya confirmados al abrir la página no avisan; cada evento se reproduce una sola vez por sesión de página y los avisos de una misma consulta suenan consecutivamente. Pedidos cancelados y tarjetas pendientes, fallidas o reembolsadas no generan nuevos avisos.
 
 Mantener esta pestaña abierta. La lista se actualiza sin recargar el documento para conservar el permiso de audio; no se reemplaza mientras se edita un formulario. Al navegar o recargar manualmente hay que activar de nuevo el sonido. El navegador puede retrasar las consultas en segundo plano o suspender el audio con el dispositivo bloqueado. Cada pestaña activada emite su propio aviso. El botón **Silenciar avisos** detiene el sonido.
 
