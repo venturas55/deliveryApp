@@ -692,10 +692,17 @@ export async function deliveryQuote(req) {
     const items = await c.query("SELECT * FROM order_items WHERE order_id=?", [
       order.id,
     ]);
+      
     const providers = await getConfiguredDeliveryProviders(order.restaurant_id);
     const results = await Promise.all(
       providers.map(async (provider) => {
         try {
+          console.log("=== DELIVERY QUOTE ===");
+          console.log("Proveedor:", provider.name);
+          console.log(
+            "ORDER ENVIADO AL PROVIDER:",
+            JSON.stringify({ ...order, items }, null, 2)
+          );
           const result = await provider.quote({ ...order, items });
           return {
             ...result,
