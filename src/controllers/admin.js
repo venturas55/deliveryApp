@@ -1029,7 +1029,7 @@ export async function saveAdminDeliveryProvider(req) {
     if (error.message.includes("DELIVERY_CREDENTIALS_KEY"))
       throw orderError(
         400,
-        "Configura DELIVERY_CREDENTIALS_KEY en el archivo .env antes de guardar credenciales",
+        "Configura DELIVERY_CREDENTIALS_KEY en el archivo .env antes de guardar credenciales\n"+error.message,
       );
     throw error;
   }

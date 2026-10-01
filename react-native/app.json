@@ -16,7 +16,8 @@
       "bundleIdentifier": "com.massaefuoco.client"
     },
     "plugins": [
-      "expo-status-bar"
+      "expo-status-bar",
+      "react-native-nitro-google-signin"
     ]
   }
 }
