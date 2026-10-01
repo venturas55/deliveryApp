@@ -9,6 +9,7 @@ import {engine} from "express-handlebars";
 import {query,pool} from "../src/db.js";
 import {signAdmin,signCustomer} from "../src/auth.js";
 import {encryptSecret} from "../src/services/delivery-credentials.js";
+import {getDeliveryProviderConfig,saveDeliveryProvider} from "../src/services/delivery-config.js";
 import {deliveryView,normalizeDelivery} from "../src/services/delivery-tracking.js";
 import {presentOrder} from "../src/services/order-presenter.js";
 import apiRoutes from "../src/routes/api.js";
@@ -19,12 +20,15 @@ test("Uber: signed lifecycle, QR, isolation, replay, incidents and recovery",{ti
   process.env.DELIVERY_CREDENTIALS_KEY=Buffer.alloc(32,9).toString("base64");
   process.env.DELIVERY_PROVIDER="uber";
   let restaurantId,customerId,server,loseCreateResponse=true;
-  const snapshots=new Map(),byKey=new Map(),createBodies=[];
+  const snapshots=new Map(),byKey=new Map(),createBodies=[],quoteBodies=[];
   const reply=data=>new Response(JSON.stringify(data),{status:200});
   globalThis.fetch=async(url,options={})=>{
     if(String(url).startsWith("http://127.0.0.1:"))return originalFetch(url,options);
     if(url==="https://auth.uber.com/oauth/v2/token")return reply({access_token:"fixture-token",expires_in:300});
-    if(url==="https://uber.invalid/v1/customers/test-customer/delivery_quotes")return reply({id:"quote-test",fee:450,expires:new Date(Date.now()+300000).toISOString()});
+    if(url==="https://uber.invalid/v1/customers/test-customer/delivery_quotes"){
+      quoteBodies.push(JSON.parse(options.body));
+      return reply({id:"quote-test",fee:450,expires:new Date(Date.now()+300000).toISOString()});
+    }
     if(url==="https://uber.invalid/v1/customers/test-customer/deliveries"){
       const body=JSON.parse(options.body);createBodies.push(body);
       if(!byKey.has(body.idempotency_key)){
@@ -41,9 +45,14 @@ test("Uber: signed lifecycle, QR, isolation, replay, incidents and recovery",{ti
     // Additive migration can run twice without changing existing order data.
     const sql=await readFile(new URL("../migrations/005-delivery-tracking.sql",import.meta.url),"utf8");
     for(let attempt=0;attempt<2;attempt++)for(const statement of sql.split(";").filter(s=>s.trim()))await query(statement);
-    restaurantId=Number((await query("INSERT INTO restaurants(name,slug) VALUES(?,?)",["Uber fixture",slug])).insertId);
+    restaurantId=Number((await query("INSERT INTO restaurants(name,slug,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude) VALUES(?,?,?,?,?,?,?,?)",["Uber fixture",slug,"Picanya","Valencia","46210","ES",39.439,-0.434])).insertId);
     customerId=Number((await query("INSERT INTO customers(name,email) VALUES(?,?)",["Customer",slug+"@example.invalid"])).insertId);
     await query("INSERT INTO delivery_providers(restaurant_id,provider,enabled,credentials_ciphertext,settings_json,webhook_secret_ciphertext) VALUES(?,'uber',1,?,?,?)",[restaurantId,encryptSecret(JSON.stringify({clientId:slug,clientSecret:"fixture"})),JSON.stringify({customerId:"test-customer",apiBaseUrl:"https://uber.invalid",pickupName:"Store",pickupPhone:"+34963510732",pickupAddress:"Pickup",dropoffVerification:"qr"}),encryptSecret(secret)]);
+    await saveDeliveryProvider(restaurantId,"uber",{enabled:true,credentials:{clientId:"",clientSecret:" "}});
+    const savedConfig=await getDeliveryProviderConfig(restaurantId,"uber");
+    assert.deepEqual(savedConfig.credentials,{clientId:slug,clientSecret:"fixture"});
+    await saveDeliveryProvider(restaurantId,"uber",{enabled:true,settings:{pickupAddress:"Doctor Herrero 30",pickupLat:"40",pickupLng:"-1"}});
+    await query("UPDATE restaurants SET delivery_street=?,delivery_number=?,delivery_formatted_address=? WHERE id=?",["Doctor Herrero","28","Doctor Herrero 28, Picanya",restaurantId]);
     const app=express();
     app.engine("handlebars",engine({helpers:{eq:(a,b)=>String(a)===String(b),date:v=>String(v),money:v=>String(v),multiply:(a,b)=>a*b}}));
     app.set("view engine","handlebars");app.set("views","src/views");
@@ -64,11 +73,16 @@ test("Uber: signed lifecycle, QR, isolation, replay, incidents and recovery",{ti
     }
     const id=await newOrder(),base=`/api/admin/orders/${id}`;
     const quotes=await request(base+"/delivery/quote",{method:"POST",body:{}}),quote=quotes.quotes[0];
+    const pickupAddress=JSON.parse(quoteBodies[0].pickup_address);
+    assert.deepEqual(pickupAddress.street_address,["Doctor Herrero 28"]);
+    assert.equal(pickupAddress.city,"Picanya");assert.equal(pickupAddress.state,"Valencia");
+    assert.equal(quoteBodies[0].pickup_latitude,39.439);assert.equal(quoteBodies[0].pickup_longitude,-0.434);
     await request(base+"/delivery",{method:"POST",body:{provider:"uber",quoteId:quote.quoteId},status:500});
     const prepared=await request(base);assert.ok(prepared.pickup_verification_code);assert.equal(prepared.provider_order_id,null);
     assert.ok(prepared.delivery_verification_code);
     const created=await request(base+"/delivery",{method:"POST",body:{provider:"uber",quoteId:quote.quoteId}});
     assert.equal(byKey.size,1);assert.deepEqual(createBodies[0],createBodies[1]);
+    assert.deepEqual(JSON.parse(createBodies[1].pickup_address),pickupAddress);
     assert.deepEqual(createBodies[1].pickup_verification,{barcodes:[{type:"QR",value:prepared.pickup_verification_code}]});
     assert.deepEqual(createBodies[1].dropoff_verification,{barcodes:[{type:"QR",value:prepared.delivery_verification_code}]});
     await request(base+"/delivery",{method:"POST",body:{provider:"uber",quoteId:quote.quoteId},status:409});

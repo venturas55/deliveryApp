@@ -10,8 +10,8 @@ const fields={
 };
 
 function parseJson(value,fallback={}){try{return value?JSON.parse(value):fallback}catch{return fallback}}
-function allowedValues(source,names){
-  return Object.fromEntries(names.filter(name=>source?.[name]!==undefined).map(name=>[name,String(source[name]).trim()]));
+function allowedValues(source,names,{ignoreEmpty=false}={}){
+  return Object.fromEntries(names.filter(name=>source?.[name]!==undefined&&(!ignoreEmpty||String(source[name]).trim()!=="")).map(name=>[name,String(source[name]).trim()]));
 }
 
 function safeRow(row){
@@ -35,11 +35,41 @@ export async function getDeliveryProviders(restaurantId){
 
 export async function getDeliveryProviderConfig(restaurantId,provider){
   if(!providers.includes(provider))throw new Error("Proveedor no válido");
-  const rows=await query("SELECT * FROM delivery_providers WHERE restaurant_id=? AND provider=?",[restaurantId,provider]);
+  const rows=await query(`SELECT dp.*,r.delivery_city AS restaurant_city,r.delivery_province AS restaurant_province,
+    r.delivery_postal_code AS restaurant_postal_code,r.delivery_country AS restaurant_country,
+    r.delivery_street AS restaurant_street,r.delivery_number AS restaurant_number,
+    r.delivery_formatted_address AS restaurant_address,
+    r.delivery_latitude AS restaurant_latitude,r.delivery_longitude AS restaurant_longitude
+    FROM delivery_providers dp LEFT JOIN restaurants r ON r.id=dp.restaurant_id
+    WHERE dp.restaurant_id=? AND dp.provider=?`,[restaurantId,provider]);
   if(!rows.length)return {provider,enabled:false,credentials:{},settings:{}};
   const row=rows[0];
+  const settings=parseJson(row.settings_json);
+  if(provider==="uber"){
+    // The store address owns pickup; provider settings may contain an older address.
+    if(row.restaurant_street||row.restaurant_address){
+      settings.pickupAddress=row.restaurant_street?{
+        street:row.restaurant_street,number:row.restaurant_number,
+        city:row.restaurant_city,province:row.restaurant_province,
+        postal_code:row.restaurant_postal_code,country:row.restaurant_country
+      }:row.restaurant_address;
+      settings.city=row.restaurant_city||"";
+      settings.state=row.restaurant_province||row.restaurant_city||"";
+      settings.postcode=row.restaurant_postal_code||"";
+      settings.country=row.restaurant_country||"ES";
+      settings.pickupLat=row.restaurant_latitude==null?"":String(row.restaurant_latitude);
+      settings.pickupLng=row.restaurant_longitude==null?"":String(row.restaurant_longitude);
+    }
+    settings.city=settings.city||row.restaurant_city||"";
+    settings.state=settings.state||row.restaurant_province||row.restaurant_city||"";
+    settings.postcode=settings.postcode||row.restaurant_postal_code||"";
+    settings.country=settings.country||row.restaurant_country||"ES";
+    if(!settings.pickupLat&&row.restaurant_latitude!=null)settings.pickupLat=String(row.restaurant_latitude);
+    if(!settings.pickupLng&&row.restaurant_longitude!=null)settings.pickupLng=String(row.restaurant_longitude);
+  }
   return {
     ...safeRow(row),
+    settings,
     credentials:row.credentials_ciphertext?parseJson(decryptSecret(row.credentials_ciphertext)):{}
   };
 }
@@ -54,7 +84,7 @@ export async function saveDeliveryProvider(restaurantId,provider,input){
   const current=await query("SELECT * FROM delivery_providers WHERE restaurant_id=? AND provider=?",[restaurantId,provider]);
   const row=current[0];
   const definition=fields[provider];
-  const credentials=allowedValues(input?.credentials,definition.credentials);
+  const credentials=allowedValues(input?.credentials,definition.credentials,{ignoreEmpty:true});
   const settings={...parseJson(row?.settings_json),...allowedValues(input?.settings,definition.settings)};
   const existingCredentials=row?.credentials_ciphertext?parseJson(decryptSecret(row.credentials_ciphertext)):{};
   const mergedCredentials={...existingCredentials,...credentials};
