@@ -698,10 +698,16 @@ export async function deliveryQuote(req) {
       providers.map(async (provider) => {
         try {
           console.log("=== DELIVERY QUOTE ===");
-          console.log("Proveedor:", provider.name);
           console.log(
             "ORDER ENVIADO AL PROVIDER:",
-            JSON.stringify({ ...order, items }, null, 2)
+            JSON.stringify(
+              { ...order, items },
+              (key, value) =>
+                typeof value === "bigint"
+                  ? value.toString()
+                  : value,
+              2
+            )
           );
           const result = await provider.quote({ ...order, items });
           return {
