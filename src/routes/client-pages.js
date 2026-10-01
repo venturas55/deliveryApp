@@ -130,10 +130,12 @@ router.get(["/", "/index.html"], async (req, res) => {
       : [];
   });
   const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
+  console.log("CART:", cart.length, "SUBTOTAL:", subtotal, "DELIVERY:", configsData.delivery_base_cents, "FREE FROM:", configsData.free_delivery_from_cents);
   const delivery =
     cart.length && subtotal < Number(configsData.free_delivery_from_cents)
       ? Number(configsData.delivery_base_cents)
       : 0;
+      console.log("DELIVERY:", delivery, "TOTAL:", subtotal + delivery);
   const promoCode = readCartPromo(req);
   let promo = { code: promoCode, discount_cents: 0, description: "" };
   let promoError =
