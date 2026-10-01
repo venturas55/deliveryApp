@@ -92,6 +92,40 @@
       </div>
     </section>
 
+    <section class="settings-card">
+      <div class="settings-card-header">
+        <div class="settings-card-icon" aria-hidden="true">§</div>
+        <div>
+          <h2>Identificación legal</h2>
+          <p>Estos datos aparecerán en las páginas legales públicas. Completa la información real del titular antes de publicar.</p>
+        </div>
+      </div>
+
+      <div class="settings-grid">
+        <div class="form-field">
+          <label for="legal-name">Razón social o nombre del titular</label>
+          <input id="legal-name" name="legal_name" value="{{configs.legal_name}}" maxlength="150" autocomplete="organization">
+        </div>
+        <div class="form-field">
+          <label for="legal-tax-id">NIF</label>
+          <input id="legal-tax-id" name="tax_id" value="{{configs.tax_id}}" maxlength="24" autocomplete="off">
+        </div>
+        <div class="form-field form-field--full">
+          <label for="legal-address">Domicilio legal</label>
+          <input id="legal-address" name="legal_address" value="{{configs.legal_address}}" maxlength="500" autocomplete="street-address">
+          <small>Si coincide con la dirección del negocio, puedes dejarlo vacío.</small>
+        </div>
+        <div class="form-field">
+          <label for="legal-email">Correo de contacto legal y privacidad</label>
+          <input id="legal-email" name="legal_email" value="{{configs.legal_email}}" type="email" maxlength="190" autocomplete="email">
+        </div>
+        <div class="form-field">
+          <label for="legal-registration">Registro y datos registrales (si procede)</label>
+          <input id="legal-registration" name="legal_registration" value="{{configs.legal_registration}}" maxlength="255" autocomplete="off">
+        </div>
+      </div>
+    </section>
+
 
     {{!-- CONFIGURACIÓN DEL REPARTO --}}
     <section class="settings-card">

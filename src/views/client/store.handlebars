@@ -43,14 +43,9 @@
       {{/if}}
     </address>
     {{#if restaurantContact.mapEmbedUrl}}
-      <div class="restaurant-contact__map">
-        <iframe
-          src="{{restaurantContact.mapEmbedUrl}}"
-          title="Ubicación de {{restaurantContact.name}} en Google Maps"
-          loading="lazy"
-          referrerpolicy="strict-origin-when-cross-origin"
-          allowfullscreen
-        ></iframe>
+      <div class="restaurant-contact__map" data-google-map data-map-url="{{restaurantContact.mapEmbedUrl}}" data-map-title="Ubicación de {{restaurantContact.name}} en Google Maps">
+        <p>El mapa externo está desactivado.</p>
+        <button type="button" data-cookie-settings>Configurar cookies</button>
       </div>
     {{else if restaurantContact.mapUrl}}
       <div class="restaurant-contact__map-prompt">

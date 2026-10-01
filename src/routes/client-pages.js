@@ -22,6 +22,7 @@ import {
   validateCsrf,
 } from "../services/web-session.js";
 import { searchAddresses } from "../services/geocoding.js";
+import { getRestaurant } from "../services/restaurants.js";
 import { createRedsysPayment } from "../services/redsys.js";
 import { quotePromotion } from "../controllers/promotions.js";
 const router = Router();
@@ -32,6 +33,31 @@ const profileImageUpload=multer({storage:multer.memoryStorage(),limits:{fileSize
   if(["image/jpeg","image/png","image/webp"].includes(file.mimetype))return cb(null,true);
   const error=new Error("Formato de imagen no válido");error.status=400;cb(error);
 }});
+
+const legalPages = [
+  { path: "/aviso-legal", title: "Aviso legal", view: "legal-notice" },
+  { path: "/politica-cancelaciones-devoluciones", title: "Cancelaciones y devoluciones", view: "legal-cancellations" },
+  { path: "/politica-cookies", title: "Política de cookies", view: "legal-cookies" },
+  { path: "/proteccion-de-datos", title: "Protección de datos", view: "legal-data-protection" },
+  { path: "/declaracion-de-privacidad", title: "Declaración de privacidad", view: "legal-privacy" },
+];
+
+for (const page of legalPages) {
+  router.get(page.path, async (req, res) => {
+    const legal = await getRestaurant("demo");
+    if (!legal) throw httpError(404, "Restaurante no encontrado");
+    const legalAddress = legal.legal_address || legal.delivery_formatted_address || legal.address;
+    const legalProfileReady = Boolean(
+      legal.legal_name && legal.tax_id && legalAddress && legal.legal_email && legal.phone,
+    );
+    res.render(`client/${page.view}`, {
+      title: page.title,
+      clientArea: true,
+      legal,
+      legalProfileReady,
+    });
+  });
+}
 
 router.get("/client/set-password", async (req, res) => {
   const available = await accounts.passwordSetupAvailable(req.query.token);

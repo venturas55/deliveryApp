@@ -367,16 +367,21 @@ function configsData(body, partial = false) {
     ["phone", 40],
     ["address", 500],
     ["city", 100],
+    ["legal_name", 150, false],
+    ["tax_id", 24, false],
+    ["legal_address", 500, false],
+    ["legal_email", 190, false],
+    ["legal_registration", 255, false],
   ];
 
-  for (const [field, max] of textFields) {
+  for (const [field, max, required = true] of textFields) {
     if (partial && body[field] === undefined) continue;
 
     const value = body[field] ?? "";
 
     if (
       typeof value !== "string" ||
-      !value.trim() ||
+      (required && !value.trim()) ||
       value.trim().length > max
     ) {
       throw orderError(
@@ -387,6 +392,9 @@ function configsData(body, partial = false) {
 
     data[field] = value.trim();
   }
+
+  if (data.legal_email && !validEmail(data.legal_email))
+    throw orderError(400, "Campo legal_email no válido");
 
   for (const [field, max] of [
     ["delivery_formatted_address", 500],

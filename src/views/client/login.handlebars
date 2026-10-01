@@ -6,7 +6,7 @@
   <p><a href="/client/forgot-password">¿Olvidaste tu contraseña?</a></p>
   {{#if passwordReset}}<p role="status">Contraseña actualizada. Ya puedes iniciar sesión.</p>{{/if}}
   {{#if passwordSet}}<p role="status">Contraseña establecida. Ya puedes iniciar sesión.</p>{{/if}}
-  {{#if googleEnabled}}<div id="googleButton" data-next="{{next}}"></div><p id="googleMessage" role="alert"></p>{{/if}}
+  {{#if googleEnabled}}<p data-google-consent-note role="status">Para iniciar sesión con Google, primero acepta los servicios opcionales desde el aviso de cookies.</p><div id="googleButton" data-next="{{next}}"></div><p id="googleMessage" role="alert"></p>{{/if}}
 </section>
 <section class="card"><h2>Crear cuenta</h2>
   <form id="customerRegister" method="post" action="/client/register">{{> csrf}}<input type="hidden" name="next" value="{{next}}">

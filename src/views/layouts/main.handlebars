@@ -10,11 +10,54 @@
   {{#if clientArea}}<link rel="stylesheet" href="/client.css">{{/if}}
   {{#if adminArea}}<link rel="stylesheet" href="/admin.css">{{/if}}
 </head>
-<body class="{{#if clientArea}}client-area{{/if}}{{#if adminArea}} admin-area{{/if}}"{{#if refresh}} data-refresh="5000"{{/if}}>
+<body class="{{#if clientArea}}client-area{{/if}}{{#if adminArea}} admin-area{{/if}}" data-google-enabled="{{#if googleEnabled}}true{{else}}false{{/if}}"{{#if refresh}} data-refresh="5000"{{/if}}>
   {{> header}}
   <main>{{{body}}}</main>
+  {{#if clientArea}}
+    <footer class="legal-footer">
+      <div class="legal-footer__inner">
+        <div class="legal-footer__identity">
+          <a class="legal-footer__brand" href="/">
+            <img src="/img/Massa e Fuoco con Cornisa Blanco.svg" width="48" height="48" alt="">
+            <span>{{restaurantName}}</span>
+          </a>
+          <p>Carta y pedidos a domicilio</p>
+        </div>
+        <nav class="legal-footer__group" aria-label="Atención">
+          <h2>Atención</h2>
+          <a href="/#contact">Contacto y ubicación</a>
+          <a href="/client/login">Cuenta de cliente</a>
+        </nav>
+        <nav class="legal-footer__group" aria-label="Información legal">
+          <h2>Información legal</h2>
+          <a href="/aviso-legal">Aviso legal</a>
+          <a href="/politica-cancelaciones-devoluciones">Cancelaciones y devoluciones</a>
+          <a href="/politica-cookies">Política de cookies</a>
+        </nav>
+        <nav class="legal-footer__group" aria-label="Privacidad">
+          <h2>Privacidad</h2>
+          <a href="/proteccion-de-datos">Protección de datos</a>
+          <a href="/declaracion-de-privacidad">Declaración de privacidad</a>
+        </nav>
+      </div>
+      <div class="legal-footer__bottom">
+        <span>© {{restaurantName}}</span>
+        <a href="/aviso-legal">Datos del titular</a>
+      </div>
+    </footer>
+    <aside class="external-consent" data-external-consent hidden aria-labelledby="external-consent-title">
+      <div>
+        <strong id="external-consent-title">Servicios opcionales de Google</strong>
+        <p>Si los aceptas, se cargarán Google Maps y, cuando esté habilitado, el acceso con Google. Si los rechazas, puedes seguir usando el sitio y acceder con email y contraseña.</p>
+        <a href="/politica-cookies">Política de cookies</a>
+      </div>
+      <div class="external-consent__actions">
+        <button type="button" data-consent-choice="reject">Rechazar</button>
+        <button type="button" data-consent-choice="accept">Aceptar servicios de Google</button>
+      </div>
+    </aside>
+  {{/if}}
   <script src="/page-behavior.js" defer></script>
   <script src="/address-picker.js?v=2" defer></script>
-  {{#if googleEnabled}}<script src="/google-login.js" defer></script>{{/if}}
 </body>
 </html>

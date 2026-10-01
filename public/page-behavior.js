@@ -28,6 +28,80 @@ if(document.body.dataset.refresh)setInterval(()=>{
 },Number(document.body.dataset.refresh));
 window.addEventListener("pageshow",()=>{submitting=false});
 
+const externalConsent=document.querySelector("[data-external-consent]");
+const googleMaps=[...document.querySelectorAll("[data-google-map]")];
+const googleLoginEnabled=document.body.dataset.googleEnabled==="true";
+const consentKey="delivery-google-services-consent";
+const googleConsentNote=document.querySelector("[data-google-consent-note]");
+
+function activateGoogleMaps(){
+  googleMaps.forEach(map=>{
+    if(map.querySelector("iframe"))return;
+    const iframe=document.createElement("iframe");
+    iframe.src=map.dataset.mapUrl;
+    iframe.title=map.dataset.mapTitle;
+    iframe.loading="lazy";
+    iframe.referrerPolicy="strict-origin-when-cross-origin";
+    iframe.allowFullscreen=true;
+    map.replaceChildren(iframe);
+  });
+}
+
+function activateGoogleLogin(){
+  if(!googleLoginEnabled||document.querySelector("[data-google-login-loader]"))return;
+  const script=document.createElement("script");
+  script.src="/google-login.js";
+  script.dataset.googleLoginLoader="true";
+  document.body.append(script);
+}
+
+function applyGoogleConsent(accepted){
+  if(googleConsentNote)googleConsentNote.hidden=accepted;
+  if(accepted){
+    activateGoogleMaps();
+    activateGoogleLogin();
+  }else{
+    googleMaps.forEach(map=>{
+      const message=document.createElement("p");
+      message.textContent="El mapa externo está desactivado.";
+      const button=document.createElement("button");
+      button.type="button";
+      button.textContent="Configurar cookies";
+      button.dataset.cookieSettings="true";
+      map.replaceChildren(message,button);
+    });
+  }
+}
+
+if(externalConsent){
+  let choice="";
+  try{choice=localStorage.getItem(consentKey)||""}catch{}
+  if(choice==="accepted")applyGoogleConsent(true);
+  else if(choice==="rejected")applyGoogleConsent(false);
+  else if(googleMaps.length||googleLoginEnabled)externalConsent.hidden=false;
+
+  externalConsent.querySelectorAll("[data-consent-choice]").forEach(button=>{
+    button.addEventListener("click",()=>{
+      const accepted=button.dataset.consentChoice==="accept";
+      let previousChoice="";
+      try{previousChoice=localStorage.getItem(consentKey)||""}catch{}
+      try{localStorage.setItem(consentKey,accepted?"accepted":"rejected")}catch{}
+      externalConsent.hidden=true;
+      if(!accepted&&previousChoice==="accepted"){
+        location.reload();
+        return;
+      }
+      applyGoogleConsent(accepted);
+    });
+  });
+}
+
+document.addEventListener("click",event=>{
+  if(!event.target.closest("[data-cookie-settings]"))return;
+  event.preventDefault();
+  if(externalConsent)externalConsent.hidden=false;
+});
+
 document.querySelectorAll("[data-delivery-method]").forEach(select=>{
   const addressBlock=select.closest("form")?.querySelector("[data-delivery-address]");
   const fields=addressBlock?.querySelectorAll("input,select,textarea");

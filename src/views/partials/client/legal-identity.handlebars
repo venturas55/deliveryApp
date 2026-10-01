@@ -1,0 +1,12 @@
+{{#unless legalProfileReady}}
+  <p class="legal-data-warning" role="status">La identificación legal está incompleta. El titular debe revisar y completar los datos de «Identificación legal» en Configuración antes de publicar el sitio.</p>
+{{/unless}}
+<div class="legal-identity">
+  <p><strong>Razón social o titular:</strong> {{#if legal.legal_name}}{{legal.legal_name}}{{else}}Pendiente de completar{{/if}}</p>
+  <p><strong>Nombre comercial:</strong> {{legal.name}}</p>
+  <p><strong>NIF:</strong> {{#if legal.tax_id}}{{legal.tax_id}}{{else}}Pendiente de completar{{/if}}</p>
+  <p><strong>Domicilio:</strong> {{#if legal.legal_address}}{{legal.legal_address}}{{else if legal.delivery_formatted_address}}{{legal.delivery_formatted_address}}{{else if legal.address}}{{legal.address}}{{else}}Pendiente de completar{{/if}}</p>
+  <p><strong>Correo:</strong> {{#if legal.legal_email}}<a href="mailto:{{legal.legal_email}}">{{legal.legal_email}}</a>{{else}}Pendiente de completar{{/if}}</p>
+  <p><strong>Teléfono:</strong> {{#if legal.phone}}{{legal.phone}}{{else}}Pendiente de completar{{/if}}</p>
+  {{#if legal.legal_registration}}<p><strong>Datos registrales:</strong> {{legal.legal_registration}}</p>{{/if}}
+</div>
