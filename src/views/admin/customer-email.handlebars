@@ -17,7 +17,7 @@
     {{#if hasResult}}
       <p class="notice" role="status">Mensaje enviado al destinatario.</p>
     {{/if}}
-    <form method="post" action="/admin/clientes/email/{{customer.id}}" class="broadcast-form">
+    <form method="post" action="/admin/clientes/email/{{customer.id}}" class="broadcast-form" enctype="multipart/form-data">
       {{!-- CSRF token --}} 
       {{> csrf}}
       <label for="broadcast-subject">Asunto</label>
@@ -25,6 +25,10 @@
 
       <label for="broadcast-message">Mensaje</label>
       <textarea id="broadcast-message" name="message" rows="10" maxlength="10000" required></textarea>
+
+      <label for="broadcast-image">Imagen de promoción (opcional)</label>
+      <input id="broadcast-image" name="image" type="file" accept="image/jpeg,image/png,image/gif" aria-describedby="broadcast-image-help">
+      <p id="broadcast-image-help">JPEG, PNG o GIF, máximo 5 MB. Se mostrará debajo del mensaje en el correo.</p>
 
       <label class="broadcast-confirm">
         <input name="confirm" type="checkbox" value="yes" required>

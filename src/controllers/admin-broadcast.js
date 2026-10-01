@@ -1,5 +1,6 @@
 import { query } from "../db.js";
 import { createEmailTransport, sendEmail } from "../services/email.js";
+import { customerEmailContent } from "../services/customer-email.js";
 
 function broadcastError(status, message) {
   return Object.assign(new Error(message), { status });
@@ -40,7 +41,7 @@ function validateCustomerEmail(body = {}) {
 /**
  * Envía un correo a UN cliente.
  */
-export async function sendCustomerEmail(customer, body = {}) {
+export async function sendCustomerEmail(customer, body = {}, image = null) {
   if (!customer?.email) {
     throw broadcastError(
       400,
@@ -56,13 +57,14 @@ export async function sendCustomerEmail(customer, body = {}) {
   }
   
   const { subject, text } = validateCustomerEmail(body);
+  const content = customerEmailContent(text, image);
   const transporter = await createEmailTransport();
   try {
     await sendEmail(
       {
         to: email,
         subject,
-        text,
+        ...content,
       },
       transporter,
     );
@@ -79,8 +81,9 @@ export async function sendCustomerEmail(customer, body = {}) {
 /**
  * Envía un correo a TODOS los clientes.
  */
-export async function sendCustomerBroadcast(body = {}) {
+export async function sendCustomerBroadcast(body = {}, image = null) {
   const { subject, text } = validateCustomerEmail(body);
+  const content = customerEmailContent(text, image);
 
   if (body.confirm !== "yes") {
     throw broadcastError(400, "Confirma el envío a todos los clientes.");
@@ -115,7 +118,7 @@ export async function sendCustomerBroadcast(body = {}) {
           {
             to: email,
             subject,
-            text,
+            ...content,
           },
           transporter,
         );

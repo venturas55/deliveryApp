@@ -17,6 +17,24 @@ import {searchAddresses} from "../services/geocoding.js";
 const router=Router();
 const loginLimit=rateLimit({windowMs:15*60*1000,max:30});
 const addressLimit=rateLimit({windowMs:60*1000,max:30});
+const customerEmailUpload=multer({
+  storage:multer.memoryStorage(),
+  limits:{fileSize:5*1024*1024,files:1,fields:4},
+  fileFilter:(req,file,cb)=>{
+    if(["image/jpeg","image/png","image/gif"].includes(file.mimetype))return cb(null,true);
+    cb(httpError(400,"Selecciona una imagen JPEG, PNG o GIF válida."));
+  }
+}).single("image");
+function parseCustomerEmail(req,res,next){
+  customerEmailUpload(req,res,error=>{
+    if(error){
+      const message=error.code==="LIMIT_FILE_SIZE"?"La imagen no puede superar 5 MB.":error.message;
+      const target=req.params.id?"/admin/clientes/email/"+encodeURIComponent(req.params.id):"/admin/clientes/difusion";
+      return res.redirect(303,target+"?problem="+encodeURIComponent(message));
+    }
+    next();
+  });
+}
 const productImageUpload=multer({
   storage:multer.memoryStorage(),
   limits:{fileSize:5*1024*1024,files:1},
@@ -184,9 +202,9 @@ router.get("/admin/clientes/difusion",async(req,res)=>{
     problem:typeof req.query.problem==="string"?req.query.problem:null,
   });
 });
-router.post("/admin/clientes/difusion",validateCsrf,async(req,res)=>{
+router.post("/admin/clientes/difusion",parseCustomerEmail,validateCsrf,async(req,res)=>{
   try {
-    const result=await adminBroadcast.sendCustomerBroadcast(req.body);
+    const result=await adminBroadcast.sendCustomerBroadcast(req.body,req.file);
     res.redirect(303,"/admin/clientes/difusion?sent="+result.sent+"&failed="+result.failed+"&total="+result.total);
   } catch(error) {
     res.redirect(303,"/admin/clientes/difusion?problem="+encodeURIComponent(error.message));
@@ -199,14 +217,14 @@ router.get("/admin/clientes/email/:id",async(req,res)=>{
   res.render("admin/customer-email",{
     title:"Correo a cliente",
     customer,
+    hasResult:req.query.sent==="1",
+    problem:typeof req.query.problem==="string"?req.query.problem:null,
   });
 });
-router.post("/admin/clientes/email/:id",validateCsrf,async(req,res)=>{
+router.post("/admin/clientes/email/:id",parseCustomerEmail,validateCsrf,async(req,res)=>{
   try {
       const customer=await admin.getClientes(req.params.id);
-    console.log("PARAMS:",req.params);
-    console.log("customer:",customer);
-    const result=await adminBroadcast.sendCustomerEmail(customer,req.body);
+    const result=await adminBroadcast.sendCustomerEmail(customer,req.body,req.file);
     res.redirect(303,"/admin/clientes/email/"+req.params.id+"?sent="+result.sent+"&failed="+result.failed+"&success="+encodeURIComponent("Mensaje enviado correctamente"));
   } catch(error) {
     res.redirect(303,"/admin/clientes/email/"+req.params.id+"?problem="+encodeURIComponent(error.message));

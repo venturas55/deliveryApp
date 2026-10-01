@@ -65,8 +65,7 @@ export async function createEmailTransport() {
 
 export async function sendEmail(message, transporter = null) {
   const ownsTransport = !transporter;
-  //const activeTransport = transporter || (await createEmailTransport());
-  const activeTransport = await createEmailTransport();
+  const activeTransport = transporter || (await createEmailTransport());
   const account = process.env.EMAIL_ACCOUNT;
   const senderName = process.env.EMAIL_USER_NAME;
   try {

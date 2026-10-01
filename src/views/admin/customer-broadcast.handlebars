@@ -15,13 +15,17 @@
     {{#if hasResult}}
       <p class="notice" role="status">Envío terminado: {{sent}} enviados, {{failed}} fallidos, de {{resultTotal}} destinatarios.</p>
     {{/if}}
-    <form method="post" action="/admin/clientes/difusion">
+    <form method="post" action="/admin/clientes/difusion" enctype="multipart/form-data">
       {{> csrf}}
       <label for="broadcast-subject">Asunto</label>
       <input id="broadcast-subject" name="subject" type="text" maxlength="160" required>
 
       <label for="broadcast-message">Mensaje</label>
       <textarea id="broadcast-message" name="message" rows="10" maxlength="10000" required></textarea>
+
+      <label for="broadcast-image">Imagen de promoción (opcional)</label>
+      <input id="broadcast-image" name="image" type="file" accept="image/jpeg,image/png,image/gif" aria-describedby="broadcast-image-help">
+      <p id="broadcast-image-help">JPEG, PNG o GIF, máximo 5 MB. Se mostrará debajo del mensaje en el correo.</p>
 
       <label class="broadcast-confirm">
         <input name="confirm" type="checkbox" value="yes" required>
