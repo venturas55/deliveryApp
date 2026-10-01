@@ -101,6 +101,7 @@ router.get("/payment/redsys/success", (req, res) => {
   const orderId = req.query.order;
   console.log("PAGO OK:", req.query);
 
+  const trackingUrl = `/tracking?id=${encodeURIComponent(orderId)}`;
   if (!orderId) {
     return res.redirect("/");
   }
@@ -116,7 +117,7 @@ router.get("/payment/redsys/success", (req, res) => {
 
       <meta
         http-equiv="refresh"
-        content="5;url=/client/orders/${encodeURIComponent(orderId)}"
+        content="5;url=${trackingUrl}"
       >
 
       <style>
@@ -206,7 +207,7 @@ router.get("/payment/redsys/success", (req, res) => {
         </p>
 
         <p>
-          <a href="/client/orders/${encodeURIComponent(orderId)}">
+           <a href="${trackingUrl}">
             Ver mi pedido ahora
           </a>
         </p>
