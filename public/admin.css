@@ -2572,3 +2572,4 @@ html[data-theme="dark"] .admin-area select {
   border-color: var(--admin-border);
   color: var(--admin-text);
 }
+.admin-order-sound { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin:0 auto 1rem; max-width:1440px; }

@@ -354,6 +354,12 @@ npm run glovo:test -- "Carrer de Colón 20, Valencia, Spain"
 
 La API de Glovo documenta OAuth 2.0, `POST /oauth/token`, `POST /v2/laas/quotes` y el uso obligatorio de `addressBook` para el pickup en las cotizaciones. La cotización no crea el reparto y tiene una validez limitada.
 
+## Avisos sonoros de pedidos
+
+En `/admin/orders`, pulsar **Activar sonido**: reproduce un tono de prueba y avisa cuando aparece un pedido nuevo del restaurante, independientemente del filtro seleccionado. Consulta cada cinco segundos; los pedidos existentes no generan aviso y los cambios de estado no repiten sonido. Varias entradas entre consultas generan un único aviso. También se notifican pedidos online pendientes de pago: el sonido indica entrada, no cobro confirmado.
+
+Mantener esta pestaña abierta. La lista se actualiza sin recargar el documento para conservar el permiso de audio; no se reemplaza mientras se edita un formulario. Al navegar o recargar manualmente hay que activar de nuevo el sonido. El navegador puede retrasar las consultas en segundo plano o suspender el audio con el dispositivo bloqueado. Cada pestaña activada emite su propio aviso. El botón **Silenciar avisos** detiene el sonido.
+
 ## SEO
 
 Configura `PUBLIC_URL` con el origen público definitivo, por ejemplo `https://restaurante.example`, sin rutas, parámetros ni credenciales. Se reutiliza para canonical, imágenes sociales y sitemap; nunca se toma el dominio del encabezado Host. Si falta o es inválido, las páginas llevan `noindex` y `/sitemap.xml` devuelve 503.

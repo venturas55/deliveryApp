@@ -23,8 +23,20 @@ document.addEventListener("submit",event=>{
   if(submitting){event.preventDefault();return;}
   submitting=true;
 });
-if(document.body.dataset.refresh)setInterval(()=>{
-  if(!dirty&&!submitting&&!document.hidden&&!document.activeElement?.closest("form"))location.reload();
+let refreshingOrders=false;
+if(document.body.dataset.refresh)setInterval(async()=>{
+  if(dirty||submitting||document.hidden||document.activeElement?.closest("form"))return;
+  if(document.querySelector("[data-order-sound]")){
+    if(refreshingOrders)return;
+    refreshingOrders=true;
+    try{
+      const response=await fetch(location.href,{cache:"no-store",signal:AbortSignal.timeout(10000)});
+      if(!response.ok||response.redirected)return;
+      const page=new DOMParser().parseFromString(await response.text(),"text/html");
+      const updated=page.querySelector("#adminMain");
+      if(updated&&!dirty&&!submitting&&!document.activeElement?.closest("form"))document.querySelector("#adminMain")?.replaceWith(updated);
+    }catch{}finally{refreshingOrders=false;}
+  }else location.reload();
 },Number(document.body.dataset.refresh));
 window.addEventListener("pageshow",()=>{submitting=false});
 

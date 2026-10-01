@@ -1,4 +1,5 @@
 import {Router} from "express";
+import {query} from "../db.js";
 import multer from "multer";
 import {randomUUID} from "node:crypto";
 import {mkdir,writeFile} from "node:fs/promises";
@@ -50,8 +51,13 @@ router.get("/admin/address-search",addressLimit,async(req,res)=>{
   catch{return res.status(502).json({error:"No se pudo consultar el buscador de direcciones"})}
 });
 router.get("/admin/orders",async(req,res)=>{
+  const [snapshot]=await query("SELECT COALESCE(MAX(id),0) AS latest FROM orders WHERE restaurant_id=?",[req.user.restaurant_id]);
   const orders=await admin.adminOrders(req);
-  res.render("admin/orders",{title:"Pedidos",ordersActive:true,filter:req.query.filter||"all",orders:orders.map(presentOrder),refresh:true});
+  res.render("admin/orders",{title:"Pedidos",ordersActive:true,filter:req.query.filter||"all",orders:orders.map(presentOrder),refresh:true,latestOrderId:String(snapshot.latest)});
+});
+router.get("/admin/order-notifications",async(req,res)=>{
+  const [snapshot]=await query("SELECT COALESCE(MAX(id),0) AS latest FROM orders WHERE restaurant_id=?",[req.user.restaurant_id]);
+  res.set("Cache-Control","no-store").json({latestOrderId:String(snapshot.latest)});
 });
 router.get("/admin/pedidotelefonico",async(req,res)=>{
   const products=(await admin.adminProducts(req)).filter(item=>Number(item.active)===1);
