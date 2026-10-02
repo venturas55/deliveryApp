@@ -25,10 +25,13 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid #eee
+}
+
+body > header {
   position: sticky;
   top: 0;
   z-index: 2;
-  border-bottom: 1px solid #eee
 }
 
 main {

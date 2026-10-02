@@ -36,6 +36,23 @@
       {{/each}}
     </div>
   </section>
+  <section class="stats-panel" aria-labelledby="customer-spending-title">
+    <div class="stats-panel-heading"><div><h2 id="customer-spending-title">Clientes que más han gastado</h2><p>Histórico del restaurante · Pedidos entregados, sin reembolsados. Incluye envío y descuentos.</p></div></div>
+    {{#if stats.customerSpending.length}}
+      <div class="stats-table-scroll" role="region" aria-labelledby="customer-spending-title" tabindex="0">
+        <table class="stats-customers-table">
+          <thead><tr><th scope="col">Posición</th><th scope="col">Cliente</th><th scope="col">Contacto</th><th scope="col">Pedidos</th><th scope="col">Total gastado</th></tr></thead>
+          <tbody>
+            {{#each stats.customerSpending}}
+              <tr><td>{{rank}}</td><th scope="row">{{name}}</th><td>{{email}}{{#if phone}}<br>{{phone}}{{/if}}</td><td>{{total_orders}}</td><td><strong>{{money total_spent_cents}}</strong></td></tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    {{else}}
+      <p>Todavía no hay clientes con pedidos entregados.</p>
+    {{/if}}
+  </section>
   <dialog class="stats-day-dialog" aria-labelledby="stats-day-dialog-title">
     <div class="stats-day-dialog-header"><h2 id="stats-day-dialog-title">Pedidos por hora</h2><button type="button" class="stats-day-dialog-close" aria-label="Cerrar">×</button></div>
     <div class="stats-day-dialog-content"></div>

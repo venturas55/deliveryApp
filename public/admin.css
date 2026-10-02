@@ -2127,6 +2127,33 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.03);
 }
 
+.stats-table-scroll {
+  overflow-x: auto;
+}
+
+.stats-customers-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.stats-customers-table th,
+.stats-customers-table td {
+  padding: 0.85rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.stats-customers-table th:last-child,
+.stats-customers-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.stats-table-scroll:focus-visible {
+  outline: 3px solid var(--admin-focus);
+  outline-offset: 3px;
+}
+
 .stats-panel-heading {
   display: flex;
   justify-content: space-between;

@@ -1,4 +1,4 @@
-<nav class="admin-navigation" aria-label="Administración del restaurante">
+{{!-- <nav class="admin-navigation" aria-label="Administración del restaurante">
   <input class="navigation-checkbox" type="checkbox" id="admin-navigation-toggle">
   <label class="navigation-toggle" for="admin-navigation-toggle"><span aria-hidden="true">☰</span><span>Menú</span></label>
     <div class="navigation-items">
@@ -13,3 +13,402 @@
   <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">Usar tema oscuro</button>
     </div>
 </nav>
+ --}}
+ <nav class="admin-navigation" aria-label="Administración del restaurante">
+
+  <input
+    class="navigation-checkbox"
+    type="checkbox"
+    id="admin-navigation-toggle"
+  >
+
+  <label
+    class="navigation-toggle"
+    for="admin-navigation-toggle"
+  >
+    <span aria-hidden="true">☰</span>
+    <span>Menú</span>
+  </label>
+
+  <div class="navigation-items">
+
+    <!-- PRINCIPAL -->
+    <div class="navigation-main">
+
+      <a href="/admin/orders"
+         {{#if ordersActive}}aria-current="page"{{/if}}>
+        Pedidos
+      </a>
+
+      <a href="/admin/pedidotelefonico"
+         {{#if pedidotelefonicoActive}}aria-current="page"{{/if}}>
+        Nuevo pedido
+      </a>
+
+      <a href="/admin/clientes"
+         {{#if clientesActive}}aria-current="page"{{/if}}>
+        Clientes
+      </a>
+
+      <a href="/admin/stats"
+         {{#if statsActive}}aria-current="page"{{/if}}>
+        Estadísticas
+      </a>
+
+      <!-- DESPLEGABLE GESTIÓN -->
+      <details class="navigation-dropdown"
+        {{#if productsActive}}open{{/if}}
+        {{#if providersActive}}open{{/if}}
+        {{#if configsActive}}open{{/if}}>
+
+        <summary
+          {{#if productsActive}}class="active"{{/if}}
+          {{#if providersActive}}class="active"{{/if}}
+          {{#if configsActive}}class="active"{{/if}}>
+          Gestión
+          <span class="dropdown-arrow" aria-hidden="true">⌄</span>
+        </summary>
+
+        <div class="navigation-dropdown-menu">
+
+          <a href="/admin/products"
+             {{#if productsActive}}aria-current="page"{{/if}}>
+            Gestionar artículos
+          </a>
+
+          <a href="/admin/providers"
+             {{#if providersActive}}aria-current="page"{{/if}}>
+            Proveedores de reparto
+          </a>
+
+          <a href="/admin/configs"
+             {{#if configsActive}}aria-current="page"{{/if}}>
+            Configuración
+          </a>
+
+        </div>
+      </details>
+
+    </div>
+
+    <!-- ACCIONES -->
+    <div class="navigation-actions">
+
+      <button
+        class="theme-toggle"
+        type="button"
+        data-theme-toggle
+        aria-pressed="false"
+        title="Cambiar tema">
+        ◐
+        <span class="action-text">Tema</span>
+      </button>
+
+      <form method="post" action="/admin/logout">
+        {{> csrf}}
+        <button class="logout-button" type="submit">
+          <span aria-hidden="true">↪</span>
+          <span class="action-text">Cerrar sesión</span>
+        </button>
+      </form>
+
+    </div>
+
+  </div>
+</nav>
+<style>
+
+.admin-navigation {
+  position: relative;
+  width: 100%;
+}
+
+/* =========================
+   CONTENEDOR
+   ========================= */
+
+.navigation-items {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* =========================
+   NAVEGACIÓN PRINCIPAL
+   ========================= */
+
+.navigation-main {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  min-width: 0;
+}
+
+.navigation-main > a,
+.navigation-dropdown > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: .65rem .9rem;
+
+  border: 0;
+  border-radius: 9px;
+
+  color: inherit;
+  text-decoration: none;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+
+  cursor: pointer;
+  transition:
+    background-color .15s ease,
+    color .15s ease,
+    transform .15s ease;
+}
+
+.navigation-main > a:hover,
+.navigation-dropdown > summary:hover {
+  background: rgba(127, 127, 127, .12);
+}
+
+.navigation-main > a[aria-current="page"] {
+  background: var(--accent, #d62828);
+  color: #fff;
+}
+
+/* =========================
+   DESPLEGABLE GESTIÓN
+   ========================= */
+
+.navigation-dropdown {
+  position: relative;
+}
+
+.navigation-dropdown summary {
+  list-style: none;
+  user-select: none;
+}
+
+.navigation-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+.navigation-dropdown summary.active {
+  background: var(--accent, #d62828);
+  color: #fff;
+}
+
+.dropdown-arrow {
+  margin-left: .45rem;
+  font-size: .9rem;
+  transition: transform .15s ease;
+}
+
+.navigation-dropdown[open] .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.navigation-dropdown-menu {
+  position: absolute;
+  top: calc(100% + .6rem);
+  right: 0;
+
+  z-index: 1000;
+
+  width: max-content;
+  min-width: 230px;
+  padding: .45rem;
+
+  background: var(--surface, #fff);
+  border: 1px solid rgba(127, 127, 127, .2);
+  border-radius: 12px;
+
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, .14);
+}
+
+.navigation-dropdown-menu a {
+  display: block;
+  padding: .75rem .9rem;
+
+  color: inherit;
+  text-decoration: none;
+  font-weight: 500;
+
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.navigation-dropdown-menu a:hover {
+  background: rgba(127, 127, 127, .1);
+}
+
+.navigation-dropdown-menu a[aria-current="page"] {
+  color: var(--accent, #d62828);
+  font-weight: 700;
+}
+
+/* =========================
+   ACCIONES DERECHA
+   ========================= */
+
+.navigation-actions {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  margin-left: auto;
+  padding-left: .75rem;
+
+  border-left: 1px solid rgba(127, 127, 127, .2);
+}
+
+.navigation-actions form {
+  margin: 0;
+}
+
+.navigation-actions button {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+
+  min-height: 40px;
+  padding: .55rem .7rem;
+
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+
+  font: inherit;
+  cursor: pointer;
+
+  white-space: nowrap;
+}
+
+.navigation-actions button:hover {
+  background: rgba(127, 127, 127, .12);
+}
+
+.navigation-actions .logout-button:hover {
+  color: #d62828;
+}
+
+/* =========================
+   BOTÓN MÓVIL
+   ========================= */
+
+.navigation-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.navigation-toggle {
+  display: none;
+}
+
+/* =========================
+   TABLET
+   ========================= */
+
+@media (max-width: 1050px) {
+
+  .navigation-main > a,
+  .navigation-dropdown > summary {
+    padding-left: .65rem;
+    padding-right: .65rem;
+  }
+
+  .action-text {
+    display: none;
+  }
+}
+
+/* =========================
+   MÓVIL
+   ========================= */
+
+@media (max-width: 800px) {
+
+  .navigation-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+
+    padding: .65rem .8rem;
+
+    border-radius: 9px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .navigation-items {
+    display: none;
+
+    position: absolute;
+    top: calc(100% + .5rem);
+    left: 0;
+    right: 0;
+
+    z-index: 1100;
+
+    padding: .75rem;
+
+    background: var(--surface, #fff);
+    border: 1px solid rgba(127, 127, 127, .2);
+    border-radius: 12px;
+
+    box-shadow:
+      0 15px 40px rgba(0, 0, 0, .16);
+  }
+
+  .navigation-checkbox:checked ~ .navigation-items {
+    display: block;
+  }
+
+  .navigation-main {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .25rem;
+  }
+
+  .navigation-main > a,
+  .navigation-dropdown > summary {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .navigation-dropdown-menu {
+    position: static;
+
+    width: 100%;
+    min-width: 0;
+
+    margin-top: .3rem;
+    padding: .25rem 0 .25rem .75rem;
+
+    border: 0;
+    border-left: 2px solid rgba(127, 127, 127, .2);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .navigation-actions {
+    margin-top: .65rem;
+    padding-top: .65rem;
+    padding-left: 0;
+
+    border-left: 0;
+    border-top: 1px solid rgba(127, 127, 127, .2);
+  }
+
+  .action-text {
+    display: inline;
+  }
+}
+</style>

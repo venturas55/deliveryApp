@@ -535,7 +535,23 @@ export async function adminOrderStats(req) {
   }));
   const dailyMax = Math.max(1, ...daily.map((row) => row.total));
   const hourlyMax = Math.max(1, ...hourly.map((row) => row.total));
+  const customerSpending = await query(
+    `SELECT c.id,c.name,c.email,c.phone,COUNT(*) AS total_orders,
+      SUM(o.total_cents) AS total_spent_cents
+    FROM orders o JOIN customers c ON c.id=o.customer_id
+    WHERE o.restaurant_id=? AND o.status='delivered'
+      AND o.payment_status<>'refunded'
+    GROUP BY c.id,c.name,c.email,c.phone
+    ORDER BY total_spent_cents DESC,total_orders DESC,c.id ASC`,
+    [restaurantId],
+  );
   return {
+    customerSpending: customerSpending.map((row, index) => ({
+      ...row,
+      rank: index + 1,
+      total_orders: Number(row.total_orders),
+      total_spent_cents: Number(row.total_spent_cents),
+    })),
     daily: daily.map((row) => {
       const dayHours = hourlyByDay.get(row.day) || new Map();
       const hourly = Array.from({ length: 24 }, (_, hour) => ({
