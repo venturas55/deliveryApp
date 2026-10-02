@@ -147,6 +147,7 @@
 {{/if}}
     
     {{#if order.canQuote}}<form method="post" action="/admin/orders/{{order.id}}/quote">{{> csrf}}<button>Consultar reparto externo</button></form>{{/if}}
+    {{#if order.canCompletePickup}}<form method="post" action="/admin/orders/{{order.id}}/status" data-confirm="¿Confirmas que el cliente ha recogido el pedido?">{{> csrf}}<input type="hidden" name="status" value="delivered"><button>Marcar recogido y entregado</button></form>{{/if}}
     {{#if order.canCompleteOwnDelivery}}<form method="post" action="/admin/orders/{{order.id}}/status">{{> csrf}}<input type="hidden" name="status" value="delivered"><button>Marcar entregado</button></form>{{/if}}
     {{#if order.simulationStatus}}<form method="post" action="/admin/orders/{{order.id}}/simulate">{{> csrf}}<input type="hidden" name="status" value="{{order.simulationStatus}}"><button>{{order.simulationLabel}}</button></form>{{/if}}
   </div>

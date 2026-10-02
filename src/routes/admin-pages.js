@@ -71,7 +71,7 @@ router.get("/admin/address-search",addressLimit,async(req,res)=>{
 router.get("/admin/orders",async(req,res)=>{
   const snapshot=await orderNotificationSnapshot(req.user.restaurant_id);
   const orders=await admin.adminOrders(req);
-  res.render("admin/orders",{title:"Pedidos",ordersActive:true,filter:req.query.filter||"all",orders:orders.map(presentOrder),refresh:true,orderNotificationSnapshot:JSON.stringify(snapshot)});
+  res.render("admin/orders",{title:"Pedidos",ordersActive:true,filter:req.query.filter||"all",deliveryFilter:req.query.delivery_method||"all",paymentFilter:req.query.payment_method||"all",orders:orders.map(presentOrder),refresh:true,orderNotificationSnapshot:JSON.stringify(snapshot)});
 });
 router.get("/admin/order-notifications",async(req,res)=>{
   const {afterId,since}=req.query;

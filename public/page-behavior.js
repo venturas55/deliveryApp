@@ -3,7 +3,7 @@ let submitting=false,dirty=false;
 document.querySelectorAll("[data-theme-toggle]").forEach(button=>{
   const sync=()=>{
     const dark=document.documentElement.dataset.theme==="dark";
-    button.textContent=dark?"Usar tema claro":"Usar tema oscuro";
+    button.textContent=dark?"◐ Tema claro":"◐ Tema oscuro";
     button.setAttribute("aria-pressed",String(dark));
   };
   sync();
@@ -16,6 +16,10 @@ document.querySelectorAll("[data-theme-toggle]").forEach(button=>{
 });
 document.addEventListener("input",()=>{dirty=true});
 document.addEventListener("change",()=>{dirty=true});
+document.addEventListener("change",event=>{
+  const form=event.target.closest("form[data-orders-filter]");
+  if(form&&event.target.matches("select"))form.requestSubmit();
+});
 document.addEventListener("submit",event=>{
   const form=event.target;
   if(form.dataset.confirm&&!confirm(form.dataset.confirm)){event.preventDefault();return;}

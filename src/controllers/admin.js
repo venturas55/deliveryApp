@@ -477,13 +477,29 @@ export async function adminOrders(req) {
   ]);
   const filter = req.query.filter ?? "all";
   if (!groups.has(filter)) throw httpError(400, "Filtro de pedidos no válido");
+  const deliveryFilter = req.query.delivery_method ?? "all";
+  const paymentFilter = req.query.payment_method ?? "all";
+  if (!["all", "delivery", "pickup"].includes(deliveryFilter))
+    throw httpError(400, "Filtro de entrega no válido");
+  if (!["all", "card", "cash"].includes(paymentFilter))
+    throw httpError(400, "Filtro de pago no válido");
   const states = groups.get(filter);
-  const clause = states.length
+  let clause = states.length
     ? ` AND status IN (${states.map(() => "?").join(",")})`
     : "";
+  const params = [req.user.restaurant_id, ...states];
+  if (deliveryFilter !== "all") {
+    clause += " AND delivery_method=?";
+    params.push(deliveryFilter);
+  }
+  if (paymentFilter !== "all") {
+    const methods = paymentFilter === "card" ? ["online", "card_on_delivery"] : ["cash"];
+    clause += ` AND payment_method IN (${methods.map(() => "?").join(",")})`;
+    params.push(...methods);
+  }
   const orders = await query(
     `SELECT * FROM orders WHERE restaurant_id=?${clause} ORDER BY id DESC LIMIT 200`,
-    [req.user.restaurant_id, ...states],
+    params,
   );
   return orders;
 }
@@ -649,7 +665,8 @@ export async function setOrderStatus(req) {
    * - Redsys confirmó la devolución.
    */
   await changeOrder(req, async (c, order) => {
-    if (!transitions[order.status]?.includes(status)) {
+    const completePickup = order.delivery_method === "pickup" && order.status === "ready" && status === "delivered";
+    if (!completePickup && !transitions[order.status]?.includes(status)) {
       throw orderError(
         409,
         "El pedido ya ha cambiado o no permite esta transición",
@@ -666,6 +683,8 @@ export async function setOrderStatus(req) {
         "UPDATE orders SET status=?,provider='own',provider_status=? WHERE id=?",
         [status, status, order.id],
       );
+    } else if (completePickup) {
+      await c.query("UPDATE orders SET status=? WHERE id=?", [status, order.id]);
     } else if (status === "delivered") {
       if (order.provider !== "own" || order.status !== "out_for_delivery")
         throw orderError(

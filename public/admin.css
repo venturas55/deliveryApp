@@ -1509,6 +1509,9 @@
 
 .orders-filter {
   display: flex;
+  flex-wrap: nowrap;
+  flex: 1;
+  min-width: 0;
 
   align-items: center;
 
@@ -1516,6 +1519,7 @@
 }
 
 .orders-filter label {
+  white-space: nowrap;
   color: #475569;
 
   font-size: 0.82rem;
@@ -1524,7 +1528,8 @@
 }
 
 .orders-filter select {
-  min-width: 190px;
+  min-width: 0;
+  flex: 1;
 
   padding: 0.6rem 2.2rem 0.6rem 0.75rem;
 

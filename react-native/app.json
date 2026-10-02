@@ -15,9 +15,14 @@
     "ios": {
       "bundleIdentifier": "com.massaefuoco.client"
     },
-    "plugins": [
-      "expo-status-bar",
-      "react-native-nitro-google-signin"
-    ]
+    "plugins":  [
+  "expo-status-bar",
+  [
+    "react-native-nitro-google-signin",
+    {
+      "iosUrlScheme": "com.googleusercontent.apps.42207435401-c7sj01uijtbbkgcplm40ku80f0adms9v"
+    }
+  ]
+]
   }
 }

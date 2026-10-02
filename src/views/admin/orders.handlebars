@@ -20,8 +20,8 @@
 
 
   <div class="orders-toolbar">
-    <form method="get" action="/admin/orders" class="orders-filter">
-      <label for="orders-filter">Mostrar</label>
+    <form method="get" action="/admin/orders" class="orders-filter" data-orders-filter>
+      <label for="orders-filter">Estado</label>
 
       <select id="orders-filter" name="filter">
         <option value="all" {{#if (eq filter "all")}}selected{{/if}}>
@@ -45,9 +45,18 @@
         </option>
       </select>
 
-      <button type="submit" class="orders-filter-button">
-        Filtrar
-      </button>
+      <label for="orders-delivery-filter">Entrega</label>
+      <select id="orders-delivery-filter" name="delivery_method">
+        <option value="all" {{#if (eq deliveryFilter "all")}}selected{{/if}}>Todas las entregas</option>
+        <option value="delivery" {{#if (eq deliveryFilter "delivery")}}selected{{/if}}>A domicilio</option>
+        <option value="pickup" {{#if (eq deliveryFilter "pickup")}}selected{{/if}}>Recoger en local</option>
+      </select>
+      <label for="orders-payment-filter">Pago</label>
+      <select id="orders-payment-filter" name="payment_method">
+        <option value="all" {{#if (eq paymentFilter "all")}}selected{{/if}}>Todos los pagos</option>
+        <option value="card" {{#if (eq paymentFilter "card")}}selected{{/if}}>Tarjeta</option>
+        <option value="cash" {{#if (eq paymentFilter "cash")}}selected{{/if}}>Efectivo</option>
+      </select>
     </form>
 
     <span class="orders-limit">
@@ -79,6 +88,12 @@
         <div class="order-card-body">
 
           <div class="order-payment">
+
+            {{#if (eq delivery_method "pickup")}}
+              <span class="payment-method-badge order-delivery-badge">Recoger en local</span>
+            {{else}}
+              <span class="payment-method-badge order-delivery-badge">A domicilio</span>
+            {{/if}}
 
             {{#if (eq payment_method "online")}}
               <span class="payment-method-badge">
