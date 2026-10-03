@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -14,6 +15,7 @@ import {
 } from "react-native";
 import { api, clearToken, loadToken, saveToken } from "./src/api";
 import Constants from "expo-constants";
+import OrdersPanel from "./src/OrdersPanel";
 import {
   GoogleOneTapSignIn,
   isCancelledResponse,
@@ -73,7 +75,7 @@ export default function App() {
     [password, setPassword] = useState(""),
     [name, setName] = useState("");
   const [pickup, setPickup] = useState(false),
-    [payment, setPayment] = useState("cash"),
+    [payment, setPayment] = useState("online"),
     [phone, setPhone] = useState(""),
     [notes, setNotes] = useState("");
   const quantities = Object.values(cart).reduce((sum, n) => sum + n, 0);
@@ -185,8 +187,10 @@ export default function App() {
     setBusy(true);
     setError("");
     try {
+      if (payment === "card_on_delivery" && !pickup)
+        throw new Error("El pago al recoger requiere recogida en el local.");
       if (!phone.trim())
-        throw new Error("A�ade un tel�fono a tu perfil antes de pedir.");
+        throw new Error("Añade un teléfono a tu perfil antes de pedir.");
       if (!pickup && !profile?.delivery_place_id)
         throw new Error(
           "Guarda una Dirección validada en tu cuenta web, o elige recogida en local.",
@@ -214,11 +218,17 @@ export default function App() {
         token,
       );
       setCart({});
-      await refreshOrders();
       setScreen("order");
+      if (payment === "online") {
+        const { url } = await api(`/customer/orders/${order.id}/payment`, {
+          method: "POST",
+        }, token);
+        await Linking.openURL(url);
+      }
+      await refreshOrders();
       Alert.alert(
         "Pedido realizado",
-        `Pedido #${order.id} � ${money(order.total_cents)}`,
+        `Pedido #${order.id} - ${money(order.total_cents)}`,
       );
     } catch (e) {
       setError(e.message);
@@ -311,7 +321,7 @@ export default function App() {
                   <Text style={styles.price}>{money(p.price_cents)}</Text>
                 </View>
                 <Button
-                  title={cart[p.id] ? `Añadir � ${cart[p.id]}` : "Añadir"}
+                  title={cart[p.id] ? `Añadir + ${cart[p.id]}` : "Añadir"}
                   onPress={() =>
                     setCart({ ...cart, [p.id]: (cart[p.id] || 0) + 1 })
                   }
@@ -343,7 +353,7 @@ export default function App() {
             <Button
               title={
                 busy
-                  ? "Conectando�"
+                  ? "Conectando:"
                   : authMode === "login"
                     ? "Iniciar sesión"
                     : "Registrarme"
@@ -377,7 +387,7 @@ export default function App() {
           <>
             <Text style={styles.title}>Tu pedido</Text>
             {!quantities && (
-              <Text style={styles.muted}>A�n no has a�adido pizzas.</Text>
+              <Text style={styles.muted}>Aún no has añadido pizzas.</Text>
             )}
             {menu
               .filter((p) => cart[p.id])
@@ -417,7 +427,10 @@ export default function App() {
                   <Button
                     secondary={!pickup}
                     title="A domicilio"
-                    onPress={() => setPickup(false)}
+                    onPress={() => {
+                      setPickup(false);
+                      setPayment("online");
+                    }}
                   />
                   <Button
                     secondary={pickup}
@@ -427,25 +440,31 @@ export default function App() {
                 </View>
                 <Text style={styles.muted}>
                   {pickup
-                    ? "Recoger�s el pedido en el local."
+                    ? "Recogerás el pedido en el local."
                     : profile?.delivery_formatted_address ||
                       "Usaremos tu Dirección guardada en la cuenta."}
                 </Text>
                 <Text style={styles.label}>Pago</Text>
                 <View style={styles.row}>
                   <Button
-                    secondary={payment !== "cash"}
-                    title="Efectivo"
-                    onPress={() => setPayment("cash")}
+                    secondary={payment !== "online"}
+                    title="Tarjeta"
+                    onPress={() => setPayment("online")}
                   />
                   <Button
                     secondary={payment !== "card_on_delivery"}
-                    title="Tarjeta al recibir"
+                    title="Al recoger"
                     onPress={() => setPayment("card_on_delivery")}
+                    disabled={!pickup || busy}
                   />
                 </View>
+                <Text style={styles.muted}>
+                  {payment === "online"
+                    ? "Pago seguro con tarjeta en Redsys."
+                    : "Paga con tarjeta al recoger en el local."}
+                </Text>
                 <Button
-                  title={busy ? "Enviando pedido�" : "Confirmar pedido"}
+                  title={busy ? "Enviando pedido" : "Confirmar pedido"}
                   onPress={checkout}
                   disabled={busy}
                 />
@@ -453,53 +472,12 @@ export default function App() {
             )}
           </>
         )}
-        {screen === "orders" && (
-          <>
-            <Text style={styles.title}>Mis pedidos</Text>
-            <Button
-              secondary
-              title="Actualizar"
-              onPress={() => refreshOrders()}
-            />
-            {orders.map((o) => (
-              <TouchableOpacity
-                key={String(o.id)}
-                style={styles.card}
-                onPress={async () => {
-                  try {
-                    const detail = await api(
-                      `/customer/orders/${o.id}`,
-                      {},
-                      token,
-                    );
-                    Alert.alert(
-                      `Pedido #${o.id} � ${statusName(detail.status)}`,
-                      `${detail.items.map((i) => `${i.quantity} � ${i.product_name}`).join("\n")}\nTotal ${money(detail.total_cents)}`,
-                    );
-                  } catch (e) {
-                    setError(e.message);
-                  }
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.product}>Pedido #{o.id}</Text>
-                  <Text style={styles.muted}>
-                    Toca para ver productos y estado
-                  </Text>
-                </View>
-                <Text style={styles.price}>{statusName(o.status)}</Text>
-              </TouchableOpacity>
-            ))}
-            {!orders.length && (
-              <Text style={styles.muted}>Todav�a no tienes pedidos.</Text>
-            )}
-          </>
-        )}
+        {screen === "orders" && <OrdersPanel token={token} />}
         {screen === "order" && (
           <>
             <Text style={styles.title}>Pedido enviado</Text>
             <Text style={styles.muted}>
-              Puedes consultar el estado desde �Pedidos�.
+              Puedes consultar el estado desde "Pedidos".
             </Text>
             <Button
               title="Ver pedidos"
@@ -518,7 +496,7 @@ export default function App() {
             <Field
               value={phone}
               onChangeText={setPhone}
-              placeholder="Tel�fono"
+              placeholder="Teléfono"
               keyboardType="phone-pad"
             />
             <Field
@@ -532,7 +510,7 @@ export default function App() {
                 "Sin Dirección. Guárdala desde la cuenta web para pedir a domicilio."}
             </Text>
             <Button
-              title={busy ? "Guardando�" : "Guardar cambios"}
+              title={busy ? "Guardando..." : "Guardar cambios"}
               onPress={saveProfile}
               disabled={busy}
             />
@@ -546,7 +524,7 @@ export default function App() {
 function statusName(status) {
   return (
     {
-      new: "Recibido",
+      new: "Solicitando",
       accepted: "Aceptado",
       preparing: "Preparando",
       ready: "Listo",

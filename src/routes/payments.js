@@ -5,8 +5,19 @@ import {
 } from "../services/redsys.js";
 
 import * as payments from "../controllers/redsys-payments.js";
+import {query} from "../db.js";
+import {canPayOrder,orderPayment,paymentForm,verifyPaymentTicket} from "../services/customer-order-payment.js";
+import {httpError} from "../services/http-error.js";
 
 const router = Router();
+router.get("/payment/redsys/order",async(req,res)=>{
+  res.set({"Cache-Control":"no-store","Referrer-Policy":"no-referrer"});
+  const ticket=verifyPaymentTicket(req.query.ticket);
+  const [order]=await query("SELECT * FROM orders WHERE id=? AND customer_id=?",[ticket.orderId,ticket.customerId]);
+  if(!order||order.redsys_order!==ticket.reference||order.payment_method!=="online"||!canPayOrder(order))
+    throw httpError(409,"Este pedido ya no admite pago. Consulta su estado en la app.");
+  res.type("html").send(paymentForm(orderPayment(order)));
+});
 
 function escapeHtml(value) {
   return String(value)

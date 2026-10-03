@@ -8,6 +8,8 @@ import {cleanAddress,validateAddress} from "../services/geocoding.js";
 import {getConfiguredDeliveryProvider} from "../delivery/index.js";
 import {normalizeDelivery,applyDeliveryUpdate} from "../services/delivery-tracking.js";
 import {quotePromotion} from "./promotions.js";
+import {canPayOrder,orderPayment,paymentLink} from "../services/customer-order-payment.js";
+import {randomInt} from "node:crypto";
 
 async function syncCustomerDelivery(order,customerId){
   if(order.provider!=="uber"||!order.provider_order_id||["delivered","cancelled"].includes(order.status))return;
@@ -99,19 +101,34 @@ export async function customerOrders(req){
   const filter=req.query.filter||"active";
   if(!["active","history","all"].includes(filter))throw httpError(400,"Filtro no valido");
   const clause=filter==="active"?" AND status NOT IN ('delivered','cancelled')":filter==="history"?" AND status IN ('delivered','cancelled')":"";
-  return (await query(`SELECT id,status,total_cents,created_at FROM orders WHERE customer_id=?${clause} ORDER BY id DESC LIMIT 200`,[req.customer.sub]));
+  return (await query(`SELECT id,status,total_cents,payment_method,payment_status,delivery_method,created_at FROM orders WHERE customer_id=?${clause} ORDER BY id DESC LIMIT 200`,[req.customer.sub]));
 }
 
 export async function customerOrder(req){
-  const rows=await query("SELECT id,restaurant_id,customer_name,delivery_address,delivery_method,status,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents,provider,provider_order_id,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
+  const rows=await query("SELECT id,restaurant_id,customer_name,delivery_address,delivery_method,status,payment_method,payment_status,paid_at,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents,provider,provider_order_id,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
   if(!rows.length)throw httpError(404,"Pedido no encontrado");
   await syncCustomerDelivery(rows[0],req.customer.sub);
-  const refreshed=await query("SELECT id,customer_name,delivery_address,delivery_method,status,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents,provider,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
+  const refreshed=await query("SELECT id,customer_name,delivery_address,delivery_method,status,payment_method,payment_status,paid_at,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents,provider,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
   const current=refreshed[0]||rows[0];
   const items=await query("SELECT product_name,quantity,unit_price_cents FROM order_items WHERE order_id=?",[req.params.id]);
   const {delivery_details_json,delivery_verification_code,...order}=current,details=parseDetails(delivery_details_json);
   // Pickup secrets, courier contact data and raw events remain restaurant-only.
-  return ({...order,items,trackingUrl:safeTrackingUrl(details.trackingUrl),dropoffEta:details.dropoffEta||null,dropoffVerification:details.dropoffVerification||null,hasDeliveryVerificationQr:!!delivery_verification_code&&order.status==="out_for_delivery",returnPending:!!details.returnPending});
+  return ({...order,canPay:canPayOrder(order),items,trackingUrl:safeTrackingUrl(details.trackingUrl),dropoffEta:details.dropoffEta||null,dropoffVerification:details.dropoffVerification||null,hasDeliveryVerificationQr:!!delivery_verification_code&&order.status==="out_for_delivery",returnPending:!!details.returnPending});
+}
+
+export async function startCustomerOrderPayment(req){
+  return transaction(async connection=>{
+    const rows=await connection.query("SELECT * FROM orders WHERE id=? AND customer_id=? FOR UPDATE",[req.params.id,req.customer.sub]);
+    const order=rows[0];
+    if(!order)throw httpError(404,"Pedido no encontrado");
+    if(!canPayOrder(order))throw httpError(409,"Este pedido no admite pago online");
+    // Reuse the reference: concurrent taps and retries must not create independent charges.
+    order.redsys_order ||= String(randomInt(100000,1000000))+String(randomInt(100000,1000000));
+    orderPayment(order); // Validate gateway configuration before changing the payment method.
+    const url=paymentLink(order,req.customer.sub);
+    await connection.query("UPDATE orders SET payment_method='online',payment_status='pending',redsys_order=? WHERE id=?",[order.redsys_order,order.id]);
+    return {url};
+  });
 }
 
 export async function deliveryQr(req){

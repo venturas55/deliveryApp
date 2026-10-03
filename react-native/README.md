@@ -36,3 +36,14 @@ Si haces cambios nativos que afecte a app.json o:
 
 Si no, se detecta automaticamente y tener corriendo:
     npx expo start --dev-client
+
+Para una build final:
+    npx eas-cli@latest build --platform ios --profile production
+
+## Pedidos y pagos desde la app
+
+La pantalla de pedidos separa los pedidos en curso del historial (entregados y cancelados). El detalle muestra productos, desglose del importe, dirección, seguimiento disponible y estado del pago.
+
+Los pedidos pendientes o con pago fallido permiten pagar con tarjeta en el navegador mediante Redsys, incluidos los pedidos originalmente en efectivo o con tarjeta al recibir. Al iniciar el pago, el método cambia a online. Los pedidos cancelados, pagados o reembolsados no admiten esta acción.
+
+Despliega también los cambios del backend. Requiere `PUBLIC_URL`, `REDSYS_MERCHANT_CODE`, `REDSYS_SECRET_KEY` y la notificación pública de Redsys accesible. El enlace de pago caduca en diez minutos; vuelve a abrirlo desde el pedido si caduca. Al volver a la app se actualiza el estado; únicamente la notificación verificada de Redsys confirma el pago.
