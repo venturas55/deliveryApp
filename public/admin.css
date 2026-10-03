@@ -2604,4 +2604,7 @@ html[data-theme="dark"] .admin-area select {
   border-color: var(--admin-border);
   color: var(--admin-text);
 }
-.admin-order-sound { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin:0 auto 1rem; max-width:1440px; }
+.admin-order-sound { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin:0 auto 1rem; max-width:1440px; padding:0 1.25rem; color:var(--admin-muted); font-size:.875rem; }
+.admin-order-sound button { padding:.45rem .7rem; border:1px solid var(--admin-border); border-radius:var(--admin-radius-sm); background:var(--admin-surface); color:var(--admin-text); font:inherit; cursor:pointer; }
+.admin-navigation__badge { display:inline-flex; align-items:center; justify-content:center; min-width:1.25rem; height:1.25rem; margin-left:.35rem; padding:0 .3rem; border-radius:999px; background:var(--admin-danger); color:#fff; font-size:.75rem; font-weight:750; line-height:1; }
+.admin-navigation__badge[hidden] { display:none; }

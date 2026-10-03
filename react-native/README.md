@@ -40,6 +40,9 @@ Si no, se detecta automaticamente y tener corriendo:
 Para una build final:
     npx eas-cli@latest build --platform ios --profile production
 
+Para subirla a App Store Connect:
+    npx eas-cli@latest submit --platform ios     => aparecera en App Store Connect
+
 ## Pedidos y pagos desde la app
 
 La pantalla de pedidos separa los pedidos en curso del historial (entregados y cancelados). El detalle muestra productos, desglose del importe, dirección, seguimiento disponible y estado del pago.

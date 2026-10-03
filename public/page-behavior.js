@@ -30,7 +30,7 @@ document.addEventListener("submit",event=>{
 let refreshingOrders=false;
 if(document.body.dataset.refresh)setInterval(async()=>{
   if(dirty||submitting||document.hidden||document.activeElement?.closest("form"))return;
-  if(document.querySelector("[data-order-sound]")){
+  if(document.querySelector("[data-orders-filter]")){
     if(refreshingOrders)return;
     refreshingOrders=true;
     try{

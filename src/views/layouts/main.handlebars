@@ -29,6 +29,12 @@
 </head>
 <body class="{{#if clientArea}}client-area{{/if}}{{#if adminArea}} admin-area{{/if}}" data-google-enabled="{{#if googleEnabled}}true{{else}}false{{/if}}"{{#if refresh}} data-refresh="5000"{{/if}}>
   {{> header}}
+  {{#if adminLoggedIn}}{{#if orderNotificationSnapshot}}
+    <aside class="admin-order-sound" data-order-sound data-restaurant-id="{{adminRestaurantId}}" data-notification-snapshot="{{orderNotificationSnapshot}}">
+      <button type="button" data-sound-toggle aria-pressed="true">Silenciar avisos</button>
+      <span data-sound-status role="status" aria-live="polite">Efectivo: aviso al entrar. Tarjeta: tono distinto al confirmarse el pago.</span>
+    </aside>
+  {{/if}}{{/if}}
   <main>{{{body}}}</main>
   {{#if clientArea}}
     <footer class="legal-footer">
@@ -76,5 +82,6 @@
   {{/if}}
   <script src="/page-behavior.js" defer></script>
   <script src="/address-picker.js?v=2" defer></script>
+  {{#if adminLoggedIn}}{{#if orderNotificationSnapshot}}<script src="/admin-order-sound.js" defer></script>{{/if}}{{/if}}
 </body>
 </html>
