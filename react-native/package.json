@@ -17,7 +17,8 @@
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-nitro-google-signin": "^2.3.0",
-    "react-native-nitro-modules": "^0.37.1"
+    "react-native-nitro-modules": "^0.37.1",
+    "react-native-safe-area-context": "~5.7.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

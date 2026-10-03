@@ -6,10 +6,6 @@
     "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "backgroundColor": "#f7f4ee"
-    },
     "android": {
       "package": "com.massaefuoco.client"
     },

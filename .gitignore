@@ -11,11 +11,15 @@ node_modules/
 dist/
 web-build/
 
+/react-native/.expo/
+/react-native/android/
+/react-native/ios/
+
 # =========================
 # Native generated projects
 # Si usamos Expo Prebuild / CNG
 # =========================
-android/
+
 ios/
 
 # =========================

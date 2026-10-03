@@ -44,6 +44,18 @@ Para una build final:
 Para subirla a App Store Connect:
     npx eas-cli@latest submit --platform ios     => aparecera en App Store Connect
 
+O hacerlo todo de una con: npx eas-cli@latest build --platform ios --profile production --auto-submit
+
+
+DESARROLLO                         PRODUCCIÓN
+─────────────────────────────      ─────────────────────────
+Massa e fuoco DEV                  Massa e fuoco
+com.massaefuoco.client.dev         com.massaefuoco.client
+Development Build                  TestFlight
+Necesita Metro                     No necesita Metro
+Cambios inmediatos JS              Versión compilada
+
+
 ## Pedidos y pagos desde la app
 
 La pantalla de pedidos separa los pedidos en curso del historial (entregados y cancelados). El detalle muestra productos, desglose del importe, dirección, seguimiento disponible y estado del pago.

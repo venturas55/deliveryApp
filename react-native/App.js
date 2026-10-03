@@ -6,7 +6,6 @@ import {
   Image,
   Linking,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -15,6 +14,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+} from "react-native-safe-area-context";
 import { api, clearToken, loadToken, saveToken } from "./src/api";
 import { productImageUrl } from "./src/config";
 import Constants from "expo-constants";
@@ -62,7 +65,7 @@ const Field = ({
   />
 );
 
-export default function App() {
+function AppContent() {
   const [token, setToken] = useState(null),
     [profile, setProfile] = useState(null),
     [screen, setScreen] = useState("menu"),
@@ -309,7 +312,7 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <Text style={styles.brand}>{restaurant?.name || "Massa e fuoco"}</Text>
-        <Text style={styles.sub}>Pide tus pizzas favoritas.....</Text>
+        <Text style={styles.sub}>Pide tus pizzas favoritas.</Text>
       </View>
       {nav}
       <ScrollView contentContainerStyle={styles.content}>
@@ -535,6 +538,13 @@ export default function App() {
         )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
   );
 }
 function statusName(status) {

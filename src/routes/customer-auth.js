@@ -27,15 +27,54 @@ router.get("/google/config",limit,(req,res)=>{
   res.cookie("google_nonce",challenge,{httpOnly:true,sameSite:"strict",secure:process.env.NODE_ENV==="production",maxAge:600000,path:"/api/customer-auth"});
   res.json({enabled:true,clientId:process.env.GOOGLE_CLIENT_ID,nonce,challenge});
 });
-async function customerFromGoogleCredential(credential,challengeToken){
-  let payload;
+function logGoogleAuthRejection(source,reason){
+  console.warn("Google customer authentication rejected",{source,reason});
+}
+async function customerFromGoogleCredential(credential,challengeToken,source){
+  let challenge;
   try{
-    const challenge=jwt.verify(challengeToken||"",process.env.JWT_SECRET,{algorithms:["HS256"]});
-    if(challenge.purpose!=="google-login"||typeof credential!=="string")throw new Error();
-    const ticket=await google.verifyIdToken({idToken:credential,audience:process.env.GOOGLE_CLIENT_ID});
-    payload=ticket.getPayload();
-    if(!payload?.sub||!payload.email_verified||payload.nonce!==challenge.nonce||!validEmail(emailValue(payload.email)))throw new Error();
-  }catch{return null}
+    challenge=jwt.verify(challengeToken||"",process.env.JWT_SECRET,{algorithms:["HS256"]});
+  }catch{
+    logGoogleAuthRejection(source,"invalid_challenge");
+    return null;
+  }
+  if(challenge.purpose!=="google-login"){
+    logGoogleAuthRejection(source,"invalid_challenge_purpose");
+    return null;
+  }
+  if(typeof credential!=="string"||!credential){
+    logGoogleAuthRejection(source,"missing_credential");
+    return null;
+  }
+  let ticket;
+  try{
+    ticket=await google.verifyIdToken({idToken:credential,audience:process.env.GOOGLE_CLIENT_ID});
+  }catch(error){
+    const message=typeof error?.message==="string"?error.message.toLowerCase():"";
+    const reason=/audience|recipient/.test(message)?"audience_mismatch"
+      :/expired|\bexp\b/.test(message)?"expired_id_token"
+      :/signature|certificate|public key/.test(message)?"invalid_id_token_signature"
+      :"id_token_verification_failed";
+    logGoogleAuthRejection(source,reason);
+    return null;
+  }
+  const payload=ticket.getPayload();
+  if(!payload?.sub){
+    logGoogleAuthRejection(source,"missing_google_subject");
+    return null;
+  }
+  if(!payload.email_verified){
+    logGoogleAuthRejection(source,"email_not_verified");
+    return null;
+  }
+  if(payload.nonce!==challenge.nonce){
+    logGoogleAuthRejection(source,"nonce_mismatch");
+    return null;
+  }
+  if(!validEmail(emailValue(payload.email))){
+    logGoogleAuthRejection(source,"invalid_email");
+    return null;
+  }
   let picture=null;
   try{
     const image=new URL(payload.picture);
@@ -58,7 +97,7 @@ async function customerFromGoogleCredential(credential,challengeToken){
 }
 router.post("/google",limit,async(req,res)=>{
   if(!process.env.GOOGLE_CLIENT_ID)return res.status(503).json({error:"El acceso con Google todavía no está configurado"});
-  const result=await customerFromGoogleCredential(req.body?.credential,req.cookies?.google_nonce);
+  const result=await customerFromGoogleCredential(req.body?.credential,req.cookies?.google_nonce,"web");
   res.clearCookie("google_nonce",{path:"/api/customer-auth"});
   if(!result)return res.status(401).json({error:"No se pudo verificar el acceso con Google. Recarga e inténtalo de nuevo."});
   if(result.conflict)return res.status(409).json({error:"Ya existe una cuenta con este correo. Usa su m?todo de acceso original."});
@@ -66,7 +105,7 @@ router.post("/google",limit,async(req,res)=>{
 });
 router.post("/google/native",limit,async(req,res)=>{
   if(!process.env.GOOGLE_CLIENT_ID)return res.status(503).json({error:"El acceso con Google todavía no está configurado (native)"});
-  const result=await customerFromGoogleCredential(req.body?.credential,req.body?.challenge);
+  const result=await customerFromGoogleCredential(req.body?.credential,req.body?.challenge,"native");
   if(!result)return res.status(401).json({error:"No se pudo verificar el acceso con Google. Recarga e inténtalo de nuevo (native)."});
   if(result.conflict)return res.status(409).json({error:"Ya existe una cuenta con este correo. Usa su m?todo de acceso original. (native)"});
   return session(res,result.customer,result.created?201:200);
