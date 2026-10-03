@@ -3,26 +3,33 @@ import {httpError} from "./http-error.js";
 import {publicOrigin} from "./seo.js";
 import {createRedsysPayment} from "./redsys.js";
 
+const customerAppSchemes = new Set(["massaefuoco", "massaefuoco-dev"]);
+export const isCustomerAppScheme = scheme => customerAppSchemes.has(scheme);
+
 export function canPayOrder(order) {
   return order.status !== "cancelled" &&
     ["pending", "failed"].includes(order.payment_status) && Number(order.total_cents) > 0;
 }
 
-export function orderPayment(order) {
+export function orderPayment(order, appScheme) {
   const origin = publicOrigin();
   if (!origin) throw httpError(503, "Pago online no disponible: PUBLIC_URL no configurado");
+  if (appScheme && !isCustomerAppScheme(appScheme))
+    throw httpError(400, "Esquema de retorno de la app no válido");
+  const appReturn = appScheme ? `&appScheme=${encodeURIComponent(appScheme)}` : "";
   return createRedsysPayment({
     order: order.redsys_order,
     amountCents: Number(order.total_cents),
     merchantUrl: `${origin}/payment/redsys/notification`,
-    urlOk: `${origin}/payment/redsys/success?order=${order.id}`,
+    urlOk: `${origin}/payment/redsys/success?order=${order.id}${appReturn}`,
     urlKo: `${origin}/payment/redsys/error?order=${order.id}`,
   });
 }
 
-export function paymentLink(order, customerId) {
+export function paymentLink(order, customerId, appScheme) {
   const ticket = jwt.sign({purpose: "order-payment", orderId: String(order.id),
-    customerId: String(customerId), reference: order.redsys_order}, process.env.JWT_SECRET,
+    customerId: String(customerId), reference: order.redsys_order,
+    ...(appScheme ? {appScheme} : {})}, process.env.JWT_SECRET,
     {algorithm: "HS256", expiresIn: "10m"});
   return `${publicOrigin()}/payment/redsys/order?ticket=${encodeURIComponent(ticket)}`;
 }
@@ -30,7 +37,8 @@ export function paymentLink(order, customerId) {
 export function verifyPaymentTicket(ticket) {
   try {
     const data = jwt.verify(ticket, process.env.JWT_SECRET, {algorithms: ["HS256"]});
-    if (data.purpose !== "order-payment" || !data.orderId || !data.customerId || !data.reference) throw new Error();
+    if (data.purpose !== "order-payment" || !data.orderId || !data.customerId || !data.reference ||
+      (data.appScheme !== undefined && !isCustomerAppScheme(data.appScheme))) throw new Error();
     return data;
   } catch { throw httpError(401, "Enlace de pago caducado. Abre el pedido desde la app."); }
 }

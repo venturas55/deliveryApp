@@ -122,10 +122,11 @@ export async function startCustomerOrderPayment(req){
     const order=rows[0];
     if(!order)throw httpError(404,"Pedido no encontrado");
     if(!canPayOrder(order))throw httpError(409,"Este pedido no admite pago online");
+    const appScheme=req.body?.appScheme;
     // Reuse the reference: concurrent taps and retries must not create independent charges.
     order.redsys_order ||= String(randomInt(100000,1000000))+String(randomInt(100000,1000000));
-    orderPayment(order); // Validate gateway configuration before changing the payment method.
-    const url=paymentLink(order,req.customer.sub);
+    orderPayment(order,appScheme); // Validate gateway configuration before changing the payment method.
+    const url=paymentLink(order,req.customer.sub,appScheme);
     await connection.query("UPDATE orders SET payment_method='online',payment_status='pending',redsys_order=? WHERE id=?",[order.redsys_order,order.id]);
     return {url};
   });

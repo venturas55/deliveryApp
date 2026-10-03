@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from "react";
 import {ActivityIndicator, AppState, Linking, Modal, SafeAreaView, ScrollView,
   StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import Constants from "expo-constants";
 import {api} from "./api";
 
 const finished = order => ["delivered", "cancelled"].includes(order.status);
@@ -60,7 +61,8 @@ export default function OrdersPanel({token}) {
   async function pay(){
     setBusy(true);setError("");
     try {
-      const {url}=await api(`/customer/orders/${selected}/payment`,{method:"POST"},token);
+      const {url}=await api(`/customer/orders/${selected}/payment`,{
+        method:"POST",body:JSON.stringify({appScheme:Constants.expoConfig?.scheme})},token);
       await refresh();
       await Linking.openURL(url);
     } catch(e){setError(e.message);}

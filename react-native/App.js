@@ -121,6 +121,39 @@ function AppContent() {
       }
     })();
   }, []);
+  useEffect(() => {
+    async function handlePaymentReturn(url) {
+      let destination;
+      try {
+        destination = new URL(url);
+      } catch {
+        return;
+      }
+      if (
+        destination.protocol !== `${Constants.expoConfig?.scheme}:` ||
+        destination.hostname !== "payment" ||
+        destination.pathname !== "/return"
+      )
+        return;
+      setError("");
+      setScreen("orders");
+      try {
+        const auth = await loadToken();
+        if (auth) await refreshOrders(auth);
+      } catch (e) {
+        setError(e.message);
+      }
+    }
+    const subscription = Linking.addEventListener("url", ({ url }) =>
+      handlePaymentReturn(url),
+    );
+    Linking.getInitialURL()
+      .then((url) => {
+        if (url) return handlePaymentReturn(url);
+      })
+      .catch((e) => setError(e.message));
+    return () => subscription.remove();
+  }, []);
   async function authenticate() {
     setBusy(true);
     setError("");
@@ -231,6 +264,7 @@ function AppContent() {
       if (payment === "online") {
         const { url } = await api(`/customer/orders/${order.id}/payment`, {
           method: "POST",
+          body: JSON.stringify({ appScheme: Constants.expoConfig?.scheme }),
         }, token);
         await Linking.openURL(url);
       }

@@ -33,6 +33,7 @@ module.exports = ({ config }) => {
 
     // Diferenciar visualmente DEV de producción
     name: isDev ? "Massa e fuoco DEV" : "Massa e fuoco",
+    scheme: isDev ? "massaefuoco-dev" : "massaefuoco",
 
     ios: {
       ...config.ios,

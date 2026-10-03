@@ -131,7 +131,7 @@ router.get("/admin/orders", async (req, res) => {
   res.render("admin/orders", {
     title: "Pedidos",
     ordersActive: true,
-    filter: req.query.filter || "all",
+    filter: req.query.filter || "pending",
     deliveryFilter: req.query.delivery_method || "all",
     paymentFilter: req.query.payment_method || "all",
     orders: orders.map(presentOrder),

@@ -6,7 +6,7 @@ import {
 
 import * as payments from "../controllers/redsys-payments.js";
 import {query} from "../db.js";
-import {canPayOrder,orderPayment,paymentForm,verifyPaymentTicket} from "../services/customer-order-payment.js";
+import {canPayOrder,isCustomerAppScheme,orderPayment,paymentForm,verifyPaymentTicket} from "../services/customer-order-payment.js";
 import {httpError} from "../services/http-error.js";
 
 const router = Router();
@@ -16,7 +16,7 @@ router.get("/payment/redsys/order",async(req,res)=>{
   const [order]=await query("SELECT * FROM orders WHERE id=? AND customer_id=?",[ticket.orderId,ticket.customerId]);
   if(!order||order.redsys_order!==ticket.reference||order.payment_method!=="online"||!canPayOrder(order))
     throw httpError(409,"Este pedido ya no admite pago. Consulta su estado en la app.");
-  res.type("html").send(paymentForm(orderPayment(order)));
+  res.type("html").send(paymentForm(orderPayment(order,ticket.appScheme)));
 });
 
 function escapeHtml(value) {
@@ -109,12 +109,18 @@ router.get("/payment/redsys/test", (req, res, next) => {
 });
 
 router.get("/payment/redsys/success", (req, res) => {
-  const orderId = req.query.order;
-
-  const trackingUrl = `/tracking?id=${encodeURIComponent(orderId)}`;
+  const orderId = typeof req.query.order === "string" && /^\d+$/.test(req.query.order)
+    ? req.query.order
+    : null;
   if (!orderId) {
     return res.redirect("/");
   }
+  const appScheme = typeof req.query.appScheme === "string" &&
+    isCustomerAppScheme(req.query.appScheme) ? req.query.appScheme : null;
+  const trackingUrl = `/tracking?id=${encodeURIComponent(orderId)}`;
+  const appReturnUrl = appScheme
+    ? `${appScheme}://payment/return?order=${encodeURIComponent(orderId)}`
+    : null;
 
   res.send(`
     <!DOCTYPE html>
@@ -125,10 +131,9 @@ router.get("/payment/redsys/success", (req, res) => {
 
       <title>Pago completado</title>
 
-      <meta
-        http-equiv="refresh"
-        content="5;url=${trackingUrl}"
-      >
+      ${appReturnUrl
+        ? `<meta http-equiv="refresh" content="0;url=${escapeHtml(appReturnUrl)}">`
+        : `<meta http-equiv="refresh" content="5;url=${trackingUrl}">`}
 
       <style>
         * {
@@ -208,22 +213,26 @@ router.get("/payment/redsys/success", (req, res) => {
           Hemos recibido correctamente tu pago.
         </p>
 
-        <p>
-          Pedido <strong>#${orderId}</strong>
-        </p>
+        <p>Pedido <strong>#${escapeHtml(orderId)}</strong></p>
 
         <p class="redirect">
-          En 5 segundos te llevaremos a tu pedido.
+          ${appReturnUrl
+            ? "Volviendo a la app..."
+            : "En 5 segundos te llevaremos a tu pedido."}
         </p>
 
         <p>
-           <a href="${trackingUrl}">
-            Ver mi pedido ahora
-          </a>
+          ${appReturnUrl
+            ? `<a href="${escapeHtml(appReturnUrl)}">Volver a la app ahora</a>
+               · <a href="${trackingUrl}">Ver mi pedido en la web</a>`
+            : `<a href="${trackingUrl}">Ver mi pedido ahora</a>`}
         </p>
 
       </main>
 
+      ${appReturnUrl
+        ? `<script>window.location.replace(${JSON.stringify(appReturnUrl)});</script>`
+        : ""}
     </body>
     </html>
   `);

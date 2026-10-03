@@ -6,7 +6,7 @@ import {clientApiRoutes} from "../src/routes/clients.js";
 import paymentRoutes from "../src/routes/payments.js";
 import {pool} from "../src/db.js";
 import {startCustomerOrderPayment} from "../src/controllers/clients.js";
-import {canPayOrder,orderPayment,paymentForm,verifyPaymentTicket} from "../src/services/customer-order-payment.js";
+import {canPayOrder,isCustomerAppScheme,orderPayment,paymentForm,verifyPaymentTicket} from "../src/services/customer-order-payment.js";
 
 test("customer order payment: ownership, locked retries, signed amount and payment guards",async()=>{
   const env={JWT_SECRET:"customer-payment-test",PUBLIC_URL:"https://example.com",REDSYS_MERCHANT_CODE:"999008881",REDSYS_SECRET_KEY:"test-payment-key-123",REDSYS_ENV:"test"};
@@ -45,6 +45,14 @@ test("customer order payment: ownership, locked retries, signed amount and payme
     await startCustomerOrderPayment(req);
     assert.equal(order.redsys_order,reference);
     assert.equal(commits,2);
+    const appPayment=await startCustomerOrderPayment({...req,body:{appScheme:"massaefuoco-dev"}});
+    const appTicket=verifyPaymentTicket(new URL(appPayment.url).searchParams.get("ticket"));
+    assert.equal(appTicket.appScheme,"massaefuoco-dev");
+    const appPayload=JSON.parse(Buffer.from(orderPayment(order,appTicket.appScheme).merchantParameters,"base64url"));
+    assert.equal(appPayload.DS_MERCHANT_URLOK,"https://example.com/payment/redsys/success?order=42&appScheme=massaefuoco-dev");
+    assert.equal(isCustomerAppScheme("massaefuoco"),true);
+    assert.equal(isCustomerAppScheme("https"),false);
+    await assert.rejects(startCustomerOrderPayment({...req,body:{appScheme:"https"}}),e=>e.status===400);
     assert.throws(()=>verifyPaymentTicket(ticket+"tampered"),e=>e.status===401);
     assert.throws(()=>verifyPaymentTicket(jwt.sign({purpose:"order-payment",orderId:"42",customerId:"7",reference},env.JWT_SECRET,{expiresIn:-1})),e=>e.status===401);
     assert.throws(()=>verifyPaymentTicket(jwt.sign({purpose:"customer"},env.JWT_SECRET)),e=>e.status===401);
@@ -79,7 +87,33 @@ test("customer order payment: ownership, locked retries, signed amount and payme
       const page=await fetch(base+link.pathname+link.search);
       assert.equal(page.status,200);
       assert.equal(page.headers.get("referrer-policy"),"no-referrer");
-      assert.match(await page.text(),/name="Ds_Signature"/);
+      const pageHtml=await page.text();
+      assert.match(pageHtml,/name="Ds_Signature"/);
+      const webMerchantParameters=pageHtml.match(/name="Ds_MerchantParameters" value="([^"]+)"/)[1];
+      const webPayload=JSON.parse(Buffer.from(webMerchantParameters,"base64url"));
+      assert.equal(webPayload.DS_MERCHANT_URLOK,"https://example.com/payment/redsys/success?order=42");
+      const appResponse=await fetch(endpoint,{method:"POST",headers:{
+        Authorization:`Bearer ${jwt.sign({sub:"7",role:"customer"},env.JWT_SECRET)}`,
+        "Content-Type":"application/json"
+      },body:JSON.stringify({appScheme:"massaefuoco-dev"})});
+      assert.equal(appResponse.status,200);
+      const appLink=new URL((await appResponse.json()).url);
+      const appPage=await fetch(base+appLink.pathname+appLink.search);
+      assert.equal(appPage.status,200);
+      const appPageHtml=await appPage.text();
+      const appMerchantParameters=appPageHtml.match(/name="Ds_MerchantParameters" value="([^"]+)"/)[1];
+      const appGatewayPayload=JSON.parse(Buffer.from(appMerchantParameters,"base64url"));
+      assert.equal(appGatewayPayload.DS_MERCHANT_URLOK,
+        "https://example.com/payment/redsys/success?order=42&appScheme=massaefuoco-dev");
+      const appSuccess=await fetch(`${base}/payment/redsys/success?order=42&appScheme=massaefuoco-dev`);
+      const appSuccessHtml=await appSuccess.text();
+      assert.match(appSuccessHtml,/massaefuoco-dev:\/\/payment\/return\?order=42/);
+      assert.match(appSuccessHtml,/window\.location\.replace\("massaefuoco-dev:\/\/payment\/return\?order=42"\)/);
+      assert.match(appSuccessHtml,/Volver a la app ahora/);
+      const webSuccess=await fetch(`${base}/payment/redsys/success?order=42`);
+      const webSuccessHtml=await webSuccess.text();
+      assert.match(webSuccessHtml,/url=\/tracking\?id=42/);
+      assert.doesNotMatch(webSuccessHtml,/massaefuoco:\/\/|window\.location\.replace/);
       order.payment_status="paid";
       assert.equal((await fetch(base+link.pathname+link.search)).status,409);
       assert.equal((await fetch(base+"/payment/redsys/order?ticket=invalid")).status,401);

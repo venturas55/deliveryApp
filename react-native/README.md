@@ -44,6 +44,10 @@ Para una build final:
 Para subirla a App Store Connect:
     npx eas-cli@latest submit --platform ios     => aparecera en App Store Connect
 
+El retorno de Redsys usa enlaces profundos (`massaefuoco://` en producción y
+`massaefuoco-dev://` en desarrollo). Al cambiar esos esquemas hay que crear e
+instalar una nueva build nativa de cada perfil que se utilice.
+
 O hacerlo todo de una con: npx eas-cli@latest build --platform ios --profile production --auto-submit
 
 
@@ -62,4 +66,4 @@ La pantalla de pedidos separa los pedidos en curso del historial (entregados y c
 
 Los pedidos pendientes o con pago fallido permiten pagar con tarjeta en el navegador mediante Redsys, incluidos los pedidos originalmente en efectivo o con tarjeta al recibir. Al iniciar el pago, el método cambia a online. Los pedidos cancelados, pagados o reembolsados no admiten esta acción.
 
-Despliega también los cambios del backend. Requiere `PUBLIC_URL`, `REDSYS_MERCHANT_CODE`, `REDSYS_SECRET_KEY` y la notificación pública de Redsys accesible. El enlace de pago caduca en diez minutos; vuelve a abrirlo desde el pedido si caduca. Al volver a la app se actualiza el estado; únicamente la notificación verificada de Redsys confirma el pago.
+Despliega también los cambios del backend. Requiere `PUBLIC_URL`, `REDSYS_MERCHANT_CODE`, `REDSYS_SECRET_KEY` y la notificación pública de Redsys accesible. El enlace de pago caduca en diez minutos; vuelve a abrirlo desde el pedido si caduca. Desde la app, el retorno de Redsys abre la app y actualiza los pedidos; desde la web conserva el retorno a seguimiento web. Únicamente la notificación verificada de Redsys confirma el pago.
