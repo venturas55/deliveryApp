@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -84,7 +84,41 @@ function AppContent() {
     [payment, setPayment] = useState("online"),
     [phone, setPhone] = useState(""),
     [notes, setNotes] = useState("");
+  const [activeCategory, setActiveCategory] = useState("");
+  const menuScroll = useRef(null);
+  const categoryOffsets = useRef({});
+  const menuCategories = useMemo(() => {
+    const groups = new Map();
+    menu.forEach((product) => {
+      const category =
+        typeof product.category === "string" && product.category.trim()
+          ? product.category.trim()
+          : "Otros";
+      if (!groups.has(category)) groups.set(category, []);
+      groups.get(category).push(product);
+    });
+    return [...groups].map(([name, products]) => ({ name, products }));
+  }, [menu]);
   const quantities = Object.values(cart).reduce((sum, n) => sum + n, 0);
+  useEffect(() => {
+    setActiveCategory(menuCategories[0]?.name || "");
+  }, [menuCategories]);
+  function selectCategory(category) {
+    const offset = categoryOffsets.current[category];
+    if (offset === undefined) return;
+    setActiveCategory(category);
+    menuScroll.current?.scrollTo({ y: Math.max(0, offset - 12), animated: true });
+  }
+  function updateActiveCategory(event) {
+    const scrollY = event.nativeEvent.contentOffset.y + 48;
+    let current = menuCategories[0]?.name || "";
+    for (const category of menuCategories) {
+      const offset = categoryOffsets.current[category.name];
+      if (offset !== undefined && offset <= scrollY) current = category.name;
+      else break;
+    }
+    setActiveCategory((previous) => (previous === current ? previous : current));
+  }
   const total = useMemo(
     () =>
       menu.reduce(
@@ -318,7 +352,7 @@ function AppContent() {
         ["menu", "Carta"],
         ["cart", `Carrito (${quantities})`],
         ["orders", "Pedidos"],
-        ["account", "Cuenta"],
+        ["account", token ? "Mi cuenta" : "Login"],
       ].map(([key, label]) => (
         <Text
           key={key}
@@ -349,36 +383,87 @@ function AppContent() {
         <Text style={styles.sub}>Pide tus pizzas favoritas.</Text>
       </View>
       {nav}
-      <ScrollView contentContainerStyle={styles.content}>
+      {screen === "menu" && menuCategories.length > 0 && (
+        <View style={styles.categoryBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryList}
+          >
+            {menuCategories.map(({ name }) => {
+              const active = activeCategory === name;
+              return (
+                <TouchableOpacity
+                  key={name}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  onPress={() => selectCategory(name)}
+                  style={[
+                    styles.categoryChip,
+                    active && styles.categoryChipActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      active && styles.categoryChipTextActive,
+                    ]}
+                  >
+                    {name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+      <ScrollView
+        ref={menuScroll}
+        contentContainerStyle={styles.content}
+        onScroll={screen === "menu" ? updateActiveCategory : undefined}
+        scrollEventThrottle={100}
+      >
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {screen === "menu" && (
           <>
             <Text style={styles.title}>Nuestra carta</Text>
-            {menu.map((p) => (
-              <View style={styles.card} key={String(p.id)}>
-                {productImageUrl(p.image_url) && (
-                  <Image
-                    source={{ uri: productImageUrl(p.image_url) }}
-                    style={styles.productImage}
-                    resizeMode="cover"
-                    accessibilityLabel={p.image_description || p.name}
-                  />
-                )}
-                <View style={styles.productRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.product}>{p.name}</Text>
-                  <Text style={styles.muted}>
-                    {p.description || p.category}
-                  </Text>
-                  <Text style={styles.price}>{money(p.price_cents)}</Text>
-                </View>
-                <Button
-                  title={cart[p.id] ? `Añadir + ${cart[p.id]}` : "Añadir"}
-                  onPress={() =>
-                    setCart({ ...cart, [p.id]: (cart[p.id] || 0) + 1 })
-                  }
-                />
-                </View>
+            {menuCategories.map(({ name, products }) => (
+              <View
+                key={name}
+                onLayout={({ nativeEvent }) => {
+                  categoryOffsets.current[name] = nativeEvent.layout.y;
+                }}
+              >
+                <Text style={styles.categoryHeading}>{name}</Text>
+                {products.map((p) => (
+                  <View style={styles.card} key={String(p.id)}>
+                    {productImageUrl(p.image_url) && (
+                      <Image
+                        source={{ uri: productImageUrl(p.image_url) }}
+                        style={styles.productImage}
+                        resizeMode="cover"
+                        accessibilityLabel={p.image_description || p.name}
+                      />
+                    )}
+                    <View style={styles.productRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.product}>{p.name}</Text>
+                        <Text style={styles.muted}>
+                          {p.description || p.category}
+                        </Text>
+                        <Text style={styles.price}>
+                          {money(p.price_cents)}
+                        </Text>
+                      </View>
+                      <Button
+                        title={cart[p.id] ? `Añadir + ${cart[p.id]}` : "Añadir"}
+                        onPress={() =>
+                          setCart({ ...cart, [p.id]: (cart[p.id] || 0) + 1 })
+                        }
+                      />
+                    </View>
+                  </View>
+                ))}
               </View>
             ))}
           </>
@@ -612,12 +697,39 @@ const styles = StyleSheet.create({
   },
   navItem: { paddingVertical: 13, color: "#716a61", fontWeight: "600" },
   navActive: { color: "#9d3d24" },
+  categoryBar: {
+    backgroundColor: "#f7f4ee",
+    borderBottomWidth: 1,
+    borderColor: "#e4ded3",
+  },
+  categoryList: { paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e4ded3",
+  },
+  categoryChipActive: {
+    backgroundColor: "#9d3d24",
+    borderColor: "#9d3d24",
+  },
+  categoryChipText: { color: "#51483f", fontSize: 14, fontWeight: "600" },
+  categoryChipTextActive: { color: "#fff" },
   content: { padding: 18, paddingBottom: 40 },
   title: {
     fontSize: 24,
     fontWeight: "800",
     color: "#392d27",
     marginBottom: 16,
+  },
+  categoryHeading: {
+    color: "#392d27",
+    fontSize: 19,
+    fontWeight: "800",
+    marginBottom: 12,
+    marginTop: 8,
   },
   card: {
     backgroundColor: "#fff",
