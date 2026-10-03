@@ -194,6 +194,25 @@
   {{#if order.delivery.updatedAt}}<p>Última actualización: {{date order.delivery.updatedAt}}</p>{{/if}}
   {{#if order.delivery.syncedAt}}<p>Última consulta a Uber: {{date order.delivery.syncedAt}}</p>{{/if}}
   {{#if order.delivery.canSync}}<form method="post" action="/admin/orders/{{order.id}}/sync">{{> csrf}}<button>Consultar estado en Uber</button></form><p>Usa esta consulta si el seguimiento no se actualiza.</p>{{/if}}
+
+  {{#if (eq order.payment_status "paid")}}
+    <form
+      method="post"
+      action="/admin/orders/{{order.id}}/status"
+      data-confirm="Este pedido ya está pagado. Se cancelará el pedido y se devolverán {{money order.total_cents}} al cliente mediante Redsys. ¿Quieres continuar?"
+    >
+      {{> csrf}}
+
+      <input
+        type="hidden"
+        name="status"
+        value="cancelled"
+      >
+      <button class="danger-button">
+        Rechazar y devolver {{money order.total_cents}}
+      </button>
+    </form>
+  {{/if}}
 </section>
 {{/if}}
 <aside class="card"><h2>Historial</h2><ol>{{#each events}}<li>{{date created_at}} — {{label}}{{#if statusLabel}}: {{statusLabel}}{{/if}}{{#if reason}} · {{reason}}{{/if}}{{#if feeCents}} · {{money feeCents}}{{/if}}</li>{{/each}}</ol></aside>
