@@ -3,7 +3,9 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Linking,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -14,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { api, clearToken, loadToken, saveToken } from "./src/api";
+import { productImageUrl } from "./src/config";
 import Constants from "expo-constants";
 import OrdersPanel from "./src/OrdersPanel";
 import {
@@ -145,7 +148,7 @@ export default function App() {
       const config = await api("/customer-auth/google/config");
       if (!config.enabled)
         throw new Error(
-          "El acceso con Google no est? configurado en el servidor.",
+          "El acceso con Google no está configurado en el servidor.",
         );
       GoogleOneTapSignIn.configure({
         webClientId: config.clientId,
@@ -154,7 +157,10 @@ export default function App() {
         scopes: ["email", "profile"],
       });
       await GoogleOneTapSignIn.checkPlayServices();
-      let response = await GoogleOneTapSignIn.signIn();
+      // iOS silent sign-in restores a token without the current challenge nonce.
+      let response = await (Platform.OS === "ios"
+        ? GoogleOneTapSignIn.presentExplicitSignIn()
+        : GoogleOneTapSignIn.signIn());
       if (isNoSavedCredentialFoundResponse(response))
         response = await GoogleOneTapSignIn.createAccount();
       if (isNoSavedCredentialFoundResponse(response))
@@ -164,7 +170,7 @@ export default function App() {
         throw new Error("No se pudo iniciar sesi?n con Google.");
       const credential = response.data.idToken;
       if (!credential)
-        throw new Error("Google no devolvi? un token de acceso.");
+        throw new Error("Google no devolvió un token de acceso.");
       const data = await api("/customer-auth/google/native", {
         method: "POST",
         body: JSON.stringify({ credential, challenge: config.challenge }),
@@ -303,7 +309,7 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <Text style={styles.brand}>{restaurant?.name || "Massa e fuoco"}</Text>
-        <Text style={styles.sub}>Pide tus pizzas favoritas</Text>
+        <Text style={styles.sub}>Pide tus pizzas favoritas.....</Text>
       </View>
       {nav}
       <ScrollView contentContainerStyle={styles.content}>
@@ -313,6 +319,15 @@ export default function App() {
             <Text style={styles.title}>Nuestra carta</Text>
             {menu.map((p) => (
               <View style={styles.card} key={String(p.id)}>
+                {productImageUrl(p.image_url) && (
+                  <Image
+                    source={{ uri: productImageUrl(p.image_url) }}
+                    style={styles.productImage}
+                    resizeMode="cover"
+                    accessibilityLabel={p.image_description || p.name}
+                  />
+                )}
+                <View style={styles.productRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.product}>{p.name}</Text>
                   <Text style={styles.muted}>
@@ -326,6 +341,7 @@ export default function App() {
                     setCart({ ...cart, [p.id]: (cart[p.id] || 0) + 1 })
                   }
                 />
+                </View>
               </View>
             ))}
           </>
@@ -560,14 +576,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   card: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 14,
     padding: 14,
     marginBottom: 12,
     gap: 12,
   },
+  productImage: {
+    width: "100%",
+    height: 180,
+    borderRadius: 10,
+    backgroundColor: "#eee8df",
+  },
+  productRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   product: { fontSize: 16, fontWeight: "700", color: "#332820" },
   muted: { color: "#777067", marginTop: 5, lineHeight: 20 },
   price: { color: "#9d3d24", fontWeight: "700", marginTop: 8 },

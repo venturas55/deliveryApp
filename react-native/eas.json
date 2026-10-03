@@ -5,9 +5,13 @@
   },
   "build": {
     "development": {
-      "developmentClient": true,
-      "distribution": "internal"
-    },
+        "developmentClient": true,
+        "distribution": "internal",
+        "env": {
+          "APP_VARIANT": "development",
+          "GOOGLE_IOS_CLIENT_ID": "42207435401-24td0lvmvr4gfkboab41hp9i4d35utgu.apps.googleusercontent.com"
+        }
+      },
     "preview": {
       "distribution": "internal"
     },

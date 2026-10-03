@@ -38,7 +38,8 @@ Si no, se detecta automaticamente y tener corriendo:
     npx expo start --dev-client
 
 Para una build final:
-    npx eas-cli@latest build --platform ios --profile production
+    npx eas-cli@latest build --platform ios --profile production    ==> PARA PRODUCCION
+    npx eas-cli@latest build --platform ios --profile development   ==> PARA DESARROLLO
 
 Para subirla a App Store Connect:
     npx eas-cli@latest submit --platform ios     => aparecera en App Store Connect

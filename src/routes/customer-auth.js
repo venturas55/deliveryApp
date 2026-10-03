@@ -57,18 +57,18 @@ async function customerFromGoogleCredential(credential,challengeToken){
   }catch(error){if(error.code==="ER_DUP_ENTRY")return {conflict:true};throw error}
 }
 router.post("/google",limit,async(req,res)=>{
-  if(!process.env.GOOGLE_CLIENT_ID)return res.status(503).json({error:"El acceso con Google todav?a no est? configurado"});
+  if(!process.env.GOOGLE_CLIENT_ID)return res.status(503).json({error:"El acceso con Google todavía no está configurado"});
   const result=await customerFromGoogleCredential(req.body?.credential,req.cookies?.google_nonce);
   res.clearCookie("google_nonce",{path:"/api/customer-auth"});
-  if(!result)return res.status(401).json({error:"No se pudo verificar el acceso con Google. Recarga e int?ntalo de nuevo."});
+  if(!result)return res.status(401).json({error:"No se pudo verificar el acceso con Google. Recarga e inténtalo de nuevo."});
   if(result.conflict)return res.status(409).json({error:"Ya existe una cuenta con este correo. Usa su m?todo de acceso original."});
   return session(res,result.customer,result.created?201:200);
 });
 router.post("/google/native",limit,async(req,res)=>{
-  if(!process.env.GOOGLE_CLIENT_ID)return res.status(503).json({error:"El acceso con Google todav?a no est? configurado"});
+  if(!process.env.GOOGLE_CLIENT_ID)return res.status(503).json({error:"El acceso con Google todavía no está configurado (native)"});
   const result=await customerFromGoogleCredential(req.body?.credential,req.body?.challenge);
-  if(!result)return res.status(401).json({error:"No se pudo verificar el acceso con Google. Recarga e int?ntalo de nuevo."});
-  if(result.conflict)return res.status(409).json({error:"Ya existe una cuenta con este correo. Usa su m?todo de acceso original."});
+  if(!result)return res.status(401).json({error:"No se pudo verificar el acceso con Google. Recarga e inténtalo de nuevo (native)."});
+  if(result.conflict)return res.status(409).json({error:"Ya existe una cuenta con este correo. Usa su m?todo de acceso original. (native)"});
   return session(res,result.customer,result.created?201:200);
 });
 export default router;

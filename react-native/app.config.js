@@ -1,35 +1,73 @@
-﻿const iosClientId = process.env.GOOGLE_IOS_CLIENT_ID || "";
+﻿const isDev = process.env.APP_VARIANT === "development";
+
+const iosClientId = process.env.GOOGLE_IOS_CLIENT_ID || "";
 const iosClientIdSuffix = ".apps.googleusercontent.com";
+
 const iosUrlScheme = iosClientId
   ? `com.googleusercontent.apps.${iosClientId.replace(iosClientIdSuffix, "")}`
   : "com.googleusercontent.apps.CONFIGURE_IOS_CLIENT_ID";
 
 module.exports = ({ config }) => {
   const googlePlugin = "react-native-nitro-google-signin";
+
   const existingPlugin = (config.plugins || []).find(
     (plugin) => Array.isArray(plugin) && plugin[0] === googlePlugin,
   );
+
   const existingScheme = existingPlugin?.[1]?.iosUrlScheme || "";
   const prefix = "com.googleusercontent.apps.";
-  const resolvedClientId = iosClientId ||
-    (existingScheme.startsWith(prefix) && !existingScheme.includes("CONFIGURE_IOS_CLIENT_ID")
+
+  const resolvedClientId =
+    iosClientId ||
+    (existingScheme.startsWith(prefix) &&
+    !existingScheme.includes("CONFIGURE_IOS_CLIENT_ID")
       ? `${existingScheme.slice(prefix.length)}${iosClientIdSuffix}`
       : "");
+
   const resolvedScheme = resolvedClientId
     ? `${prefix}${resolvedClientId.replace(iosClientIdSuffix, "")}`
     : iosUrlScheme;
+
   return {
-  ...config,
-  plugins: [
-    ...(config.plugins || []).filter(
-      (plugin) => (Array.isArray(plugin) ? plugin[0] : plugin) !== googlePlugin,
-    ),
-    [googlePlugin, { ...existingPlugin?.[1], iosUrlScheme: resolvedScheme }],
-    ["expo-build-properties", { ios: { enableSceneSupport: true } }],
-  ],
-  extra: {
-    ...config.extra,
-    googleIosClientId: resolvedClientId || undefined,
-  },
+    ...config,
+
+    // Diferenciar visualmente DEV de producción
+    name: isDev ? "Massa e fuoco DEV" : "Massa e fuoco",
+
+    ios: {
+      ...config.ios,
+      bundleIdentifier: isDev
+        ? "com.massaefuoco.client.dev"
+        : "com.massaefuoco.client",
+    },
+
+    android: {
+      ...config.android,
+      package: isDev
+        ? "com.massaefuoco.client.dev"
+        : "com.massaefuoco.client",
+    },
+
+    plugins: [
+      ...(config.plugins || []).filter(
+        (plugin) =>
+          (Array.isArray(plugin) ? plugin[0] : plugin) !== googlePlugin,
+      ),
+
+      [
+        googlePlugin,
+        {
+          ...existingPlugin?.[1],
+          iosUrlScheme: resolvedScheme,
+        },
+      ],
+
+      ["expo-build-properties", { ios: { enableSceneSupport: true } }],
+    ],
+
+    extra: {
+      ...config.extra,
+      googleIosClientId: resolvedClientId || undefined,
+    },
   };
 };
