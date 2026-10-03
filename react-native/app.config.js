@@ -4,15 +4,32 @@ const iosUrlScheme = iosClientId
   ? `com.googleusercontent.apps.${iosClientId.replace(iosClientIdSuffix, "")}`
   : "com.googleusercontent.apps.CONFIGURE_IOS_CLIENT_ID";
 
-module.exports = ({ config }) => ({
+module.exports = ({ config }) => {
+  const googlePlugin = "react-native-nitro-google-signin";
+  const existingPlugin = (config.plugins || []).find(
+    (plugin) => Array.isArray(plugin) && plugin[0] === googlePlugin,
+  );
+  const existingScheme = existingPlugin?.[1]?.iosUrlScheme || "";
+  const prefix = "com.googleusercontent.apps.";
+  const resolvedClientId = iosClientId ||
+    (existingScheme.startsWith(prefix) && !existingScheme.includes("CONFIGURE_IOS_CLIENT_ID")
+      ? `${existingScheme.slice(prefix.length)}${iosClientIdSuffix}`
+      : "");
+  const resolvedScheme = resolvedClientId
+    ? `${prefix}${resolvedClientId.replace(iosClientIdSuffix, "")}`
+    : iosUrlScheme;
+  return {
   ...config,
   plugins: [
-    ...(config.plugins || []),
-    ["react-native-nitro-google-signin", { iosUrlScheme }],
+    ...(config.plugins || []).filter(
+      (plugin) => (Array.isArray(plugin) ? plugin[0] : plugin) !== googlePlugin,
+    ),
+    [googlePlugin, { ...existingPlugin?.[1], iosUrlScheme: resolvedScheme }],
     ["expo-build-properties", { ios: { enableSceneSupport: true } }],
   ],
   extra: {
     ...config.extra,
-    googleIosClientId: iosClientId || undefined,
+    googleIosClientId: resolvedClientId || undefined,
   },
-});
+  };
+};

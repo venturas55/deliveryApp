@@ -13,16 +13,24 @@
       "package": "com.massaefuoco.client"
     },
     "ios": {
-      "bundleIdentifier": "com.massaefuoco.client"
+      "bundleIdentifier": "com.massaefuoco.client",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
-    "plugins":  [
-  "expo-status-bar",
-  [
-    "react-native-nitro-google-signin",
-    {
-      "iosUrlScheme": "com.googleusercontent.apps.42207435401-c7sj01uijtbbkgcplm40ku80f0adms9v"
+    "plugins": [
+      "expo-status-bar",
+      [
+        "react-native-nitro-google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.42207435401-c7sj01uijtbbkgcplm40ku80f0adms9v"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "868aa191-a5ad-4a2a-bb2d-c6b1225017eb"
+      }
     }
-  ]
-]
   }
 }

@@ -69,3 +69,83 @@
 {"_e":"metro:server_log","_t":1790980894457,"level":"error","data":["An unknown error occurred while installing React Native DevTools. Details:\n\nspawn EPERM"]}
 {"_e":"expo:dev-tools-plugin:load","_t":1790980894636,"plugins":[]}
 {"_e":"metro:instantiate","_t":1790980903767,"atlas":false,"workers":8,"host":"::","port":8081}
+{"_e":"root:init","_t":1790981958232,"format":"v0-jsonl","version":"57.0.27"}
+{"_e":"env:mode","_t":1790981958233,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1790981958236,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1790981958737,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1790981959200,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1790981959677,"plugins":[]}
+{"_e":"metro:instantiate","_t":1790981964978,"atlas":false,"workers":8,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1790981992871,"id":"1","platform":"ios","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1790981992871,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1790981992877,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1790981992977,"id":"1","progress":0.020702862170695096,"total":139,"current":20}
+{"_e":"metro:bundling:progress","_t":1790981993080,"id":"1","progress":0.18825558363499761,"total":242,"current":105}
+{"_e":"metro:bundling:progress","_t":1790981993180,"id":"1","progress":0.3175876564935103,"total":417,"current":235}
+{"_e":"metro:bundling:progress","_t":1790981993280,"id":"1","progress":0.553536,"total":500,"current":372}
+{"_e":"metro:bundling:progress","_t":1790981993381,"id":"1","progress":0.785777075553002,"total":590,"current":523}
+{"_e":"metro:bundling:progress","_t":1790981993481,"id":"1","progress":0.8496030245746692,"total":690,"current":636}
+{"_e":"metro:bundling:progress","_t":1790981993594,"id":"1","progress":0.999,"total":734,"current":734}
+{"_e":"metro:bundling:done","_t":1790981993738,"id":"1","total":734,"ms":867.3907}
+{"_e":"metro:client_log","_t":1790981994757,"level":"error","data":["[runtime not ready]: Error: Failed to get NitroModules: The native \"NitroModules\" Turbo/Native-Module could not be found.\n* Make sure react-native-nitro-modules/NitroModules is correctly autolinked (run `npx react-native config` to verify)\n* Make sure you enabled the new architecture (TurboModules) and CodeGen properly generated the \"NativeNitroModules\"/NitroModules specs. See https://github.com/reactwg/react-native-new-architecture/blob/main/docs/enable-apps.md\n* Make sure you are using react-native 0.75.0 or higher.\n* Make sure you rebuilt the app.\n* Make sure you ran `pod install` in the ios/ directory."]}
+{"_e":"metro:bundling:started","_t":1790981996991,"id":"2","platform":"ios","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1790981996991,"id":"2","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1790981997035,"id":"2","total":1,"ms":44.1544}
+{"_e":"metro:client_log","_t":1790981997964,"level":"error","data":["[runtime not ready]: Error: Failed to get NitroModules: The native \"NitroModules\" Turbo/Native-Module could not be found.\n* Make sure react-native-nitro-modules/NitroModules is correctly autolinked (run `npx react-native config` to verify)\n* Make sure you enabled the new architecture (TurboModules) and CodeGen properly generated the \"NativeNitroModules\"/NitroModules specs. See https://github.com/reactwg/react-native-new-architecture/blob/main/docs/enable-apps.md\n* Make sure you are using react-native 0.75.0 or higher.\n* Make sure you rebuilt the app.\n* Make sure you ran `pod install` in the ios/ directory."]}
+{"_e":"metro:bundling:started","_t":1790982016458,"id":"3","platform":"ios","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1790982016459,"id":"3","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1790982016500,"id":"3","total":1,"ms":41.1903}
+{"_e":"metro:client_log","_t":1790982017710,"level":"error","data":["[runtime not ready]: Error: Failed to get NitroModules: The native \"NitroModules\" Turbo/Native-Module could not be found.\n* Make sure react-native-nitro-modules/NitroModules is correctly autolinked (run `npx react-native config` to verify)\n* Make sure you enabled the new architecture (TurboModules) and CodeGen properly generated the \"NativeNitroModules\"/NitroModules specs. See https://github.com/reactwg/react-native-new-architecture/blob/main/docs/enable-apps.md\n* Make sure you are using react-native 0.75.0 or higher.\n* Make sure you rebuilt the app.\n* Make sure you ran `pod install` in the ios/ directory."]}
+{"_e":"root:init","_t":1790982129891,"format":"v0-jsonl","version":"57.0.27"}
+{"_e":"env:mode","_t":1790982129892,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1790982129895,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1790982130455,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1790982131166,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1790982131736,"plugins":[]}
+{"_e":"metro:instantiate","_t":1790982137952,"atlas":false,"workers":8,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1790982140092,"id":"1","platform":"ios","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1790982140093,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1790982140096,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1790982140196,"id":"1","progress":0.05885648261615489,"total":169,"current":41}
+{"_e":"metro:bundling:progress","_t":1790982140296,"id":"1","progress":0.2734618298123053,"total":327,"current":171}
+{"_e":"metro:bundling:progress","_t":1790982140396,"id":"1","progress":0.49843599999999993,"total":500,"current":353}
+{"_e":"metro:bundling:progress","_t":1790982140515,"id":"1","progress":0.7957963765004309,"total":593,"current":529}
+{"_e":"metro:bundling:progress","_t":1790982140615,"id":"1","progress":0.8921245869662431,"total":703,"current":664}
+{"_e":"metro:bundling:done","_t":1790982140714,"id":"1","total":703,"ms":621.5487}
+{"_e":"metro:client_log","_t":1790982142002,"level":"error","data":["[runtime not ready]: Error: Failed to get NitroModules: The native \"NitroModules\" Turbo/Native-Module could not be found.\n* Make sure react-native-nitro-modules/NitroModules is correctly autolinked (run `npx react-native config` to verify)\n* Make sure you enabled the new architecture (TurboModules) and CodeGen properly generated the \"NativeNitroModules\"/NitroModules specs. See https://github.com/reactwg/react-native-new-architecture/blob/main/docs/enable-apps.md\n* Make sure you are using react-native 0.75.0 or higher.\n* Make sure you rebuilt the app.\n* Make sure you ran `pod install` in the ios/ directory."]}
+{"_e":"root:init","_t":1791012322563,"format":"v0-jsonl","version":"57.0.27"}
+{"_e":"env:mode","_t":1791012322582,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1791012322585,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1791012327314,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1791012331254,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1791012333504,"plugins":[]}
+{"_e":"metro:instantiate","_t":1791012341673,"atlas":false,"workers":8,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1791012347505,"id":"1","platform":"ios","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1791012347506,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1791012347513,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1791012347613,"id":"1","progress":0.0048674959437533805,"total":129,"current":9}
+{"_e":"metro:bundling:progress","_t":1791012347714,"id":"1","progress":0.22205113606956162,"total":278,"current":131}
+{"_e":"metro:bundling:progress","_t":1791012347813,"id":"1","progress":0.3411870032317233,"total":428,"current":250}
+{"_e":"metro:bundling:progress","_t":1791012347913,"id":"1","progress":0.6708390022675736,"total":525,"current":430}
+{"_e":"metro:bundling:progress","_t":1791012348014,"id":"1","progress":0.8077585621257558,"total":642,"current":577}
+{"_e":"metro:bundling:progress","_t":1791012348114,"id":"1","progress":0.999,"total":734,"current":734}
+{"_e":"metro:bundling:done","_t":1791012348243,"id":"1","total":734,"ms":737.7331}
+{"_e":"metro:client_log","_t":1791012350063,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"root:init","_t":1791012695733,"format":"v0-jsonl","version":"57.0.27"}
+{"_e":"env:mode","_t":1791012695733,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1791012695736,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1791012696107,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1791012696476,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1791012696798,"plugins":[]}
+{"_e":"metro:instantiate","_t":1791012702029,"atlas":false,"workers":8,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1791012757880,"id":"1","platform":"ios","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1791012757880,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1791012757885,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1791012757985,"id":"1","progress":0.03844675124951941,"total":153,"current":30}
+{"_e":"metro:bundling:progress","_t":1791012758086,"id":"1","progress":0.2254541690388696,"total":278,"current":132}
+{"_e":"metro:bundling:progress","_t":1791012758186,"id":"1","progress":0.38773683984910845,"total":432,"current":269}
+{"_e":"metro:bundling:progress","_t":1791012758286,"id":"1","progress":0.738882147705137,"total":527,"current":453}
+{"_e":"metro:bundling:progress","_t":1791012758386,"id":"1","progress":0.7970870544795446,"total":597,"current":533}
+{"_e":"metro:bundling:progress","_t":1791012758489,"id":"1","progress":0.9163561984074805,"total":702,"current":672}
+{"_e":"metro:bundling:done","_t":1791012758577,"id":"1","total":702,"ms":696.7432}
+{"_e":"metro:client_log","_t":1791012760316,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
