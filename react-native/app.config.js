@@ -63,6 +63,7 @@ module.exports = ({ config }) => {
         },
       ],
 
+      "expo-secure-store",
       ["expo-build-properties", { ios: { enableSceneSupport: true } }],
     ],
 

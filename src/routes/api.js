@@ -1,7 +1,7 @@
 import {Router} from "express";
 import rateLimit from "express-rate-limit";
 import {query} from "../db.js";
-import {signAdmin,hashPassword,checkPassword} from "../auth.js";
+import {hashPassword} from "../auth.js";
 import {getRestaurant} from "../services/restaurants.js";
 import {adminApiRoutes} from "./admin.js";
 import {clientApiRoutes} from "./clients.js";
@@ -10,6 +10,7 @@ import customerAuthRoutes from "./customer-auth.js";
 
 import {loginAdmin} from "../controllers/accounts.js";
 import {deliveryWebhook} from "../controllers/webhooks.js";
+import {createAuthSession,rotateAuthSession,revokeAuthSession,isValidRefreshToken} from "../services/auth-sessions.js";
 const router=Router();
 router.use((req,res,next)=>{
   if(req.is("application/x-www-form-urlencoded")&&req.path!=="/setup-admin")return res.status(415).json({error:"Use application/json"});
@@ -23,7 +24,27 @@ router.use("/customer-auth",customerAuthRoutes);
 
 router.post("/auth/login",authLimit,async(req,res)=>{
   const admin=await loginAdmin(req.body);
-  res.json({token:signAdmin(admin),admin:{id:admin.id,email:admin.email,restaurant_id:admin.restaurant_id}});
+  const tokens=await createAuthSession("admin",admin.id);
+  if(!tokens)return res.status(401).json({error:"La cuenta de administrador no está disponible"});
+  res.set("Cache-Control","no-store");
+  res.json({...tokens,token:tokens.accessToken,admin:{id:admin.id,email:admin.email,restaurant_id:admin.restaurant_id}});
+});
+router.post("/auth/refresh",authLimit,async(req,res)=>{
+  const refreshToken=req.body?.refreshToken;
+  if(!isValidRefreshToken(refreshToken))
+    return res.status(400).json({error:"Refresh token no válido"});
+  const tokens=await rotateAuthSession(refreshToken);
+  if(!tokens)return res.status(401).json({error:"La sesión ha caducado o ya no es válida"});
+  res.set("Cache-Control","no-store");
+  res.json(tokens);
+});
+router.post("/auth/logout",authLimit,async(req,res)=>{
+  const refreshToken=req.body?.refreshToken;
+  if(!isValidRefreshToken(refreshToken))
+    return res.status(400).json({error:"Refresh token no válido"});
+  await revokeAuthSession(refreshToken);
+  res.set("Cache-Control","no-store");
+  res.status(204).end();
 });
 
 router.post("/setup-admin",authLimit,async(req,res)=>{

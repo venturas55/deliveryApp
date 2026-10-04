@@ -10,7 +10,7 @@ import {signAdmin,hashPassword} from "../src/auth.js";
 // Integration test: requires the configured MariaDB and schema.sql.
 // Only the temporary restaurant created here is removed afterwards.
 test("mock delivery: full lifecycle, isolation, duplicates and cancellation",{timeout:60000},async()=>{
-  let restaurantId,server;
+  let restaurantId,otherRestaurantId,adminId,otherAdminId,server;
   const customerIds=[];
   try{
     const slug="test-"+randomUUID();
@@ -27,8 +27,10 @@ test("mock delivery: full lifecycle, isolation, duplicates and cancellation",{ti
       server.once("exit",code=>{clearTimeout(timer);reject(new Error("Server exited: "+code))});
     });
     const adminEmail=`admin-${slug}@example.invalid`;
-    await query("INSERT INTO admins(restaurant_id,email,password_hash) VALUES(?,?,?)",[restaurantId,adminEmail,await hashPassword("admin-test-password")]);
-    const token=signAdmin({id:1,restaurant_id:restaurantId,email:"test@example.invalid"});
+    adminId=Number((await query("INSERT INTO admins(restaurant_id,email,password_hash) VALUES(?,?,?)",[restaurantId,adminEmail,await hashPassword("admin-test-password")])).insertId);
+    const token=signAdmin({id:adminId,restaurant_id:restaurantId,email:adminEmail});
+    otherRestaurantId=Number((await query("INSERT INTO restaurants(name,slug) VALUES(?,?)",["Other test restaurant",`${slug}-other`])).insertId);
+    otherAdminId=Number((await query("INSERT INTO admins(restaurant_id,email,password_hash) VALUES(?,?,?)",[otherRestaurantId,`other-${adminEmail}`,await hashPassword("other-admin-test-password")])).insertId);
     for(const [route,element] of [["/","menu"],["/index.html","menu"],["/admin/login","login"],["/client/login","customerLogin"]]){
       const response=await fetch(`http://127.0.0.1:${port}${route}`);
       assert.equal(response.status,200);
@@ -51,7 +53,7 @@ test("mock delivery: full lifecycle, isolation, duplicates and cancellation",{ti
       assert.equal(response.status,404);
       await response.json();
     }
-    const otherToken=signAdmin({id:1,restaurant_id:-1,email:"other@example.invalid"});
+    const otherToken=signAdmin({id:otherAdminId,restaurant_id:otherRestaurantId,email:`other-${adminEmail}`});
     async function request(path,method="GET",body,expected=200,auth=token){
       const response=await fetch(`http://127.0.0.1:${port}${path}`,{method,headers:{"Content-Type":"application/json",...(auth?{Authorization:`Bearer ${auth}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
       const data=await response.json();
@@ -250,6 +252,7 @@ test("mock delivery: full lifecycle, isolation, duplicates and cancellation",{ti
     if(server&&server.exitCode===null){const exited=once(server,"exit");server.kill();await exited;}
     for(const id of customerIds){await query("DELETE FROM orders WHERE customer_id=?",[id]);await query("DELETE FROM customers WHERE id=?",[id]);}
     if(restaurantId)await query("DELETE FROM restaurants WHERE id=?",[restaurantId]);
+    if(otherRestaurantId)await query("DELETE FROM restaurants WHERE id=?",[otherRestaurantId]);
     await pool.end();
   }
 });

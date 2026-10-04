@@ -17,6 +17,7 @@ test("customer order payment: ownership, locked retries, signed amount and payme
   let writes=0,commits=0,rollbacks=0;
   const connection={beginTransaction:async()=>{},commit:async()=>{commits++;},rollback:async()=>{rollbacks++;},release:()=>{},
     query:async(sql,params)=>{
+      if(sql.includes("FROM customers WHERE id=?"))return [{id:params[0]}];
       if(sql.startsWith("SELECT")){
         assert.match(sql,/customer_id=\?/);
         return String(params[1])===String(order.customer_id)?[{...order}]:[];

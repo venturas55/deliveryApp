@@ -7,16 +7,28 @@ import jwt from "jsonwebtoken";
 import {OAuth2Client} from "google-auth-library";
 import {query} from "../db.js";
 import {signCustomer,customerAuth} from "../auth.js";
+import {createAuthSession} from "../services/auth-sessions.js";
 
 const router=Router();
 const google=new OAuth2Client();
 const limit=rateLimit({windowMs:15*60*1000,max:30});
+const apiSession=async(res,customer,status=200)=>{
+  const tokens=await createAuthSession("customer",customer.id);
+  if(!tokens)return res.status(401).json({error:"Cuenta no disponible"});
+  res.set("Cache-Control","no-store");
+  setSession(res,"customer",signCustomer(customer));
+  return res.status(status).json({
+    ...tokens,
+    token:tokens.accessToken,
+    customer:{id:customer.id,name:customer.name,email:customer.email},
+  });
+};
 const session=(res,customer,status=200)=>{
   const token=signCustomer(customer);setSession(res,"customer",token);
   return res.status(status).json({token,customer:{id:customer.id,name:customer.name,email:customer.email}});
 };
-router.post("/register",limit,async(req,res)=>session(res,await registerCustomer(req.body),201));
-router.post("/login",limit,async(req,res)=>session(res,await loginCustomer(req.body)));
+router.post("/register",limit,async(req,res)=>apiSession(res,await registerCustomer(req.body),201));
+router.post("/login",limit,async(req,res)=>apiSession(res,await loginCustomer(req.body)));
 router.get("/me",customerAuth,async(req,res)=>res.json(await customerProfile(req.customer.sub)));
 router.patch("/me",customerAuth,async(req,res)=>res.json(await updateProfile(req.customer.sub,req.body)));
 router.get("/google/config",limit,(req,res)=>{
@@ -108,6 +120,6 @@ router.post("/google/native",limit,async(req,res)=>{
   const result=await customerFromGoogleCredential(req.body?.credential,req.body?.challenge,"native");
   if(!result)return res.status(401).json({error:"No se pudo verificar el acceso con Google. Recarga e inténtalo de nuevo (native)."});
   if(result.conflict)return res.status(409).json({error:"Ya existe una cuenta con este correo. Usa su m?todo de acceso original. (native)"});
-  return session(res,result.customer,result.created?201:200);
+  return apiSession(res,result.customer,result.created?201:200);
 });
 export default router;

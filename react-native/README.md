@@ -20,7 +20,9 @@ Para iOS, compila en macOS con Xcode mediante `npx expo run:ios`, con `GOOGLE_IO
 
 Configura la URL absoluta de la API en `src/config.js`. En emulador Android usa `http://10.0.2.2:3000/api`; en dispositivo f�sico usa la IP local del equipo servidor. El backend debe ser accesible desde el dispositivo.
 
-Incluye registro e inicio de sesión, carta, carrito local, checkout contra `POST /api/orders`, perfil, pedidos y estado. El pedido online depende de Redsys; esta app primera versión solo ofrece efectivo y tarjeta al recibir. Para entrega a domicilio usa la dirección guardada en la cuenta; también permite recogida.
+Incluye registro e inicio de sesión, carta, carrito local, checkout contra `POST /api/orders`, perfil, pedidos y estado. La sesión se restaura al abrir la app: el access token dura 30 minutos y permanece solo en memoria; el refresh token dura 30 días, se rota en cada renovación y se guarda en `expo-secure-store`. El cierre de sesión intenta revocar el refresh token en el backend. Tras aplicar la migración `019-auth-refresh-tokens.sql`, instala una nueva Development Build para incorporar SecureStore.
+
+El pedido online depende de Redsys; esta app primera versión solo ofrece efectivo y tarjeta al recibir. Para entrega a domicilio usa la dirección guardada en la cuenta; también permite recogida.
 
 
 Si haces cambios nativos que afecte a app.json o:
@@ -33,16 +35,38 @@ Si haces cambios nativos que afecte a app.json o:
         ⚠️ Actualizar dependencias nativas
  entonces deberias hacer nuevamente:
     npx eas-cli@latest build --profile development --platform ios
-
+##IOS
 Si no, se detecta automaticamente y tener corriendo:
     npx expo start --dev-client
 
 Para una build final:
-    npx eas-cli@latest build --platform ios --profile production    ==> PARA PRODUCCION
-    npx eas-cli@latest build --platform ios --profile development   ==> PARA DESARROLLO
+    ==> PARA PRODUCCION
+            echo $env:APP_VARIANT
+            echo $env:GOOGLE_IOS_CLIENT_ID
+            npx expo config --type public
+            npx eas-cli@latest build --platform ios --profile production    
+
+    ==> PARA DESARROLLO
+            npx eas-cli@latest build --platform ios --profile development   
 
 Para subirla a App Store Connect:
     npx eas-cli@latest submit --platform ios     => aparecera en App Store Connect
+
+##ANDROID
+cd D:\CFGS\development\dev\delivery\react-native
+npx expo-doctor
+$env:APP_VARIANT="development"
+npx expo config --type public
+Remove-Item Env:APP_VARIANT -ErrorAction SilentlyContinue
+npx eas-cli@latest build --platform android --profile development
+
+    ==> PARA PRODUCCION
+        Remove-Item Env:APP_VARIANT -ErrorAction SilentlyContinue
+        Remove-Item Env:GOOGLE_IOS_CLIENT_ID -ErrorAction SilentlyContinue
+        npx expo config --type public
+        npx eas-cli@latest build --platform android --profile production
+
+
 
 El retorno de Redsys usa enlaces profundos (`massaefuoco://` en producción y
 `massaefuoco-dev://` en desarrollo). Al cambiar esos esquemas hay que crear e

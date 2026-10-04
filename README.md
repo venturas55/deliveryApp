@@ -161,6 +161,14 @@ arrancar esta versión. Es idempotente: crea `customers` y añade `orders.custom
 sin borrar pedidos. Las instalaciones nuevas también incluyen estos cambios en
 `schema.sql`. En este entorno de desarrollo ya se ha aplicado la migración.
 
+La sesión de la API móvil usa access tokens HS256 de 30 minutos y refresh tokens
+aleatorios de 30 días, guardados en `auth_refresh_tokens` únicamente como hashes.
+`POST /api/auth/refresh` rota la sesión y `POST /api/auth/logout` revoca el refresh
+token. El login/register de cliente y Google nativo también emiten ambos tokens;
+`POST /api/auth/login` hace lo mismo para administradores. Ejecuta `npm run migrate`
+para crear la tabla `auth_refresh_tokens` en bases existentes. Las cookies de la
+sesión web mantienen su comportamiento actual.
+
 - `/client/login`: registro con nombre, email y contraseña, e inicio de sesión.
 - `/`: carta pública; confirmar un pedido requiere una cuenta de cliente.
 - `/client/orders`: pedidos en curso e historial del cliente autenticado.

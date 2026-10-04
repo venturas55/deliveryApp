@@ -7,7 +7,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import {engine} from "express-handlebars";
 import {query,pool} from "../src/db.js";
-import {signAdmin,signCustomer} from "../src/auth.js";
+import {signAdmin,signCustomer,hashPassword} from "../src/auth.js";
 import {encryptSecret} from "../src/services/delivery-credentials.js";
 import {getDeliveryProviderConfig,saveDeliveryProvider} from "../src/services/delivery-config.js";
 import {deliveryView,normalizeDelivery} from "../src/services/delivery-tracking.js";
@@ -19,7 +19,7 @@ test("Uber: signed lifecycle, QR, isolation, replay, incidents and recovery",{ti
   const originalFetch=globalThis.fetch,secret="test-webhook-secret",slug="uber-test-"+randomUUID();
   process.env.DELIVERY_CREDENTIALS_KEY=Buffer.alloc(32,9).toString("base64");
   process.env.DELIVERY_PROVIDER="uber";
-  let restaurantId,customerId,server,loseCreateResponse=true;
+  let restaurantId,otherRestaurantId,customerId,adminId,otherAdminId,server,loseCreateResponse=true;
   const snapshots=new Map(),byKey=new Map(),createBodies=[],quoteBodies=[];
   const reply=data=>new Response(JSON.stringify(data),{status:200});
   globalThis.fetch=async(url,options={})=>{
@@ -46,6 +46,9 @@ test("Uber: signed lifecycle, QR, isolation, replay, incidents and recovery",{ti
     const sql=await readFile(new URL("../migrations/005-delivery-tracking.sql",import.meta.url),"utf8");
     for(let attempt=0;attempt<2;attempt++)for(const statement of sql.split(";").filter(s=>s.trim()))await query(statement);
     restaurantId=Number((await query("INSERT INTO restaurants(name,slug,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude) VALUES(?,?,?,?,?,?,?,?)",["Uber fixture",slug,"Picanya","Valencia","46210","ES",39.439,-0.434])).insertId);
+    adminId=Number((await query("INSERT INTO admins(restaurant_id,email,password_hash) VALUES(?,?,?)",[restaurantId,slug+"@admin.invalid",await hashPassword("uber-test-password")])).insertId);
+    otherRestaurantId=Number((await query("INSERT INTO restaurants(name,slug) VALUES(?,?)",["Other Uber fixture",slug+"-other"])).insertId);
+    otherAdminId=Number((await query("INSERT INTO admins(restaurant_id,email,password_hash) VALUES(?,?,?)",[otherRestaurantId,slug+"-other@admin.invalid",await hashPassword("uber-test-password")])).insertId);
     customerId=Number((await query("INSERT INTO customers(name,email) VALUES(?,?)",["Customer",slug+"@example.invalid"])).insertId);
     await query("INSERT INTO delivery_providers(restaurant_id,provider,enabled,credentials_ciphertext,settings_json,webhook_secret_ciphertext) VALUES(?,'uber',1,?,?,?)",[restaurantId,encryptSecret(JSON.stringify({clientId:slug,clientSecret:"fixture"})),JSON.stringify({customerId:"test-customer",apiBaseUrl:"https://uber.invalid",pickupName:"Store",pickupPhone:"+34963510732",pickupAddress:"Pickup",dropoffVerification:"qr"}),encryptSecret(secret)]);
     await saveDeliveryProvider(restaurantId,"uber",{enabled:true,credentials:{clientId:"",clientSecret:" "}});
@@ -62,7 +65,7 @@ test("Uber: signed lifecycle, QR, isolation, replay, incidents and recovery",{ti
     app.use((error,req,res,next)=>res.status(error.status||500).json({error:error.message}));
     server=app.listen(0,"127.0.0.1");await once(server,"listening");
     const root=`http://127.0.0.1:${server.address().port}`;
-    const admin=signAdmin({id:1,restaurant_id:restaurantId}),other=signAdmin({id:1,restaurant_id:-1});
+    const admin=signAdmin({id:adminId,restaurant_id:restaurantId}),other=signAdmin({id:otherAdminId,restaurant_id:otherRestaurantId});
     const customer=signCustomer({id:customerId,name:"Customer",email:slug+"@example.invalid"});
     async function request(path,{method="GET",body,token=admin,status=200,headers={}}={}){
       const res=await fetch(root+path,{method,headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`} : {}),...headers},...(body!==undefined?{body:JSON.stringify(body)}:{})});
@@ -155,6 +158,7 @@ test("Uber: signed lifecycle, QR, isolation, replay, incidents and recovery",{ti
     globalThis.fetch=originalFetch;
     if(server)await new Promise(resolve=>server.close(resolve));
     if(restaurantId)await query("DELETE FROM restaurants WHERE id=?",[restaurantId]);
+    if(otherRestaurantId)await query("DELETE FROM restaurants WHERE id=?",[otherRestaurantId]);
     if(customerId)await query("DELETE FROM customers WHERE id=?",[customerId]);
     await pool.end();
   }

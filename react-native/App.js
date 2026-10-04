@@ -18,7 +18,13 @@ import {
   SafeAreaProvider,
   SafeAreaView,
 } from "react-native-safe-area-context";
-import { api, clearToken, loadToken, saveToken } from "./src/api";
+import {
+  api,
+  logoutSession,
+  restoreSession,
+  saveSession,
+  setAuthLostHandler,
+} from "./src/api";
 import { productImageUrl } from "./src/config";
 import Constants from "expo-constants";
 import OrdersPanel from "./src/OrdersPanel";
@@ -103,6 +109,16 @@ function AppContent() {
   useEffect(() => {
     setActiveCategory(menuCategories[0]?.name || "");
   }, [menuCategories]);
+  useEffect(() => {
+    setAuthLostHandler(() => {
+      setToken(null);
+      setProfile(null);
+      setOrders([]);
+      setScreen("auth");
+      setError("La sesión ha caducado. Inicia sesión de nuevo.");
+    });
+    return () => setAuthLostHandler(null);
+  }, []);
   function selectCategory(category) {
     const offset = categoryOffsets.current[category];
     if (offset === undefined) return;
@@ -141,12 +157,15 @@ function AppContent() {
   useEffect(() => {
     (async () => {
       try {
-        const [m, t] = await Promise.all([api("/public/menu"), loadToken()]);
+        const m = await api("/public/menu");
         setMenu(m.products || []);
         setRestaurant(m.restaurant);
-        if (t) {
-          setToken(t);
-          await Promise.all([refreshProfile(t), refreshOrders(t)]);
+        const restored = await restoreSession();
+        if (restored) {
+          setToken(restored);
+          await Promise.all([refreshProfile(restored), refreshOrders(restored)]);
+        } else {
+          setScreen("auth");
         }
       } catch (e) {
         setError(e.message);
@@ -172,7 +191,7 @@ function AppContent() {
       setError("");
       setScreen("orders");
       try {
-        const auth = await loadToken();
+        const auth = await restoreSession();
         if (auth) await refreshOrders(auth);
       } catch (e) {
         setError(e.message);
@@ -200,11 +219,11 @@ function AppContent() {
             : { name, email, password },
         ),
       });
-      await saveToken(data.token);
-      setToken(data.token);
+      const auth = await saveSession(data);
+      setToken(auth);
       setProfile(data.customer);
       setScreen("menu");
-      await refreshProfile(data.token);
+      await refreshProfile(auth);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -245,13 +264,13 @@ function AppContent() {
         method: "POST",
         body: JSON.stringify({ credential, challenge: config.challenge }),
       });
-      await saveToken(data.token);
-      setToken(data.token);
+      const auth = await saveSession(data);
+      setToken(auth);
       setProfile(data.customer);
       setScreen("menu");
       await Promise.all([
-        refreshProfile(data.token),
-        refreshOrders(data.token),
+        refreshProfile(auth),
+        refreshOrders(auth),
       ]);
     } catch (e) {
       setError(e.message);
@@ -334,11 +353,18 @@ function AppContent() {
     }
   }
   async function logout() {
-    await clearToken();
-    setToken(null);
-    setProfile(null);
-    setOrders([]);
-    setScreen("menu");
+    let logoutError = "";
+    try {
+      await logoutSession();
+    } catch (e) {
+      logoutError = `Se cerró la sesión localmente, pero no se pudo revocar en el servidor: ${e.message}`;
+    } finally {
+      setToken(null);
+      setProfile(null);
+      setOrders([]);
+      setScreen("auth");
+      setError(logoutError);
+    }
   }
   if (loading)
     return (
