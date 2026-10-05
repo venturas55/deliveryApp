@@ -130,7 +130,7 @@ export async function processRedsysNotification({
   });
 }
 
-export async function refundOrderPayment(orderId) {
+export async function refundOrderPayment(orderId, restaurantId) {
 
   /*
    * PASO 1
@@ -145,23 +145,24 @@ export async function refundOrderPayment(orderId) {
       const rows = await connection.query(
         `SELECT
            id,
+           status,
            payment_method,
            payment_status,
            total_cents,
            redsys_order
          FROM orders
-         WHERE id = ?
+         WHERE id = ? AND restaurant_id = ?
          FOR UPDATE`,
-        [orderId]
+        [orderId, restaurantId]
       );
 
       const order = rows[0];
 
       if (!order) {
-        throw new Error(
-          `Pedido ${orderId} no encontrado`
-        );
+        throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
       }
+      if (!["new", "accepted", "preparing", "ready"].includes(order.status))
+        throw Object.assign(new Error("El pedido ya ha cambiado o no permite esta transición"), { status: 409 });
 
       if (order.payment_method !== "online") {
         return {

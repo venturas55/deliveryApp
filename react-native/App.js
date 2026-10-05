@@ -24,10 +24,12 @@ import {
   restoreSession,
   saveSession,
   setAuthLostHandler,
+  getSessionRole,
 } from "./src/api";
 import { productImageUrl } from "./src/config";
 import Constants from "expo-constants";
 import OrdersPanel from "./src/OrdersPanel";
+import AdminNavigator from "./src/admin/AdminNavigator";
 import {
   GoogleOneTapSignIn,
   isCancelledResponse,
@@ -71,7 +73,7 @@ const Field = ({
   />
 );
 
-function AppContent() {
+function ClientNavigator({ onAdminAccess }) {
   const [token, setToken] = useState(null),
     [profile, setProfile] = useState(null),
     [screen, setScreen] = useState("menu"),
@@ -407,6 +409,7 @@ function AppContent() {
       <View style={styles.header}>
         <Text style={styles.brand}>{restaurant?.name || "Massa e fuoco"}</Text>
         <Text style={styles.sub}>Pide tus pizzas favoritas.</Text>
+        {!token && <TouchableOpacity accessibilityRole="button" onPress={onAdminAccess} style={{ paddingVertical: 12 }}><Text style={styles.sub}>Acceso restaurante</Text></TouchableOpacity>}
       </View>
       {nav}
       {screen === "menu" && menuCategories.length > 0 && (
@@ -686,9 +689,19 @@ function AppContent() {
   );
 }
 export default function App() {
+  const adminOnly = Constants.expoConfig?.extra?.appTarget === "admin";
+  const [mode, setMode] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    getSessionRole().then(role => { if (alive) setMode(adminOnly || role === "admin" ? "admin" : "client"); })
+      .catch(() => { if (alive) setMode(adminOnly ? "admin" : "client"); });
+    return () => { alive = false; };
+  }, [adminOnly]);
   return (
     <SafeAreaProvider>
-      <AppContent />
+      {mode === null ? <SafeAreaView style={styles.center}><ActivityIndicator color="#9d3d24" /></SafeAreaView> :
+        mode === "admin" ? <AdminNavigator adminOnly={adminOnly} onClient={() => setMode("client")} /> :
+        <ClientNavigator onAdminAccess={() => setMode("admin")} />}
     </SafeAreaProvider>
   );
 }

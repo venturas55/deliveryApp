@@ -17,6 +17,18 @@
     },
     "production": {
       "autoIncrement": true
+    },
+    "admin-development": {
+      "extends": "development",
+      "env": { "APP_TARGET": "admin" }
+    },
+    "admin-preview": {
+      "extends": "preview",
+      "env": { "APP_TARGET": "admin" }
+    },
+    "admin-production": {
+      "extends": "production",
+      "env": { "APP_TARGET": "admin" }
     }
   },
   "submit": {

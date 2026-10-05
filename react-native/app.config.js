@@ -1,5 +1,6 @@
 ﻿const isDev = process.env.APP_VARIANT === "development";
 
+const isAdmin = process.env.APP_TARGET === "admin";
 const iosClientId = process.env.GOOGLE_IOS_CLIENT_ID || "";
 const iosClientIdSuffix = ".apps.googleusercontent.com";
 
@@ -32,21 +33,21 @@ module.exports = ({ config }) => {
     ...config,
 
     // Diferenciar visualmente DEV de producción
-    name: isDev ? "Massa e fuoco DEV" : "Massa e fuoco",
-    scheme: isDev ? "massaefuoco-dev" : "massaefuoco",
+    name: `Massa e fuoco${isAdmin ? " Admin" : ""}${isDev ? " DEV" : ""}`,
+    scheme: `massaefuoco${isAdmin ? "-admin" : ""}${isDev ? "-dev" : ""}`,
 
     ios: {
       ...config.ios,
       bundleIdentifier: isDev
-        ? "com.massaefuoco.client.dev"
-        : "com.massaefuoco.client",
+        ? `com.massaefuoco.${isAdmin ? "admin" : "client"}.dev`
+        : `com.massaefuoco.${isAdmin ? "admin" : "client"}`,
     },
 
     android: {
       ...config.android,
       package: isDev
-        ? "com.massaefuoco.client.dev"
-        : "com.massaefuoco.client",
+        ? `com.massaefuoco.${isAdmin ? "admin" : "client"}.dev`
+        : `com.massaefuoco.${isAdmin ? "admin" : "client"}`,
     },
 
     plugins: [
@@ -69,6 +70,7 @@ module.exports = ({ config }) => {
 
     extra: {
       ...config.extra,
+      appTarget: isAdmin ? "admin" : "client",
       googleIosClientId: resolvedClientId || undefined,
     },
   };

@@ -1,4 +1,57 @@
-# App cliente React Native
+# Aplicación React Native: cliente y restaurante
+
+## Administración móvil
+
+Un único proyecto Expo comparte backend y sesión. El cliente conserva su implementación en `App.js` (`ClientNavigator`) y `src/OrdersPanel.js`; `src/admin/AdminNavigator.js` contiene la navegación del restaurante. `src/shared/ui.js` ofrece componentes comunes para las nuevas pantallas y `src/api.js` sigue siendo el transporte y gestor de sesiones compartido. No se han movido archivos del cliente.
+
+En la aplicación cliente, cierra la sesión de cliente y pulsa **Acceso restaurante**. Inicia sesión con una cuenta existente de la tabla `admins`; no se usa el login Google de clientes. Al reabrir la app, el rol guardado selecciona la interfaz, pero el backend comprueba administrador, restaurante activo y pertenencia en cada petición. El access token permanece en memoria; refresh token y rol se guardan en SecureStore. El rol local solo sirve para seleccionar pantallas.
+
+Incluye resumen diario, pedidos por estado, detalle y acciones de cocina, recogida, reparto propio y externo, cobro manual, clientes e historial, disponibilidad y edición de artículos, estadísticas y nombre/teléfono del restaurante. Los datos proceden de MariaDB. Los importes de pedidos manuales se calculan en el servidor. El pedido manual usa clientes con pedidos previos en el restaurante y su dirección guardada; el alta de nuevos clientes y la edición de direcciones se mantienen en la administración web. El esquema actual no contiene modificadores de artículos.
+
+Pedidos y avisos se actualizan cada 15 segundos en primer plano, al regresar a la app y mediante pull-to-refresh. Dashboard se actualiza cada 30 segundos. Historial admite páginas de 200 pedidos. Clientes devuelve hasta 100 coincidencias y permite afinar la búsqueda. Los avisos reutilizan la regla web: efectivo al entrar, tarjeta cuando figura pagada. Se muestra un banner y vibración; no hay sonido, push ni avisos garantizados en segundo plano. La capa `useAdminData` y el componente `OrderNotice` permiten sustituir posteriormente el polling.
+
+### Backend requerido
+
+Despliega y reinicia también Node.js. Aplica la migración existente `019-auth-refresh-tokens.sql` si aún no está aplicada. Esta ampliación no añade tablas ni dependencias.
+
+Se reutilizan `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`, `/api/admin/me`, productos, pedidos, cambios de estado y operaciones de reparto. Pedidos admite `view=mobile` para una respuesta limitada sin referencias Redsys ni payloads internos, `status` y `before_id` para filtrado/paginación. Las respuestas antiguas de pedidos se conservan cuando no se solicita `view=mobile`.
+
+Nuevas rutas JSON protegidas: `GET /api/admin/dashboard`, `GET /api/admin/stats`, `GET /api/admin/customers?q=...`, `GET /api/admin/customers/:id`, `GET/PATCH /api/admin/restaurant`, `GET /api/admin/order-notifications`, `POST /api/admin/orders` y `POST /api/admin/orders/:id/mark-paid`. Estadísticas y pedido manual reutilizan los controladores web. Clientes e historial se limitan a pedidos del restaurante autenticado. Configuración devuelve exclusivamente `id`, `name`, `phone`, `address`, `city`; permite editar solo nombre/teléfono. No se envían credenciales de proveedores ni secretos de servidor a estas pantallas.
+
+El dashboard muestra importe de pedidos de hoy sin cancelaciones/devoluciones y puede incluir pagos pendientes. Las ventas y ticket medio de estadísticas corresponden a pedidos entregados no reembolsados; el recuento diario incluye todos los estados. Las fechas siguen el servidor y MariaDB, igual que la web.
+
+### Variantes desde el mismo proyecto
+
+Los perfiles existentes `development`, `preview` y `production`, sus IDs CLIENT y su configuración Google permanecen vigentes. `APP_VARIANT` sigue seleccionando DEV/PROD; `APP_TARGET=admin` selecciona la aplicación de restaurante.
+
+| Destino | Producción | Desarrollo |
+| --- | --- | --- |
+| Cliente | `com.massaefuoco.client` | `com.massaefuoco.client.dev` |
+| Admin | `com.massaefuoco.admin` | `com.massaefuoco.admin.dev` |
+
+Los nuevos perfiles EAS heredan los existentes:
+
+```sh
+npx eas-cli@latest build --profile admin-development --platform ios
+npx eas-cli@latest build --profile admin-preview --platform android
+npx eas-cli@latest build --profile admin-production --platform ios
+```
+
+La variante ADMIN necesita su propia build e instalación por tener otro Bundle ID y esquema (`massaefuoco-admin`, o `massaefuoco-admin-dev`). No se han creado registros App Store/Play Store ni publicado builds. Los cambios JavaScript ADMIN pueden probarse desde la Development Build cliente existente mediante Acceso restaurante, siempre que ya incluya SecureStore. No requiere módulos nativos adicionales.
+
+Para comprobar configuración ADMIN local en PowerShell:
+
+```powershell
+$env:APP_TARGET="admin"
+$env:APP_VARIANT="development"
+npx expo config --type public
+Remove-Item Env:APP_TARGET
+Remove-Item Env:APP_VARIANT
+```
+
+Validación: `node --test test/admin-mobile.test.js test/mobile-session.test.js` desde la raíz requiere MariaDB configurada en `.env`; crea y elimina sus propios datos de prueba. La compilación de bundles no verifica interacción, vibración, OAuth o reparto/pagos reales en un dispositivo.
+
+## Cliente existente
 
 App Expo independiente. Requiere Node, Android Studio con Android SDK y un emulador o dispositivo Android con depuración USB. Google login usa módulos nativos: Expo Go no es compatible.
 

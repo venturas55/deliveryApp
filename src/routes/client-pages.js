@@ -6,7 +6,6 @@ import path from "node:path";
 import rateLimit from "express-rate-limit";
 import { signCustomer } from "../auth.js";
 import * as clients from "../controllers/clients.js";
-import { adminConfigs } from "../controllers/admin.js";
 import * as accounts from "../controllers/accounts.js";
 import * as payments from "../controllers/redsys-payments.js";
 import { httpError } from "../services/http-error.js";
@@ -144,7 +143,7 @@ router.post(
 router.get("/index.html",(req,res)=>res.redirect(301,"/"));
 router.get("/", async (req, res) => {
   const data = await clients.menu({ query: { name: "Massa e fuoco" } });
-  const configsData = await adminConfigs(req);
+  const configsData = data.restaurant;
   //console.log("CONFIGS DATA:", configsData);
   const products = data.products.map((p) => ({ ...p, id: Number(p.id) }));
   //console.log("PRODUCTS:", products);

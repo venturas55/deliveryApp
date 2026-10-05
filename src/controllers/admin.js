@@ -166,7 +166,7 @@ export async function updateAdminOrderCart(req) {
   return cart;
 }
 
-export async function createAdminOrder(req) {
+export async function createAdminOrder(req, suppliedCart) {
   const body = req.body || {},
     restaurantId = req.user.restaurant_id,
     channel = body.channel,
@@ -180,7 +180,7 @@ export async function createAdminOrder(req) {
   ]);
   if (!customerRows.length) throw orderError(404, "Cliente no encontrado");
   const customer = customerRows[0];
-  const cart = readAdminOrderCart(req);
+  const cart = suppliedCart ?? readAdminOrderCart(req);
   if (!cart.length) throw orderError(400, "Añade artículos al carrito");
   const products = await query(
     `SELECT id,name,price_cents FROM products WHERE restaurant_id=? AND active=1 AND id IN (${cart.map(() => "?").join(",")})`,
@@ -488,6 +488,18 @@ export async function adminOrders(req) {
     ? ` AND status IN (${states.map(() => "?").join(",")})`
     : "";
   const params = [req.user.restaurant_id, ...states];
+  if (req.query.status !== undefined) {
+    if (!["new", "accepted", "preparing", "ready", "delivery_requested", "courier_assigned", "out_for_delivery", "delivered", "cancelled"].includes(req.query.status))
+      throw httpError(400, "Estado de pedido no válido");
+    clause += " AND status=?";
+    params.push(req.query.status);
+  }
+  if (req.query.before_id !== undefined) {
+    if (typeof req.query.before_id !== "string" || !/^\d{1,20}$/.test(req.query.before_id))
+      throw httpError(400, "Cursor de pedidos no válido");
+    clause += " AND id<?";
+    params.push(req.query.before_id);
+  }
   if (deliveryFilter !== "all") {
     clause += " AND delivery_method=?";
     params.push(deliveryFilter);
@@ -655,7 +667,11 @@ export async function setOrderStatus(req) {
    * tenemos que devolver un pago Redsys.
    */
   if (status === "cancelled") {
-    await refundOrderPayment(req.params.id);
+    // Authorize before initiating an external refund.
+    const order = await adminOrder(req);
+    if (!transitions[order.status]?.includes(status))
+      throw orderError(409, "El pedido ya ha cambiado o no permite esta transición");
+    await refundOrderPayment(req.params.id, req.user.restaurant_id);
   }
 
   /*
@@ -1115,12 +1131,11 @@ export async function testAdminDeliveryProvider(req) {
 }
 
 export async function adminConfigs(req) {
-  console.log("Restaurant:", req.client._httpMessage.locals.restaurantName);
   const configs = await query(
-    `SELECT * FROM restaurants WHERE name like ?`,
-    `%${req.client._httpMessage.locals.restaurantName}%`,
+    "SELECT * FROM restaurants WHERE id=?",
+    [req.user.restaurant_id],
   );
-  //const configs=await query(`SELECT * FROM restaurants WHERE id=?`,1);
+  if (!configs[0]) throw httpError(404, "Restaurante no encontrado");
   return configs[0];
 }
 export async function updateAdminConfigs(req) {

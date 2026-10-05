@@ -4,6 +4,7 @@ import { API_BASE_URL } from "./config";
 
 const REFRESH_TOKEN_KEY = "refreshToken";
 const LEGACY_ACCESS_TOKEN_KEY = "customerToken";
+const SESSION_ROLE_KEY = "sessionRole";
 let accessToken = null;
 let refreshInFlight = null;
 let logoutInProgress = false;
@@ -31,6 +32,7 @@ async function rawRequest(path, options = {}, token) {
 async function clearStoredSession() {
   accessToken = null;
   await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  await SecureStore.deleteItemAsync(SESSION_ROLE_KEY);
 }
 
 async function refreshAccessToken() {
@@ -83,7 +85,12 @@ export async function saveSession(data) {
     throw new Error("El servidor no devolvió los tokens de sesión.");
   await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, data.refreshToken);
   accessToken = newAccessToken;
+  await SecureStore.setItemAsync(SESSION_ROLE_KEY, data.admin ? "admin" : "customer");
   return newAccessToken;
+}
+
+export async function getSessionRole() {
+  return (await SecureStore.getItemAsync(SESSION_ROLE_KEY)) === "admin" ? "admin" : "customer";
 }
 
 export async function restoreSession() {
