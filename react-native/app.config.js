@@ -36,7 +36,7 @@ module.exports = ({ config }) => {
     // Diferenciar visualmente DEV de producción
     name: `Massa e fuoco${isAdmin ? " Admin" : ""}${isDev ? " DEV" : ""}`,
     scheme: `massaefuoco${isAdmin ? "-admin" : ""}${isDev ? "-dev" : ""}`,
-
+    icon: isDev ? "./assets/icon-dev.png" : "./assets/icon.png",
     ios: {
       ...config.ios,
       supportsTablet: true,

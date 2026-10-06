@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { FlatList, RefreshControl, ScrollView, Switch, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { FlatList, Image, RefreshControl, ScrollView, Switch, Text, View } from "react-native";
 import { Button, Card, Field, money, s } from "../shared/ui";
 import { OrderCard } from "./Orders";
 import useAdminData from "./useAdminData";
 import { write } from "./api";
 import { Grid, GRID_GAP, useContentLayout } from "../shared/layout";
+import { productImageUrl } from "../config";
 
 function Problem({ error }) { return error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null; }
-function Page({ resource, children, form = false }) {
-  return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.content, s.responsiveContent, form && s.form]} refreshControl={<RefreshControl refreshing={resource.loading} onRefresh={resource.refresh} />}>
+function Page({ resource, children, form = false, scrollRef, onScroll }) {
+  return <ScrollView ref={scrollRef} onScroll={onScroll} scrollEventThrottle={100} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.content, s.responsiveContent, form && s.form]} refreshControl={<RefreshControl refreshing={resource.loading} onRefresh={resource.refresh} />}>
     <Problem error={resource.error} />{!resource.data && resource.loading ? <Text style={s.muted}>Cargando…</Text> : children}
   </ScrollView>;
 }
@@ -54,15 +55,18 @@ export function Products() {
     catch (failure) { setError(failure.message); }
     finally { setBusy(false); }
   }
-  return <Page resource={resource} form={!!editing}><Problem error={error} />{editing ? <ProductEditor key={editing.id} product={editing} busy={busy} save={body => update(editing.id, body)} cancel={() => setEditing(null)} /> : <Grid>{(resource.data || []).map(product => <Card key={product.id}><Text style={s.heading}>{product.name}</Text><Text style={s.muted}>{product.category} · {money(product.price_cents)}</Text><View style={s.row}><Text style={s.text}>{Number(product.active) ? "Disponible" : "Agotado"}</Text><Switch accessibilityLabel={`Disponibilidad de ${product.name}`} disabled={busy} value={!!Number(product.active)} onValueChange={value => update(product.id, { active: Number(value) })} /></View><Button secondary title="Editar artículo" disabled={busy} onPress={() => setEditing(product)} /></Card>)}</Grid>}{resource.data?.length === 0 && <Text style={s.muted}>Sin artículos.</Text>}</Page>;
+  return <Page resource={resource} form={!!editing}><Problem error={error} />{editing ? <ProductEditor key={editing.id} product={editing} busy={busy} save={body => update(editing.id, body)} cancel={() => setEditing(null)} /> : <Grid>{(resource.data || []).map(product => <Card key={product.id}>
+    {productImageUrl(product.image_url) ? <Image accessibilityLabel={`Foto de ${product.name}`} source={{ uri: productImageUrl(product.image_url) }} resizeMode="cover" style={{ width: "100%", height: 180, borderRadius: 10, marginBottom: 8 }} /> : <View style={{ height: 64, justifyContent: "center" }}><Text style={s.muted}>Sin foto</Text></View>}
+    <Text style={s.heading}>{product.name}</Text><Text style={s.muted}>{product.category} · {money(product.price_cents)}</Text><View style={s.row}><Text style={s.text}>{Number(product.active) ? "Disponible" : "Agotado"}</Text><Switch accessibilityLabel={`Disponibilidad de ${product.name}`} disabled={busy} value={!!Number(product.active)} onValueChange={value => update(product.id, { active: Number(value) })} /></View><Button secondary title="Editar artículo" disabled={busy} onPress={() => setEditing(product)} /></Card>)}</Grid>}{resource.data?.length === 0 && <Text style={s.muted}>Sin artículos.</Text>}</Page>;
 }
 function ProductEditor({ product, save, cancel, busy }) {
-  const [name, setName] = useState(product.name), [price, setPrice] = useState((product.price_cents / 100).toFixed(2)), [category, setCategory] = useState(product.category), [description, setDescription] = useState(product.description || ""), [error, setError] = useState("");
+  const [name, setName] = useState(product.name), [price, setPrice] = useState((product.price_cents / 100).toFixed(2)), [category, setCategory] = useState(product.category), [description, setDescription] = useState(product.description || ""), [imageUrl, setImageUrl] = useState(product.image_url || ""), [error, setError] = useState("");
   function submit() {
     if (!/^\d+([.,]\d{1,2})?$/.test(price)) { setError("Precio no válido"); return; }
-    save({ name, category, description, price_cents: Math.round(Number(price.replace(",", ".")) * 100) });
+    save({ name, category, description, image_url: imageUrl.trim(), price_cents: Math.round(Number(price.replace(",", ".")) * 100) });
   }
-  return <Card><Field label="Nombre" value={name} onChangeText={setName} maxLength={120} /><Field label="Precio (€)" value={price} onChangeText={setPrice} keyboardType="decimal-pad" /><Field label="Categoría" value={category} onChangeText={setCategory} maxLength={80} /><Field label="Descripción" value={description} onChangeText={setDescription} maxLength={255} multiline /><Problem error={error} /><Button title="Guardar artículo" disabled={busy} onPress={submit} /><Button secondary title="Volver" disabled={busy} onPress={cancel} /></Card>;
+  const imageUri = productImageUrl(imageUrl);
+  return <Card>{imageUri ? <Image accessibilityLabel={`Foto de ${product.name}`} source={{ uri: imageUri }} resizeMode="cover" style={{ width: "100%", height: 200, borderRadius: 10, marginBottom: 8 }} /> : <Text style={s.muted}>Sin foto</Text>}<Field label="URL de la imagen (vacío para quitarla)" value={imageUrl} onChangeText={setImageUrl} maxLength={500} autoCapitalize="none" keyboardType="url" /><Field label="Nombre" value={name} onChangeText={setName} maxLength={120} /><Field label="Precio (€)" value={price} onChangeText={setPrice} keyboardType="decimal-pad" /><Field label="Categoría" value={category} onChangeText={setCategory} maxLength={80} /><Field label="Descripción" value={description} onChangeText={setDescription} maxLength={255} multiline /><Problem error={error} /><Button title="Guardar artículo" disabled={busy} onPress={submit} /><Button secondary title="Volver" disabled={busy} onPress={cancel} /></Card>;
 }
 
 export function Statistics() {
@@ -82,9 +86,29 @@ function RestaurantEditor({ restaurant, done }) {
 }
 
 export function CreateOrder({ openOrder }) {
-  const [customer, setCustomer] = useState(null), [cart, setCart] = useState({}), [pickup, setPickup] = useState(true), [card, setCard] = useState(false), [counter, setCounter] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState("");
+  const [customer, setCustomer] = useState(null), [cart, setCart] = useState({}), [pickup, setPickup] = useState(true), [card, setCard] = useState(false), [counter, setCounter] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(""), [activeCategory, setActiveCategory] = useState("");
   const resource = useAdminData("/products");
   const products = (resource.data || []).filter(product => Number(product.active));
+  const { columns, itemWidth } = useContentLayout(320, 2);
+  const scrollRef = useRef(null), categoryOffsets = useRef({});
+  const categories = [...new Set(products.map(product => product.category?.trim() || "Otros"))];
+  useEffect(() => { setActiveCategory(categories[0] || ""); }, [resource.data]);
+  function selectCategory(category) {
+    const offset = categoryOffsets.current[category];
+    if (offset === undefined) return;
+    setActiveCategory(category);
+    scrollRef.current?.scrollTo({ y: Math.max(0, offset - 12), animated: true });
+  }
+  function updateActiveCategory(event) {
+    const scrollY = event.nativeEvent.contentOffset.y + 48;
+    let current = categories[0] || "";
+    for (const category of categories) {
+      const offset = categoryOffsets.current[category];
+      if (offset !== undefined && offset <= scrollY) current = category;
+      else break;
+    }
+    setActiveCategory(previous => previous === current ? previous : current);
+  }
   if (!customer) return <Customers selectCustomer={setCustomer} />;
   const subtotal = products.reduce((total, product) => total + product.price_cents * (cart[product.id] || 0), 0);
   async function submit() {
@@ -94,12 +118,40 @@ export function CreateOrder({ openOrder }) {
       openOrder(order.id);
     } catch (failure) { setError(failure.message); } finally { setBusy(false); }
   }
-  return <Page resource={resource}><Card><Text style={s.heading}>{customer.name}</Text><Text style={s.muted}>{customer.phone}</Text><Button secondary title="Cambiar cliente" onPress={() => setCustomer(null)} /></Card>
+  return <Page resource={resource} scrollRef={scrollRef} onScroll={updateActiveCategory}><Card><Text style={s.heading}>{customer.name}</Text><Text style={s.muted}>{customer.phone}</Text><Button secondary title="Cambiar cliente" onPress={() => setCustomer(null)} /></Card>
     <Text style={s.muted}>Clientes con pedidos previos en este restaurante. Nuevos clientes: alta desde administración web.</Text>
-    <Grid minWidth={360} maxColumns={2}><View style={{ gap: GRID_GAP }}>
-    {products.map(product => <Card key={product.id}><Text style={s.text}>{product.name} · {money(product.price_cents)}</Text><View style={s.row}><Button secondary title="−" disabled={busy || !cart[product.id]} onPress={() => setCart(current => ({ ...current, [product.id]: Math.max(0, (current[product.id] || 0) - 1) }))} /><Text style={s.heading}>{cart[product.id] || 0}</Text><Button secondary title="+" disabled={busy || cart[product.id] >= 50} onPress={() => setCart(current => ({ ...current, [product.id]: (current[product.id] || 0) + 1 }))} /></View></Card>)}
-    </View><View style={{ gap: GRID_GAP }}><Card><Text style={s.heading}>Resumen del pedido</Text>{products.filter(product => cart[product.id] > 0).map(product => <Text key={product.id} style={s.text}>{cart[product.id]} × {product.name} · {money(cart[product.id] * product.price_cents)}</Text>)}{!subtotal && <Text style={s.muted}>Añade artículos para crear el pedido.</Text>}</Card>
-    <Card>{[["Recogida en local", pickup,setPickup], ["Tarjeta al entregar",card,setCard], ["Pedido en mostrador",counter,setCounter]].map(([label,value,set]) => <View key={label} style={s.row}><Text style={[s.text,{flex:1}]}>{label}</Text><Switch accessibilityLabel={label} value={value} onValueChange={set} disabled={busy} /></View>)}<Text style={s.muted}>{pickup ? "Recogida sin gastos de reparto." : "Usa dirección guardada del cliente. El reparto se calcula al crear el pedido."}</Text><Text style={s.heading}>Artículos: {money(subtotal)}</Text></Card><Problem error={error} /><Button title={busy ? "Creando…" : "Crear pedido"} disabled={busy || subtotal === 0} onPress={submit} />
-    </View></Grid>
+    {!!categories.length && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+      {categories.map(category => {
+        const active = activeCategory === category;
+        return <Button key={category} secondary={!active} title={category} onPress={() => selectCategory(category)} />;
+      })}
+    </ScrollView>}
+    {categories.map(category => {
+      const categoryProducts = products.filter(product => (product.category?.trim() || "Otros") === category);
+      return <View key={category} onLayout={({ nativeEvent }) => { categoryOffsets.current[category] = nativeEvent.layout.y; }}>
+        <Text style={s.heading}>{category}</Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: GRID_GAP }}>
+          {categoryProducts.map(product => <View key={product.id} style={{ width: columns === 1 ? "100%" : itemWidth }}>
+            <Card>
+              {productImageUrl(product.image_url) ? <Image accessibilityLabel={`Foto de ${product.name}`} source={{ uri: productImageUrl(product.image_url) }} resizeMode="cover" style={{ width: "100%", height: 150, borderRadius: 10, marginBottom: 8 }} /> : <View style={{ height: 48, justifyContent: "center" }}><Text style={s.muted}>Sin foto</Text></View>}
+              <Text style={s.heading}>{product.name}</Text>
+              {!!product.description && <Text style={s.muted}>{product.description}</Text>}
+              <Text style={[s.text, { fontWeight: "700" }]}>{money(product.price_cents)}</Text>
+              <View style={s.row}>
+                <Button secondary title="−" disabled={busy || !cart[product.id]} onPress={() => setCart(current => ({ ...current, [product.id]: Math.max(0, (current[product.id] || 0) - 1) }))} />
+                <Text style={s.text}>{cart[product.id] || 0}</Text>
+                <Button secondary title="+" disabled={busy || cart[product.id] >= 50} onPress={() => setCart(current => ({ ...current, [product.id]: (current[product.id] || 0) + 1 }))} />
+              </View>
+            </Card>
+          </View>)}
+        </View>
+      </View>;
+    })}
+    <Card><Text style={s.heading}>Resumen del pedido</Text>{products.filter(product => cart[product.id] > 0).map(product => <Text key={product.id} style={s.text}>{cart[product.id]} × {product.name} · {money(cart[product.id] * product.price_cents)}</Text>)}{!subtotal && <Text style={s.muted}>Añade artículos para crear el pedido.</Text>}
+      {[["Recogida en local", pickup,setPickup], ["Tarjeta al entregar",card,setCard], ["Pedido en mostrador",counter,setCounter]].map(([label,value,set]) => <View key={label} style={s.row}><Text style={[s.text,{flex:1}]}>{label}</Text><Switch accessibilityLabel={label} value={value} onValueChange={set} disabled={busy} /></View>)}
+      <Text style={s.muted}>{pickup ? "Recogida sin gastos de reparto." : "Usa dirección guardada del cliente. El reparto se calcula al crear el pedido."}</Text>
+      <Text style={s.heading}>Total de artículos: {money(subtotal)}</Text>
+    </Card>
+    <Problem error={error} /><Button title={busy ? "Creando…" : "Crear pedido"} disabled={busy || subtotal === 0} onPress={submit} />
   </Page>;
 }

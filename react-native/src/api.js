@@ -18,7 +18,9 @@ async function responseData(response) {
 async function rawRequest(path, options = {}, token) {
   const headers = {
     Accept: "application/json",
-    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(typeof options.body === "string"
+      ? { "Content-Type": "application/json" }
+      : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };

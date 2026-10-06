@@ -1,9 +1,14 @@
 import {Router} from "express";
 import {auth} from "../auth.js";
+import {query} from "../db.js";
 import * as operations from "../controllers/admin.js";
 import * as mobile from "../controllers/admin-mobile.js";
 import { orderNotificationSnapshot } from "../services/order-notifications.js";
 import { httpError } from "../services/http-error.js";
+import {
+  productImageUpload,
+  saveProductImage,
+} from "../services/product-image-upload.js";
 export const adminApiRoutes=Router();
 adminApiRoutes.use(auth);
 adminApiRoutes.use((req,res,next)=>{res.set("Cache-Control","no-store");next();});
@@ -37,5 +42,37 @@ adminApiRoutes.post("/orders/:id/delivery/simulate",async(req,res)=>res.status(2
 adminApiRoutes.post("/orders/:id/delivery/sync",async(req,res)=>res.json(await operations.syncDelivery(req)));
 adminApiRoutes.get("/orders/:id/delivery/qr",async(req,res)=>res.set("Cache-Control","no-store").type("png").send(await operations.pickupQr(req)));
 adminApiRoutes.post("/products",async(req,res)=>res.status(201).json(await operations.createProduct(req)));
-adminApiRoutes.patch("/products/:id",async(req,res)=>res.status(200).json(await operations.updateProduct(req)));
+async function ensureUploadedProductScope(req,res,next) {
+  if (!req.is("multipart/form-data")) return next();
+  const products = await query(
+    "SELECT id FROM products WHERE id=? AND restaurant_id=?",
+    [req.params.id, req.user.restaurant_id],
+  );
+  if (!products.length) throw httpError(404, "Producto no encontrado");
+  next();
+}
+function parseProductUpload(req, res, next) {
+  if (!req.is("multipart/form-data")) return next();
+  try {
+    const product = JSON.parse(req.body.product);
+    if (!product || typeof product !== "object" || Array.isArray(product))
+      throw httpError(400, "Datos de artículo inválidos");
+    req.body = product;
+    next();
+  } catch (error) {
+    next(
+      error instanceof SyntaxError
+        ? httpError(400, "Datos de artículo inválidos")
+        : error,
+    );
+  }
+}
+adminApiRoutes.patch(
+  "/products/:id",
+  ensureUploadedProductScope,
+  productImageUpload,
+  parseProductUpload,
+  saveProductImage,
+  async (req,res)=>res.status(200).json(await operations.updateProduct(req)),
+);
 adminApiRoutes.delete("/products/:id",async(req,res)=>res.status(200).json(await operations.deleteProduct(req)));

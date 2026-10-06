@@ -1,9 +1,6 @@
 import { Router } from "express";
 import { orderNotificationSnapshot } from "../services/order-notifications.js";
 import multer from "multer";
-import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import rateLimit from "express-rate-limit";
 import { signAdmin } from "../auth.js";
 import * as admin from "../controllers/admin.js";
@@ -25,6 +22,10 @@ import {
   writeAdminOrderCart,
 } from "../services/web-session.js";
 import { searchAddresses } from "../services/geocoding.js";
+import {
+  productImageUpload,
+  saveProductImage,
+} from "../services/product-image-upload.js";
 const router = Router();
 const loginLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 });
 const addressLimit = rateLimit({ windowMs: 60 * 1000, max: 30 });
@@ -55,38 +56,6 @@ function parseCustomerEmail(req, res, next) {
     next();
   });
 }
-const productImageUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
-  fileFilter: (req, file, cb) => {
-    if (["image/jpeg", "image/png", "image/webp"].includes(file.mimetype))
-      return cb(null, true);
-    const error = new Error("Formato de imagen no válido");
-    error.status = 400;
-    cb(error);
-  },
-});
-async function saveProductImage(req, res, next) {
-  if (!req.file) return next();
-  const extension = {
-    "image/jpeg": ".jpg",
-    "image/png": ".png",
-    "image/webp": ".webp",
-  }[req.file.mimetype];
-  const filename = randomUUID() + extension;
-  const directory = path.join(process.cwd(), "public", "uploads", "products");
-  try {
-    await mkdir(directory, { recursive: true });
-    await writeFile(path.join(directory, filename), req.file.buffer, {
-      flag: "wx",
-    });
-    req.body.image_url = "/uploads/products/" + filename;
-    next();
-  } catch (error) {
-    next(error);
-  }
-}
-
 router.get("/admin/login", (req, res) =>
   res.render("admin/login", { title: "Acceso del restaurante" }),
 );
@@ -380,7 +349,7 @@ function productForm(req) {
 }
 router.post(
   "/admin/products",
-  productImageUpload.single("image"),
+  productImageUpload,
   validateCsrf,
   saveProductImage,
   async (req, res) => {
@@ -391,7 +360,7 @@ router.post(
 );
 router.post(
   "/admin/products/:id/edit",
-  productImageUpload.single("image"),
+  productImageUpload,
   validateCsrf,
   saveProductImage,
   async (req, res) => {

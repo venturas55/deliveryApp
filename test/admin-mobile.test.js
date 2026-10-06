@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import express from "express";
 import { randomUUID } from "node:crypto";
+import { rm } from "node:fs/promises";
 import { once } from "node:events";
+import path from "node:path";
 import { query, pool } from "../src/db.js";
 import { signAdmin, signCustomer } from "../src/auth.js";
 import apiRoutes from "../src/routes/api.js";
@@ -19,7 +21,7 @@ test("mobile order projection excludes provider payloads and payment references"
 
 test("admin mobile uses real database, enforces restaurant scope and shares order operations", { timeout: 60000 }, async () => {
   const restaurants = [], customers = [];
-  let server;
+  let server, productId;
   try {
     const suffix = randomUUID();
     for (let index = 0; index < 2; index++) {
@@ -33,7 +35,7 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
       customers.push(Number(result.insertId));
     }
     const product = await query("INSERT INTO products(restaurant_id,name,price_cents) VALUES(?,?,?)", [restaurants[0], "Mobile product", 1234]);
-    const productId = Number(product.insertId);
+    productId = Number(product.insertId);
     const orderIds = [];
     for (let index = 0; index < 2; index++) {
       const result = await query(`INSERT INTO orders(restaurant_id,customer_id,customer_name,customer_phone,delivery_address,payment_method,payment_status,delivery_method,status,subtotal_cents,total_cents)
@@ -80,6 +82,20 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
     await request(`/orders/${order.id}/mark-paid`, { method: "POST", body: {} });
     await request(`/orders/${order.id}/mark-paid`, { method: "POST", body: {}, status: 409 });
     const stats = await request("/stats"); assert.equal(stats.totals.orders, 1); assert.equal(stats.totals.sales_cents, 2468); assert.equal(stats.totals.average_cents, 2468); assert.equal(stats.daily.length, 14);
+    const imageForm = new FormData();
+    imageForm.append("product", JSON.stringify({ name: "Mobile product", price_cents: 1234 }));
+    imageForm.append("image", new Blob(["test image"], { type: "image/png" }), "product.png");
+    const imageResponse = await fetch(`${base}/products/${productId}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: imageForm,
+    });
+    assert.equal(imageResponse.status, 200, await imageResponse.text());
+    const [withImage] = await query("SELECT image_url FROM products WHERE id=?", [productId]);
+    assert.match(withImage.image_url, /^\/uploads\/products\/[0-9a-f-]+\.png$/);
+    await request(`/products/${productId}`, { method: "PATCH", body: { image_url: "" } });
+    const [withoutImage] = await query("SELECT image_url FROM products WHERE id=?", [productId]);
+    assert.equal(withoutImage.image_url, "");
     await request(`/products/${productId}`, { method: "PATCH", body: { active: 0 } });
     await request("/orders", { method: "POST", status: 400, body: { customer_id: customers[0], channel: "telephone", delivery_method: "pickup", payment_method: "cash", items: [{ product_id: productId, quantity: 1 }] } });
     const [unavailable] = await query("SELECT active FROM products WHERE id=?", [productId]); assert.equal(unavailable.active, 0);
@@ -88,6 +104,11 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
     await request("/order-notifications?afterId=bad&since=bad", { status: 400 });
   } finally {
     if (server) await new Promise(resolve => server.close(resolve));
+    if (productId) {
+      const [product] = await query("SELECT image_url FROM products WHERE id=?", [productId]);
+      if (product?.image_url?.startsWith("/uploads/products/"))
+        await rm(path.join(process.cwd(), "public", product.image_url.slice(1)), { force: true });
+    }
     for (const id of restaurants) await query("DELETE FROM restaurants WHERE id=?", [id]);
     for (const id of customers) await query("DELETE FROM customers WHERE id=?", [id]);
     await pool.end();

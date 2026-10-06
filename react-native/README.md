@@ -123,12 +123,15 @@ Para subirla a App Store Connect:
 
 
 ##ANDROID
-cd D:\CFGS\development\dev\delivery\react-native
-npx expo-doctor
-$env:APP_VARIANT="development"
-npx expo config --type public
-Remove-Item Env:APP_VARIANT -ErrorAction SilentlyContinue
-npx eas-cli@latest build --platform android --profile development
+
+    ==> PARA DESARROLLO
+        cd D:\CFGS\development\dev\delivery\react-native
+        npx expo-doctor
+        $env:APP_VARIANT="development"
+        $env:GOOGLE_IOS_CLIENT_ID="42207435401-24td0lvmvr4gfkboab41hp9i4d35utgu.apps.googleusercontent.com"
+        npx expo config --type public
+        Remove-Item Env:APP_VARIANT -ErrorAction SilentlyContinue
+        npx eas-cli@latest build --platform android --profile development
 
     ==> PARA PRODUCCION
         Remove-Item Env:APP_VARIANT -ErrorAction SilentlyContinue

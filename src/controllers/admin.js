@@ -319,7 +319,9 @@ function productData(body, partial = false) {
     if (
       typeof value !== "string" ||
       value.trim().length > max ||
-      (!["description", "image_description"].includes(field) && !value.trim())
+      (!["description", "image_description"].includes(field) &&
+        !(partial && field === "image_url") &&
+        !value.trim())
     )
       throw orderError(
         400,
