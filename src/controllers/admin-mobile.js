@@ -54,8 +54,37 @@ export async function statistics(req) {
     FROM orders WHERE restaurant_id=? AND status='delivered' AND payment_status<>'refunded'
     AND created_at>=CURRENT_DATE - INTERVAL 13 DAY GROUP BY DATE(created_at)`, [req.user.restaurant_id]);
   const byDay = new Map(sales.map(row => [row.day, Number(row.sales_cents)]));
+  const historicalHours = await query(
+    `SELECT HOUR(created_at) AS hour,COUNT(*) AS total FROM orders
+    WHERE restaurant_id=? GROUP BY HOUR(created_at)`,
+    [req.user.restaurant_id],
+  );
+  const historicalByHour = new Map(
+    historicalHours.map(row => [Number(row.hour), Number(row.total)]),
+  );
+  const historicalHourly = Array.from({ length: 24 }, (_, hour) => ({
+    label: `${String(hour).padStart(2, "0")}:00`,
+    total: historicalByHour.get(hour) || 0,
+  }));
+  const customerSpending = data.customerSpending.map(row => ({
+    id: Number(row.id),
+    name: row.name,
+    email: row.email,
+    phone: row.phone,
+    rank: row.rank,
+    total_orders: row.total_orders,
+    total_spent_cents: row.total_spent_cents,
+  }));
   return { totals: Object.fromEntries(Object.entries(totals).map(([key,value]) => [key, Number(value)])),
-    daily: data.daily.map(row => ({ day: row.day, label: row.label, total: row.total, sales_cents: byDay.get(row.day) || 0 })) };
+    daily: data.daily.map(row => ({
+      day: row.day,
+      label: row.label,
+      total: row.total,
+      sales_cents: byDay.get(row.day) || 0,
+      hourly: row.hourly.map(hour => ({ ...hour })),
+    })),
+    historicalHourly,
+    customerSpending };
 }
 
 export async function customers(req, detail = false) {

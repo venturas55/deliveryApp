@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { FlatList, Image, RefreshControl, ScrollView, Switch, Text, View } from "react-native";
+import { FlatList, Image, Pressable, RefreshControl, ScrollView, Switch, Text, View } from "react-native";
 import { Button, Card, Field, money, s } from "../shared/ui";
 import { OrderCard } from "./Orders";
 import useAdminData from "./useAdminData";
@@ -71,8 +71,77 @@ function ProductEditor({ product, save, cancel, busy }) {
 
 export function Statistics() {
   const resource = useAdminData("/stats"), data = resource.data;
-  const max = Math.max(1, ...(data?.daily || []).map(day => day.sales_cents));
-  return <Page resource={resource}>{data && <><Card><Text style={s.heading}>Pedidos entregados, sin reembolsos</Text><Text style={s.title}>{money(data.totals.sales_cents)}</Text><Text style={s.text}>{data.totals.orders} pedidos · {data.totals.customers} clientes</Text><Text style={s.text}>Ticket medio: {money(data.totals.average_cents)}</Text></Card><Text style={s.heading}>Últimos 14 días</Text><Text style={s.muted}>Ventas entregadas; recuento incluye todos los estados.</Text><Grid>{data.daily.map(day => <Card key={day.day}><View style={s.row}><Text style={s.text}>{day.label}</Text><Text style={s.text}>{money(day.sales_cents)}</Text></View><View style={{ height: 8, backgroundColor: "#efe7db", borderRadius: 4 }}><View style={{ height: 8, width: `${day.sales_cents / max * 100}%`, backgroundColor: "#923a25", borderRadius: 4 }} /></View><Text style={s.muted}>{day.total} pedidos</Text></Card>)}</Grid></>}</Page>;
+  const [selectedDay, setSelectedDay] = useState("");
+  const [hourlyMode, setHourlyMode] = useState("day");
+  const daily = Array.isArray(data?.daily) ? data.daily : [];
+  const customers = Array.isArray(data?.customerSpending) ? data.customerSpending : [];
+  useEffect(() => {
+    if (daily.length) setSelectedDay(daily[daily.length - 1].day);
+  }, [daily]);
+  const selected = daily.find(day => day.day === selectedDay) || daily[daily.length - 1];
+  const hourlySource = hourlyMode === "history"
+    ? data?.historicalHourly
+    : selected?.hourly;
+  const hasHourlyData = Array.isArray(hourlySource);
+  const hourly = Array.from({ length: 24 }, (_, hour) => {
+    const label = `${String(hour).padStart(2, "0")}:00`;
+    const value = Array.isArray(hourlySource)
+      ? hourlySource.find(item => item.label === label)
+      : null;
+    return { label, total: Number(value?.total) || 0 };
+  });
+  const dailyMax = Math.max(1, ...daily.map(day => day.total));
+  const hourlyMax = Math.max(1, ...hourly.map(hour => hour.total));
+  return <Page resource={resource}>{data && <>
+    <Card><Text style={s.heading}>Resumen de pedidos entregados</Text><Text style={s.title}>{money(data.totals.sales_cents)}</Text><Text style={s.text}>{data.totals.orders} pedidos · {data.totals.customers} clientes</Text><Text style={s.text}>Ticket medio: {money(data.totals.average_cents)}</Text></Card>
+    <Card><Text style={s.heading}>Pedidos por día</Text><Text style={s.muted}>Últimos 14 días · selecciona un día para ver sus horas</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: "flex-end", gap: 8, paddingVertical: 12 }}>
+        {daily.map(day => {
+          const active = day.day === selected?.day;
+          const height = Math.max(day.total ? 6 : 2, day.total / dailyMax * 106);
+          return <Pressable key={day.day} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${day.label}: ${day.total} pedidos`} onPress={() => setSelectedDay(day.day)} style={{ width: 48, alignItems: "center", gap: 5 }}>
+            <Text style={[s.muted, { marginTop: 0 }]}>{day.total}</Text>
+            <View style={{ height: 110, width: 26, justifyContent: "flex-end", backgroundColor: "#f4eee5", borderRadius: 7, overflow: "hidden" }}>
+              <View style={{ height, backgroundColor: active ? "#923a25" : "#bd8a68", borderRadius: 7 }} />
+            </View>
+            <Text style={[s.muted, active && { color: "#923a25", fontWeight: "700" }, { marginTop: 0 }]}>{day.label}</Text>
+          </Pressable>;
+        })}
+      </ScrollView>
+    </Card>
+    <Card><Text style={s.heading}>Pedidos por hora{hourlyMode === "day" && selected ? ` · ${selected.label}` : " · histórico"}</Text>
+      <View style={s.row}>
+        <Button secondary={hourlyMode !== "day"} title="Día seleccionado" onPress={() => setHourlyMode("day")} />
+        <Button secondary={hourlyMode !== "history"} title="Todo el histórico" onPress={() => setHourlyMode("history")} />
+      </View>
+      {!hasHourlyData ? <Text style={s.muted}>El servidor no devolvió los datos horarios. Actualiza el servidor para ver esta gráfica.</Text> : <>
+        <Text style={s.muted}>Cada barra representa el intervalo indicado (24 horas).</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ alignItems: "flex-end", gap: 6, paddingVertical: 12 }}>
+          {hourly.map(hour => {
+            const hourNumber = Number(hour.label.slice(0, 2));
+            const nextHour = (hourNumber + 1) % 24;
+            const interval = `${hour.label}–${String(nextHour).padStart(2, "0")}:00`;
+            const height = hour.total ? Math.max(5, hour.total / hourlyMax * 104) : 2;
+            return <View key={hour.label} accessibilityLabel={`${interval}: ${hour.total} pedidos`} style={{ width: 46, alignItems: "center", gap: 5 }}>
+              <Text style={[s.muted, { marginTop: 0 }]}>{hour.total}</Text>
+              <View style={{ height: 108, width: 28, justifyContent: "flex-end", backgroundColor: "#f4eee5", borderRadius: 7, overflow: "hidden" }}>
+                <View style={{ height, backgroundColor: "#923a25", borderRadius: 7 }} />
+              </View>
+              <Text style={[s.muted, { marginTop: 0 }]}>{String(hourNumber).padStart(2, "0")}</Text>
+            </View>;
+          })}
+        </ScrollView>
+        {hourly.every(hour => hour.total === 0) && <Text style={s.muted}>{hourlyMode === "day" ? "No hay pedidos registrados en este día." : "Todavía no hay pedidos en el histórico."}</Text>}
+      </>}
+    </Card>
+    <Card><Text style={s.heading}>Clientes que más han gastado</Text><Text style={s.muted}>Histórico · pedidos entregados, sin reembolsos</Text>
+      {customers.length ? customers.map(customer => <View key={customer.id} style={[s.row, { justifyContent: "flex-start", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#e6ded3" }]}>
+        <Text style={[s.heading, { width: 36, marginBottom: 0 }]}>{customer.rank}.</Text>
+        <View style={{ flex: 1 }}><Text style={s.text}>{customer.name}</Text><Text style={s.muted}>{customer.total_orders} pedidos{customer.phone ? ` · ${customer.phone}` : ""}</Text></View>
+        <Text style={[s.text, { fontWeight: "700" }]}>{money(customer.total_spent_cents)}</Text>
+      </View>) : <Text style={s.muted}>Todavía no hay clientes con pedidos entregados.</Text>}
+    </Card>
+  </>}</Page>;
 }
 
 export function Settings({ logout }) {

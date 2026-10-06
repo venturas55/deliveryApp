@@ -81,7 +81,16 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
     await request(`/orders/${order.id}/status`, { method: "PATCH", body: { status: "accepted" }, status: 409 });
     await request(`/orders/${order.id}/mark-paid`, { method: "POST", body: {} });
     await request(`/orders/${order.id}/mark-paid`, { method: "POST", body: {}, status: 409 });
+    await query("UPDATE orders SET created_at=CONCAT(CURRENT_DATE,' 14:35:00') WHERE id=?", [order.id]);
     const stats = await request("/stats"); assert.equal(stats.totals.orders, 1); assert.equal(stats.totals.sales_cents, 2468); assert.equal(stats.totals.average_cents, 2468); assert.equal(stats.daily.length, 14);
+    assert.ok(stats.daily.every(day => day.hourly.length === 24));
+    const [today] = await query("SELECT DATE_FORMAT(CURRENT_DATE,'%Y-%m-%d') AS today");
+    const todayStats = stats.daily.find(day => day.day === today.today);
+    assert.equal(todayStats.hourly.find(hour => hour.label === "14:00").total, 1);
+    assert.equal(stats.historicalHourly.length, 24);
+    assert.equal(stats.historicalHourly.find(hour => hour.label === "14:00").total, 1);
+    assert.equal(stats.customerSpending[0].id, customers[0]);
+    assert.equal(stats.customerSpending[0].total_spent_cents, 2468);
     const imageForm = new FormData();
     imageForm.append("product", JSON.stringify({ name: "Mobile product", price_cents: 1234 }));
     imageForm.append("image", new Blob(["test image"], { type: "image/png" }), "product.png");
