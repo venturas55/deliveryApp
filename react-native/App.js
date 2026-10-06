@@ -14,10 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-} from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
   api,
   logoutSession,
@@ -125,7 +122,10 @@ function ClientNavigator({ onAdminAccess }) {
     const offset = categoryOffsets.current[category];
     if (offset === undefined) return;
     setActiveCategory(category);
-    menuScroll.current?.scrollTo({ y: Math.max(0, offset - 12), animated: true });
+    menuScroll.current?.scrollTo({
+      y: Math.max(0, offset - 12),
+      animated: true,
+    });
   }
   function updateActiveCategory(event) {
     const scrollY = event.nativeEvent.contentOffset.y + 48;
@@ -135,7 +135,9 @@ function ClientNavigator({ onAdminAccess }) {
       if (offset !== undefined && offset <= scrollY) current = category.name;
       else break;
     }
-    setActiveCategory((previous) => (previous === current ? previous : current));
+    setActiveCategory((previous) =>
+      previous === current ? previous : current,
+    );
   }
   const total = useMemo(
     () =>
@@ -165,7 +167,10 @@ function ClientNavigator({ onAdminAccess }) {
         const restored = await restoreSession();
         if (restored) {
           setToken(restored);
-          await Promise.all([refreshProfile(restored), refreshOrders(restored)]);
+          await Promise.all([
+            refreshProfile(restored),
+            refreshOrders(restored),
+          ]);
         } else {
           setScreen("auth");
         }
@@ -235,47 +240,102 @@ function ClientNavigator({ onAdminAccess }) {
   async function authenticateWithGoogle() {
     setBusy(true);
     setError("");
+
     try {
       const config = await api("/customer-auth/google/config");
-      if (!config.enabled)
+
+      console.log("GOOGLE CONFIG:", {
+        enabled: config.enabled,
+        clientId: config.clientId,
+        hasNonce: !!config.nonce,
+        hasChallenge: !!config.challenge,
+        iosClientId: Constants.expoConfig?.extra?.googleIosClientId,
+      });
+
+      if (!config.enabled) {
         throw new Error(
           "El acceso con Google no está configurado en el servidor.",
         );
+      }
+console.log("EXPO CONFIG COMPLETA:", Constants.expoConfig);
+console.log(
+  "EXPO EXTRA:",
+  Constants.expoConfig?.extra
+);
       GoogleOneTapSignIn.configure({
         webClientId: config.clientId,
         iosClientId: Constants.expoConfig?.extra?.googleIosClientId,
         nonce: config.nonce,
         scopes: ["email", "profile"],
       });
+
+      console.log("GOOGLE: configure OK");
+
       await GoogleOneTapSignIn.checkPlayServices();
-      // iOS silent sign-in restores a token without the current challenge nonce.
+
+      console.log("GOOGLE: checkPlayServices OK");
+
       let response = await (Platform.OS === "ios"
         ? GoogleOneTapSignIn.presentExplicitSignIn()
         : GoogleOneTapSignIn.signIn());
-      if (isNoSavedCredentialFoundResponse(response))
+
+      console.log("GOOGLE RESPONSE:", response);
+
+      if (isNoSavedCredentialFoundResponse(response)) {
+        console.log("GOOGLE: createAccount");
         response = await GoogleOneTapSignIn.createAccount();
-      if (isNoSavedCredentialFoundResponse(response))
+        console.log("GOOGLE CREATE RESPONSE:", response);
+      }
+
+      if (isNoSavedCredentialFoundResponse(response)) {
+        console.log("GOOGLE: presentExplicitSignIn fallback");
         response = await GoogleOneTapSignIn.presentExplicitSignIn();
-      if (isCancelledResponse(response)) return;
-      if (!isSuccessResponse(response))
-        throw new Error("No se pudo iniciar sesi?n con Google.");
+        console.log("GOOGLE FALLBACK RESPONSE:", response);
+      }
+
+      if (isCancelledResponse(response)) {
+        console.log("GOOGLE: cancelled");
+        return;
+      }
+
+      if (!isSuccessResponse(response)) {
+        console.log("GOOGLE: response not successful", response);
+        throw new Error("No se pudo iniciar sesión con Google.");
+      }
+
       const credential = response.data.idToken;
-      if (!credential)
+
+      console.log("GOOGLE: idToken received:", !!credential);
+
+      if (!credential) {
         throw new Error("Google no devolvió un token de acceso.");
+      }
+
+      console.log("GOOGLE: sending token to backend");
+
       const data = await api("/customer-auth/google/native", {
         method: "POST",
-        body: JSON.stringify({ credential, challenge: config.challenge }),
+        body: JSON.stringify({
+          credential,
+          challenge: config.challenge,
+        }),
       });
+
+      console.log("GOOGLE: backend authentication OK");
+
       const auth = await saveSession(data);
       setToken(auth);
       setProfile(data.customer);
       setScreen("menu");
-      await Promise.all([
-        refreshProfile(auth),
-        refreshOrders(auth),
-      ]);
+
+      await Promise.all([refreshProfile(auth), refreshOrders(auth)]);
     } catch (e) {
-      setError(e.message);
+      console.error("GOOGLE LOGIN ERROR:", e);
+      console.error("GOOGLE ERROR MESSAGE:", e?.message);
+      console.error("GOOGLE ERROR CODE:", e?.code);
+      console.error("GOOGLE ERROR STACK:", e?.stack);
+
+      setError(e?.message || "Error iniciando sesión con Google.");
     } finally {
       setBusy(false);
     }
@@ -317,10 +377,14 @@ function ClientNavigator({ onAdminAccess }) {
       setCart({});
       setScreen("order");
       if (payment === "online") {
-        const { url } = await api(`/customer/orders/${order.id}/payment`, {
-          method: "POST",
-          body: JSON.stringify({ appScheme: Constants.expoConfig?.scheme }),
-        }, token);
+        const { url } = await api(
+          `/customer/orders/${order.id}/payment`,
+          {
+            method: "POST",
+            body: JSON.stringify({ appScheme: Constants.expoConfig?.scheme }),
+          },
+          token,
+        );
         await Linking.openURL(url);
       }
       await refreshOrders();
@@ -407,9 +471,17 @@ function ClientNavigator({ onAdminAccess }) {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-        <Text style={styles.brand}>{restaurant?.name || "Massa e fuoco"}</Text>
+        <Text style={styles.brand}>{restaurant?.name || "Massa e fuoco Dev"}</Text>
         <Text style={styles.sub}>Pide tus pizzas favoritas.</Text>
-        {!token && <TouchableOpacity accessibilityRole="button" onPress={onAdminAccess} style={{ paddingVertical: 12 }}><Text style={styles.sub}>Acceso restaurante</Text></TouchableOpacity>}
+        {!token && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={onAdminAccess}
+            style={{ paddingVertical: 12 }}
+          >
+            <Text style={styles.sub}>Acceso restaurante</Text>
+          </TouchableOpacity>
+        )}
       </View>
       {nav}
       {screen === "menu" && menuCategories.length > 0 && (
@@ -480,9 +552,7 @@ function ClientNavigator({ onAdminAccess }) {
                         <Text style={styles.muted}>
                           {p.description || p.category}
                         </Text>
-                        <Text style={styles.price}>
-                          {money(p.price_cents)}
-                        </Text>
+                        <Text style={styles.price}>{money(p.price_cents)}</Text>
                       </View>
                       <Button
                         title={cart[p.id] ? `Añadir + ${cart[p.id]}` : "Añadir"}
@@ -592,7 +662,7 @@ function ClientNavigator({ onAdminAccess }) {
                 <Text style={styles.label}>Entrega</Text>
                 <View style={styles.row}>
                   <Button
-                    secondary={!pickup}
+                    secondary={pickup}
                     title="A domicilio"
                     onPress={() => {
                       setPickup(false);
@@ -600,7 +670,7 @@ function ClientNavigator({ onAdminAccess }) {
                     }}
                   />
                   <Button
-                    secondary={pickup}
+                    secondary={!pickup}
                     title="Recogida"
                     onPress={() => setPickup(true)}
                   />
@@ -693,15 +763,31 @@ export default function App() {
   const [mode, setMode] = useState(null);
   useEffect(() => {
     let alive = true;
-    getSessionRole().then(role => { if (alive) setMode(adminOnly || role === "admin" ? "admin" : "client"); })
-      .catch(() => { if (alive) setMode(adminOnly ? "admin" : "client"); });
-    return () => { alive = false; };
+    getSessionRole()
+      .then((role) => {
+        if (alive) setMode(adminOnly || role === "admin" ? "admin" : "client");
+      })
+      .catch(() => {
+        if (alive) setMode(adminOnly ? "admin" : "client");
+      });
+    return () => {
+      alive = false;
+    };
   }, [adminOnly]);
   return (
     <SafeAreaProvider>
-      {mode === null ? <SafeAreaView style={styles.center}><ActivityIndicator color="#9d3d24" /></SafeAreaView> :
-        mode === "admin" ? <AdminNavigator adminOnly={adminOnly} onClient={() => setMode("client")} /> :
-        <ClientNavigator onAdminAccess={() => setMode("admin")} />}
+      {mode === null ? (
+        <SafeAreaView style={styles.center}>
+          <ActivityIndicator color="#9d3d24" />
+        </SafeAreaView>
+      ) : mode === "admin" ? (
+        <AdminNavigator
+          adminOnly={adminOnly}
+          onClient={() => setMode("client")}
+        />
+      ) : (
+        <ClientNavigator onAdminAccess={() => setMode("admin")} />
+      )}
     </SafeAreaProvider>
   );
 }

@@ -31,6 +31,7 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
+    orientation: isAdmin ? "default" : config.orientation,
 
     // Diferenciar visualmente DEV de producción
     name: `Massa e fuoco${isAdmin ? " Admin" : ""}${isDev ? " DEV" : ""}`,
@@ -38,6 +39,7 @@ module.exports = ({ config }) => {
 
     ios: {
       ...config.ios,
+      supportsTablet: true,
       bundleIdentifier: isDev
         ? `com.massaefuoco.${isAdmin ? "admin" : "client"}.dev`
         : `com.massaefuoco.${isAdmin ? "admin" : "client"}`,

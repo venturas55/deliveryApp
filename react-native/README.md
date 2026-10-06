@@ -10,6 +10,21 @@ Incluye resumen diario, pedidos por estado, detalle y acciones de cocina, recogi
 
 Pedidos y avisos se actualizan cada 15 segundos en primer plano, al regresar a la app y mediante pull-to-refresh. Dashboard se actualiza cada 30 segundos. Historial admite páginas de 200 pedidos. Clientes devuelve hasta 100 coincidencias y permite afinar la búsqueda. Los avisos reutilizan la regla web: efectivo al entrar, tarjeta cuando figura pagada. Se muestra un banner y vibración; no hay sonido, push ni avisos garantizados en segundo plano. La capa `useAdminData` y el componente `OrderNotice` permiten sustituir posteriormente el polling.
 
+### Tablets y diseño adaptable
+
+`app.config.js` activa `ios.supportsTablet: true` en CLIENT y ADMIN, tanto DEV como PROD. ADMIN usa `orientation: "default"` para permitir vertical y horizontal; CLIENT conserva su orientación configurada. Los Bundle ID, esquemas y configuración Google no cambian.
+
+El diseño ADMIN responde al ancho de la ventana y del panel disponible, incluido Split View y cambios de orientación. A partir de 900 puntos disponibles muestra navegación lateral de 200 puntos; con texto ampliado requiere más espacio. En ventanas estrechas mantiene navegación inferior y una columna. Pedidos usa hasta dos columnas; dashboard, clientes, productos e histórico diario usan hasta tres cuando caben tarjetas legibles. Detalle y creación de pedidos distribuyen información y acciones en dos columnas cuando hay espacio. El contenido se limita a 1120 puntos y los formularios a 640. Las columnas se reducen con el tamaño de texto del sistema. Se mantienen Safe Areas y controles de al menos 48 puntos.
+
+El soporte nativo de iPad y el cambio de orientación requieren generar e instalar una nueva Development Build y volver a compilar producción; reiniciar Metro no cambia una build instalada. No se han añadido dependencias. Por ejemplo:
+
+```sh
+npx eas-cli@latest build --profile admin-development --platform ios
+npx eas-cli@latest build --profile admin-production --platform ios
+```
+
+Para probar ADMIN dentro de la app cliente, recompila el perfil `development` cliente con esta configuración. La validación de bundles y anchos no sustituye una prueba real en iPad/tablet Android: comprobar giro, Split View, teclado, texto ampliado, selección de pedidos y envío de formularios.
+
 ### Backend requerido
 
 Despliega y reinicia también Node.js. Aplica la migración existente `019-auth-refresh-tokens.sql` si aún no está aplicada. Esta ampliación no añade tablas ni dependencias.
@@ -90,20 +105,22 @@ Si haces cambios nativos que afecte a app.json o:
     npx eas-cli@latest build --profile development --platform ios
 ##IOS
 Si no, se detecta automaticamente y tener corriendo:
-    npx expo start --dev-client
-
+    npx expo start --dev-client, se han añadido scripts ahora vale:
+    npm run dev o npm run dev:clear
+    
 Para una build final:
+     ==> PARA DESARROLLO
+            npx eas-cli@latest build --platform ios --profile development   
+
     ==> PARA PRODUCCION
             echo $env:APP_VARIANT
             echo $env:GOOGLE_IOS_CLIENT_ID
             npx expo config --type public
             npx eas-cli@latest build --platform ios --profile production    
-
-    ==> PARA DESARROLLO
-            npx eas-cli@latest build --platform ios --profile development   
-
 Para subirla a App Store Connect:
-    npx eas-cli@latest submit --platform ios     => aparecera en App Store Connect
+            npx eas-cli@latest submit --platform ios     => aparecera en App Store Connect
+
+
 
 ##ANDROID
 cd D:\CFGS\development\dev\delivery\react-native

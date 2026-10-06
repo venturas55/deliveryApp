@@ -3,6 +3,7 @@ import { Alert, FlatList, Linking, Pressable, RefreshControl, ScrollView, Text, 
 import { Button, Card, date, money, paymentName, paymentStatus, s } from "../shared/ui";
 import useAdminData from "./useAdminData";
 import { orderPath, write } from "./api";
+import { Grid, GRID_GAP, useContentLayout } from "../shared/layout";
 
 const filters = [["new", "Nuevos"], ["accepted", "Aceptados"], ["preparing", "Preparación"], ["ready", "Listos"], ["delivery_requested", "Buscando reparto"], ["courier_assigned", "Asignados"], ["out_for_delivery", "En reparto"], ["delivered", "Entregados"], ["cancelled", "Cancelados"]];
 const colors = { new: "#923a25", accepted: "#275c91", preparing: "#865e13", ready: "#276944", out_for_delivery: "#62418c", cancelled: "#8b2c2c" };
@@ -19,6 +20,7 @@ export function OrderCard({ order, onPress }) {
 }
 
 export function Orders({ openOrder, initialStatus = "new" }) {
+  const { columns, itemWidth } = useContentLayout(320, 2);
   const [status, setStatus] = useState(initialStatus), [before, setBefore] = useState(""), [delivery, setDelivery] = useState("all");
   const { data, loading, error, refresh } = useAdminData(`/orders?view=mobile&filter=all&status=${status}&delivery_method=${delivery}${before ? `&before_id=${before}` : ""}`, ["delivered", "cancelled"].includes(status) || before ? 0 : 15000);
   const changeStatus = value => { setBefore(""); setStatus(value); };
@@ -28,9 +30,10 @@ export function Orders({ openOrder, initialStatus = "new" }) {
     </ScrollView></View>
     <View style={[s.wrap, { paddingHorizontal: 18, marginBottom: 8 }]}>{[["all", "Todos"], ["pickup", "Recogida"], ["delivery", "Reparto"]].map(([key,label]) => <Pressable accessibilityRole="button" key={key} onPress={() => { setDelivery(key); setBefore(""); }} style={[s.chip, delivery === key && s.chipActive]}><Text style={{ color: delivery === key ? "white" : "#392d27" }}>{label}</Text></Pressable>)}</View>
     {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
-    <FlatList data={data || []} keyExtractor={item => String(item.id)} contentContainerStyle={s.content}
+    <FlatList key={columns} numColumns={columns} columnWrapperStyle={columns > 1 ? { gap: GRID_GAP } : undefined}
+      data={data || []} keyExtractor={item => String(item.id)} contentContainerStyle={[s.content, s.responsiveContent]}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#923a25" />}
-      renderItem={({ item }) => <OrderCard order={item} onPress={() => openOrder(item.id)} />}
+      renderItem={({ item }) => <View style={{ width: columns === 1 ? "100%" : itemWidth }}><OrderCard order={item} onPress={() => openOrder(item.id)} /></View>}
       ListEmptyComponent={!loading && !error ? <Text style={s.muted}>Sin pedidos en este estado.</Text> : null}
       ListFooterComponent={<View>{data?.length === 200 && <Button secondary title="Pedidos anteriores" onPress={() => setBefore(String(data[data.length - 1].id))} />}{before && <Button secondary title="Volver a los recientes" onPress={() => setBefore("")} />}</View>} />
   </View>;
@@ -52,11 +55,13 @@ export function OrderDetail({ id }) {
   }
   if (!order) return <View style={s.content}><Text style={error ? s.error : s.muted}>{error || "Cargando pedido…"}</Text><Button secondary title="Reintentar" onPress={refresh} /></View>;
   const confirm = (title, text, callback) => Alert.alert(title, text, [{ text: "Volver", style: "cancel" }, { text: "Confirmar", onPress: callback }]);
-  return <ScrollView contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}>
+  return <ScrollView contentContainerStyle={[s.content, s.responsiveContent]} refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}>
     <OrderCard order={order} />
     {(problem || error) ? <Text accessibilityRole="alert" style={s.error}>{problem || error}</Text> : null}
+    <Grid minWidth={360} maxColumns={2}><View style={{ gap: GRID_GAP }}>
     <Card><Text style={s.heading}>Artículos</Text>{order.items.map(item => <View style={s.row} key={String(item.id)}><Text style={[s.text, { flex: 1 }]}>{item.quantity} × {item.product_name}</Text><Text style={s.text}>{money(item.quantity * item.unit_price_cents)}</Text></View>)}</Card>
     <Card><Text style={s.heading}>Cliente</Text><Text style={s.text}>{order.customer_name}</Text><Button secondary title={`Llamar: ${order.customer_phone || "sin teléfono"}`} disabled={!order.customer_phone} onPress={() => Linking.openURL(`tel:${order.customer_phone}`).catch(failure => setProblem(failure.message))} /><Text style={s.text}>{order.delivery_address}</Text>{order.delivery_apartment ? <Text style={s.text}>Piso: {order.delivery_apartment}</Text> : null}{order.delivery_patio ? <Text style={s.text}>Patio: {order.delivery_patio}</Text> : null}{order.delivery_notes ? <Text style={s.text}>Observaciones: {order.delivery_notes}</Text> : null}</Card>
+    </View><View style={{ gap: GRID_GAP }}>
     <Card><Text style={s.heading}>Importe y pago</Text><Text style={s.text}>Artículos: {money(order.subtotal_cents)}</Text><Text style={s.text}>Descuento: {money(order.discount_cents)}</Text><Text style={s.text}>Reparto: {money(order.delivery_cents)}</Text><Text style={s.heading}>Total: {money(order.total_cents)}</Text><Text style={s.text}>{paymentName(order.payment_method)} · {paymentStatus(order.payment_status)}</Text>
       {order.canMarkPaid && <Button title="Marcar pago recibido" disabled={busy} onPress={() => confirm("Confirmar cobro", "Marca el pago solo después de recibir el importe.", () => action("/mark-paid"))} />}
     </Card>
@@ -72,5 +77,6 @@ export function OrderDetail({ id }) {
     </Card>}
     {order.canCancel && <Button danger title="Cancelar pedido" disabled={busy} onPress={() => confirm("Cancelar pedido", "Se devolverá el pago online cuando corresponda.", () => action("/status", { status: "cancelled" }, "PATCH"))} />}
     <Card><Text style={s.heading}>Actividad</Text>{order.events.map((event,index) => <Text key={index} style={s.muted}>{date(event.created_at)} · {event.event_type}</Text>)}</Card>
+    </View></Grid>
   </ScrollView>;
 }

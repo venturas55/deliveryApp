@@ -6,7 +6,9 @@
   "scripts": {
     "start": "expo start --dev-client",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "dev": "cross-env APP_VARIANT=development GOOGLE_IOS_CLIENT_ID=42207435401-24td0lvmvr4gfkboab41hp9i4d35utgu.apps.googleusercontent.com expo start --dev-client",
+    "dev:clear": "cross-env APP_VARIANT=development GOOGLE_IOS_CLIENT_ID=42207435401-24td0lvmvr4gfkboab41hp9i4d35utgu.apps.googleusercontent.com expo start --dev-client --clear"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@react-native-community/cli": "^20.2.0"
+    "@react-native-community/cli": "^20.2.0",
+    "cross-env": "^10.1.0"
   }
 }

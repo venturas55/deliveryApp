@@ -1,12 +1,25 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, Vibration, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, Vibration, View, useWindowDimensions } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, getSessionRole, logoutSession, restoreSession, saveSession, setAuthLostHandler } from "../api";
 import { Button, Field, s } from "../shared/ui";
 import { adminApi } from "./api";
 import { Orders, OrderDetail } from "./Orders";
 import { CustomerDetail, Customers, CreateOrder, Dashboard, Products, Settings, Statistics } from "./Screens";
 import useAdminData from "./useAdminData";
+import { ContentPane, SIDEBAR_WIDTH } from "../shared/layout";
+
+const destinations = [["dashboard", "Resumen"], ["orders", "Pedidos"], ["create", "Nuevo pedido"], ["customers", "Clientes"], ["products", "Artículos"], ["stats", "Estadísticas"], ["settings", "Ajustes"]];
+
+function Navigation({ current, navigate, sidebar }) {
+  const selected = name => current.name === name || name === "orders" && current.name === "order" || name === "customers" && current.name === "customer";
+  return <ScrollView horizontal={!sidebar} showsHorizontalScrollIndicator={false} contentContainerStyle={{ padding: 12, gap: 8 }}>
+    {destinations.map(([name, label]) => <Pressable accessibilityRole="button" accessibilityState={{ selected: selected(name) }} key={name} onPress={() => navigate(name)}
+      style={[s.chip, { minHeight: 48, justifyContent: "center" }, selected(name) && s.chipActive]}>
+      <Text style={{ color: selected(name) ? "white" : "#392d27", fontWeight: selected(name) ? "700" : "400" }}>{label}</Text>
+    </Pressable>)}
+  </ScrollView>;
+}
 
 function OrderNotice({ navigate }) {
   const [cursor, setCursor] = useState(null), [count, setCount] = useState(0);
@@ -28,6 +41,9 @@ function OrderNotice({ navigate }) {
 }
 
 export default function AdminNavigator({ onClient, adminOnly = false }) {
+  const { width, fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const sidebar = width - insets.left - insets.right >= 900 * Math.max(1, fontScale);
   const [authenticated,setAuthenticated] = useState(false), [loading,setLoading] = useState(true), [busy,setBusy] = useState(false), [error,setError] = useState(""), [email,setEmail] = useState(""), [password,setPassword] = useState("");
   const [stack,setStack] = useState([{ name: "dashboard", params: {} }]);
   const current = stack[stack.length - 1];
@@ -64,10 +80,16 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
     setAuthenticated(false); navigate("dashboard");
   }
   if (loading) return <SafeAreaView style={[s.safe,{justifyContent:"center"}]}><ActivityIndicator color="#923a25" /></SafeAreaView>;
-  if (!authenticated) return <SafeAreaView style={s.safe}><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === "ios" ? "padding" : undefined}><ScrollView contentContainerStyle={[s.content,{flexGrow:1,justifyContent:"center"}]} keyboardShouldPersistTaps="handled"><Text style={s.title}>Massa e fuoco Admin</Text><Text style={s.muted}>Acceso del restaurante</Text><Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" /><Field label="Contraseña" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="current-password" />{error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}<Button title={busy ? "Entrando…" : "Entrar"} onPress={login} disabled={busy || !email || !password} />{!adminOnly && <Button secondary title="Volver a cliente" disabled={busy} onPress={onClient} />}</ScrollView></KeyboardAvoidingView></SafeAreaView>;
+  if (!authenticated) return <SafeAreaView style={s.safe}><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === "ios" ? "padding" : undefined}><ScrollView contentContainerStyle={[s.content,s.form,{flexGrow:1,justifyContent:"center"}]} keyboardShouldPersistTaps="handled"><Text style={s.title}>Massa e fuoco Admin</Text><Text style={s.muted}>Acceso del restaurante</Text><Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" /><Field label="Contraseña" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="current-password" />{error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}<Button title={busy ? "Entrando…" : "Entrar"} onPress={login} disabled={busy || !email || !password} />{!adminOnly && <Button secondary title="Volver a cliente" disabled={busy} onPress={onClient} />}</ScrollView></KeyboardAvoidingView></SafeAreaView>;
   const openOrder = id => push("order", { id });
   const titles = { dashboard: "Resumen", orders: "Pedidos", order: `Pedido #${current.params.id}`, customers: "Clientes", customer: "Cliente", products: "Artículos", stats: "Estadísticas", settings: "Restaurante", create: "Nuevo pedido" };
   return <SafeAreaView style={s.safe}>
+    <View style={{ flex: 1, flexDirection: "row" }}>
+    {sidebar && <View key="sidebar" style={{ width: SIDEBAR_WIDTH, backgroundColor: "#efe7db", borderRightWidth: 1, borderRightColor: "#e6ded3" }}>
+      <View style={{ padding: 18 }}><Text style={s.heading}>Massa e fuoco</Text><Text style={s.muted}>Restaurante</Text></View>
+      <Navigation current={current} navigate={navigate} sidebar />
+    </View>}
+    <ContentPane key="workspace">
     <View style={s.header}><View style={{flex:1}}><Text style={s.muted}>MASSA E FUOCO · ADMIN</Text><Text style={s.title}>{titles[current.name]}</Text></View>{stack.length > 1 && <Button secondary title="Volver" onPress={back} />}</View>
     <OrderNotice navigate={navigate} />
     <View style={{flex:1}} key={`${current.name}:${current.params.id || current.params.status || ""}`}>
@@ -81,6 +103,8 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
       {current.name === "settings" && <Settings logout={logout} />}
       {current.name === "create" && <CreateOrder openOrder={openOrder} />}
     </View>
-    <View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{padding:12,gap:8}}>{[["dashboard","Resumen"],["orders","Pedidos"],["create","Nuevo"],["customers","Clientes"],["products","Artículos"],["stats","Datos"],["settings","Ajustes"]].map(([name,label]) => <Pressable accessibilityRole="button" accessibilityState={{selected:current.name===name}} key={name} onPress={() => navigate(name)} style={[s.chip,current.name===name&&s.chipActive]}><Text style={{color:current.name===name?"white":"#392d27"}}>{label}</Text></Pressable>)}</ScrollView></View>
+    {!sidebar && <View><Navigation current={current} navigate={navigate} /></View>}
+    </ContentPane>
+    </View>
   </SafeAreaView>;
 }

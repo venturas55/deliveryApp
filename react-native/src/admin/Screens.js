@@ -4,10 +4,11 @@ import { Button, Card, Field, money, s } from "../shared/ui";
 import { OrderCard } from "./Orders";
 import useAdminData from "./useAdminData";
 import { write } from "./api";
+import { Grid, GRID_GAP, useContentLayout } from "../shared/layout";
 
 function Problem({ error }) { return error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null; }
-function Page({ resource, children }) {
-  return <ScrollView contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={resource.loading} onRefresh={resource.refresh} />}>
+function Page({ resource, children, form = false }) {
+  return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.content, s.responsiveContent, form && s.form]} refreshControl={<RefreshControl refreshing={resource.loading} onRefresh={resource.refresh} />}>
     <Problem error={resource.error} />{!resource.data && resource.loading ? <Text style={s.muted}>Cargando…</Text> : children}
   </ScrollView>;
 }
@@ -17,20 +18,24 @@ export function Dashboard({ navigate }) {
   return <Page resource={resource}>{data && <>
     <Text style={s.heading}>Hoy</Text><Card><Text style={s.title}>{money(data.today.sales_cents)}</Text><Text style={s.muted}>{data.today.orders} pedidos · importe no cancelado ni reembolsado; puede incluir pagos pendientes</Text></Card>
     <Text style={s.heading}>Operación</Text>
+    <Grid>
     {[["new", "Pendientes"], ["accepted", "Aceptados"], ["preparing", "En preparación"], ["ready", "Listos"], ["out_for_delivery", "En reparto"]].map(([status,label]) => <Card key={status} onPress={() => navigate("orders", { status })}><View style={s.row}><Text style={s.text}>{label}</Text><Text style={s.title}>{data.counts[status] || 0}</Text></View></Card>)}
     <Card onPress={() => navigate("orders", { status: "delivery_requested" })}><Text style={s.text}>Repartos buscando/asignados: {(data.counts.delivery_requested || 0) + (data.counts.courier_assigned || 0)}</Text></Card>
+    </Grid>
     <Button title="Nuevo pedido" onPress={() => navigate("create")} /><Button secondary title="Estadísticas" onPress={() => navigate("stats")} />
   </>}</Page>;
 }
 
 export function Customers({ openCustomer, selectCustomer }) {
+  const { columns, itemWidth } = useContentLayout();
   const [search, setSearch] = useState(""), [query, setQuery] = useState("");
   useEffect(() => { const timer = setTimeout(() => setQuery(search), 350); return () => clearTimeout(timer); }, [search]);
   const resource = useAdminData(`/customers?q=${encodeURIComponent(query)}`);
-  return <View style={{ flex: 1 }}><View style={{ padding: 18 }}><Field label="Buscar nombre, teléfono o email" value={search} onChangeText={setSearch} /></View><Problem error={resource.error} />
-    <FlatList data={resource.data || []} keyExtractor={item => String(item.id)} contentContainerStyle={s.content}
+  return <View style={{ flex: 1 }}><View style={[s.form, { padding: 18 }]}><Field label="Buscar nombre, teléfono o email" value={search} onChangeText={setSearch} /></View><Problem error={resource.error} />
+    <FlatList key={columns} numColumns={columns} columnWrapperStyle={columns > 1 ? { gap: GRID_GAP } : undefined}
+      data={resource.data || []} keyExtractor={item => String(item.id)} contentContainerStyle={[s.content, s.responsiveContent]}
       refreshControl={<RefreshControl refreshing={resource.loading} onRefresh={resource.refresh} />}
-      renderItem={({ item }) => <Card onPress={() => selectCustomer ? selectCustomer(item) : openCustomer(item.id)}><Text style={s.heading}>{item.name}</Text><Text style={s.muted}>{item.phone} · {item.email}</Text><Text style={s.text}>{item.total_orders} pedidos · {money(item.total_spent_cents)} entregados</Text></Card>}
+      renderItem={({ item }) => <View style={{ width: columns === 1 ? "100%" : itemWidth }}><Card onPress={() => selectCustomer ? selectCustomer(item) : openCustomer(item.id)}><Text style={s.heading}>{item.name}</Text><Text style={s.muted}>{item.phone} · {item.email}</Text><Text style={s.text}>{item.total_orders} pedidos · {money(item.total_spent_cents)} entregados</Text></Card></View>}
       ListEmptyComponent={!resource.loading && !resource.error ? <Text style={s.muted}>Sin clientes con pedidos en este restaurante.</Text> : null}
       ListFooterComponent={resource.data?.length === 100 ? <Text style={s.muted}>Mostrando 100 clientes. Afina la búsqueda.</Text> : null} />
   </View>;
@@ -38,7 +43,7 @@ export function Customers({ openCustomer, selectCustomer }) {
 
 export function CustomerDetail({ id, openOrder }) {
   const resource = useAdminData(`/customers/${encodeURIComponent(id)}`), customer = resource.data;
-  return <Page resource={resource}>{customer && <><Card><Text style={s.heading}>{customer.name}</Text><Text style={s.text}>{customer.phone}</Text><Text style={s.text}>{customer.email}</Text><Text style={s.text}>{customer.total_orders} pedidos · {money(customer.total_spent_cents)} entregados</Text></Card><Text style={s.heading}>Historial del restaurante</Text>{customer.orders.map(order => <OrderCard key={String(order.id)} order={order} onPress={() => openOrder(order.id)} />)}{customer.orders.length === 200 && <Text style={s.muted}>Últimos 200 pedidos. Consulta anteriores desde Pedidos.</Text>}</>}</Page>;
+  return <Page resource={resource}>{customer && <><Card><Text style={s.heading}>{customer.name}</Text><Text style={s.text}>{customer.phone}</Text><Text style={s.text}>{customer.email}</Text><Text style={s.text}>{customer.total_orders} pedidos · {money(customer.total_spent_cents)} entregados</Text></Card><Text style={s.heading}>Historial del restaurante</Text><Grid maxColumns={2}>{customer.orders.map(order => <OrderCard key={String(order.id)} order={order} onPress={() => openOrder(order.id)} />)}</Grid>{customer.orders.length === 200 && <Text style={s.muted}>Últimos 200 pedidos. Consulta anteriores desde Pedidos.</Text>}</>}</Page>;
 }
 
 export function Products() {
@@ -49,7 +54,7 @@ export function Products() {
     catch (failure) { setError(failure.message); }
     finally { setBusy(false); }
   }
-  return <Page resource={resource}><Problem error={error} />{editing ? <ProductEditor key={editing.id} product={editing} busy={busy} save={body => update(editing.id, body)} cancel={() => setEditing(null)} /> : (resource.data || []).map(product => <Card key={product.id}><Text style={s.heading}>{product.name}</Text><Text style={s.muted}>{product.category} · {money(product.price_cents)}</Text><View style={s.row}><Text style={s.text}>{Number(product.active) ? "Disponible" : "Agotado"}</Text><Switch accessibilityLabel={`Disponibilidad de ${product.name}`} disabled={busy} value={!!Number(product.active)} onValueChange={value => update(product.id, { active: Number(value) })} /></View><Button secondary title="Editar artículo" disabled={busy} onPress={() => setEditing(product)} /></Card>)}{resource.data?.length === 0 && <Text style={s.muted}>Sin artículos.</Text>}</Page>;
+  return <Page resource={resource} form={!!editing}><Problem error={error} />{editing ? <ProductEditor key={editing.id} product={editing} busy={busy} save={body => update(editing.id, body)} cancel={() => setEditing(null)} /> : <Grid>{(resource.data || []).map(product => <Card key={product.id}><Text style={s.heading}>{product.name}</Text><Text style={s.muted}>{product.category} · {money(product.price_cents)}</Text><View style={s.row}><Text style={s.text}>{Number(product.active) ? "Disponible" : "Agotado"}</Text><Switch accessibilityLabel={`Disponibilidad de ${product.name}`} disabled={busy} value={!!Number(product.active)} onValueChange={value => update(product.id, { active: Number(value) })} /></View><Button secondary title="Editar artículo" disabled={busy} onPress={() => setEditing(product)} /></Card>)}</Grid>}{resource.data?.length === 0 && <Text style={s.muted}>Sin artículos.</Text>}</Page>;
 }
 function ProductEditor({ product, save, cancel, busy }) {
   const [name, setName] = useState(product.name), [price, setPrice] = useState((product.price_cents / 100).toFixed(2)), [category, setCategory] = useState(product.category), [description, setDescription] = useState(product.description || ""), [error, setError] = useState("");
@@ -63,12 +68,12 @@ function ProductEditor({ product, save, cancel, busy }) {
 export function Statistics() {
   const resource = useAdminData("/stats"), data = resource.data;
   const max = Math.max(1, ...(data?.daily || []).map(day => day.sales_cents));
-  return <Page resource={resource}>{data && <><Card><Text style={s.heading}>Pedidos entregados, sin reembolsos</Text><Text style={s.title}>{money(data.totals.sales_cents)}</Text><Text style={s.text}>{data.totals.orders} pedidos · {data.totals.customers} clientes</Text><Text style={s.text}>Ticket medio: {money(data.totals.average_cents)}</Text></Card><Text style={s.heading}>Últimos 14 días</Text><Text style={s.muted}>Ventas entregadas; recuento incluye todos los estados.</Text>{data.daily.map(day => <Card key={day.day}><View style={s.row}><Text style={s.text}>{day.label}</Text><Text style={s.text}>{money(day.sales_cents)}</Text></View><View style={{ height: 8, backgroundColor: "#efe7db", borderRadius: 4 }}><View style={{ height: 8, width: `${day.sales_cents / max * 100}%`, backgroundColor: "#923a25", borderRadius: 4 }} /></View><Text style={s.muted}>{day.total} pedidos</Text></Card>)}</>}</Page>;
+  return <Page resource={resource}>{data && <><Card><Text style={s.heading}>Pedidos entregados, sin reembolsos</Text><Text style={s.title}>{money(data.totals.sales_cents)}</Text><Text style={s.text}>{data.totals.orders} pedidos · {data.totals.customers} clientes</Text><Text style={s.text}>Ticket medio: {money(data.totals.average_cents)}</Text></Card><Text style={s.heading}>Últimos 14 días</Text><Text style={s.muted}>Ventas entregadas; recuento incluye todos los estados.</Text><Grid>{data.daily.map(day => <Card key={day.day}><View style={s.row}><Text style={s.text}>{day.label}</Text><Text style={s.text}>{money(day.sales_cents)}</Text></View><View style={{ height: 8, backgroundColor: "#efe7db", borderRadius: 4 }}><View style={{ height: 8, width: `${day.sales_cents / max * 100}%`, backgroundColor: "#923a25", borderRadius: 4 }} /></View><Text style={s.muted}>{day.total} pedidos</Text></Card>)}</Grid></>}</Page>;
 }
 
 export function Settings({ logout }) {
   const resource = useAdminData("/restaurant"), [editing, setEditing] = useState(false);
-  return <Page resource={resource}>{resource.data && <>{editing ? <RestaurantEditor restaurant={resource.data} done={async () => { await resource.refresh(); setEditing(false); }} /> : <Card><Text style={s.heading}>{resource.data.name}</Text><Text style={s.text}>{resource.data.phone}</Text><Text style={s.text}>{resource.data.address}</Text><Text style={s.muted}>Dirección de recogida: modifica desde administración web para conservar los datos de reparto.</Text><Button secondary title="Editar nombre y teléfono" onPress={() => setEditing(true)} /></Card>}<Button secondary title="Cerrar sesión" onPress={logout} /></>}</Page>;
+  return <Page resource={resource} form>{resource.data && <>{editing ? <RestaurantEditor restaurant={resource.data} done={async () => { await resource.refresh(); setEditing(false); }} /> : <Card><Text style={s.heading}>{resource.data.name}</Text><Text style={s.text}>{resource.data.phone}</Text><Text style={s.text}>{resource.data.address}</Text><Text style={s.muted}>Dirección de recogida: modifica desde administración web para conservar los datos de reparto.</Text><Button secondary title="Editar nombre y teléfono" onPress={() => setEditing(true)} /></Card>}<Button secondary title="Cerrar sesión" onPress={logout} /></>}</Page>;
 }
 function RestaurantEditor({ restaurant, done }) {
   const [name,setName] = useState(restaurant.name), [phone,setPhone] = useState(restaurant.phone || ""), [busy,setBusy] = useState(false), [error,setError] = useState("");
@@ -91,7 +96,10 @@ export function CreateOrder({ openOrder }) {
   }
   return <Page resource={resource}><Card><Text style={s.heading}>{customer.name}</Text><Text style={s.muted}>{customer.phone}</Text><Button secondary title="Cambiar cliente" onPress={() => setCustomer(null)} /></Card>
     <Text style={s.muted}>Clientes con pedidos previos en este restaurante. Nuevos clientes: alta desde administración web.</Text>
+    <Grid minWidth={360} maxColumns={2}><View style={{ gap: GRID_GAP }}>
     {products.map(product => <Card key={product.id}><Text style={s.text}>{product.name} · {money(product.price_cents)}</Text><View style={s.row}><Button secondary title="−" disabled={busy || !cart[product.id]} onPress={() => setCart(current => ({ ...current, [product.id]: Math.max(0, (current[product.id] || 0) - 1) }))} /><Text style={s.heading}>{cart[product.id] || 0}</Text><Button secondary title="+" disabled={busy || cart[product.id] >= 50} onPress={() => setCart(current => ({ ...current, [product.id]: (current[product.id] || 0) + 1 }))} /></View></Card>)}
+    </View><View style={{ gap: GRID_GAP }}><Card><Text style={s.heading}>Resumen del pedido</Text>{products.filter(product => cart[product.id] > 0).map(product => <Text key={product.id} style={s.text}>{cart[product.id]} × {product.name} · {money(cart[product.id] * product.price_cents)}</Text>)}{!subtotal && <Text style={s.muted}>Añade artículos para crear el pedido.</Text>}</Card>
     <Card>{[["Recogida en local", pickup,setPickup], ["Tarjeta al entregar",card,setCard], ["Pedido en mostrador",counter,setCounter]].map(([label,value,set]) => <View key={label} style={s.row}><Text style={[s.text,{flex:1}]}>{label}</Text><Switch accessibilityLabel={label} value={value} onValueChange={set} disabled={busy} /></View>)}<Text style={s.muted}>{pickup ? "Recogida sin gastos de reparto." : "Usa dirección guardada del cliente. El reparto se calcula al crear el pedido."}</Text><Text style={s.heading}>Artículos: {money(subtotal)}</Text></Card><Problem error={error} /><Button title={busy ? "Creando…" : "Crear pedido"} disabled={busy || subtotal === 0} onPress={submit} />
+    </View></Grid>
   </Page>;
 }
