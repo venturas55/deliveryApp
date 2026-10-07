@@ -5,32 +5,53 @@
   },
   "build": {
     "development": {
-        "developmentClient": true,
-        "distribution": "internal",
-        "env": {
-          "APP_VARIANT": "development",
-          "GOOGLE_IOS_CLIENT_ID": "42207435401-24td0lvmvr4gfkboab41hp9i4d35utgu.apps.googleusercontent.com"
-        }
-      },
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "development",
+        "GOOGLE_IOS_CLIENT_ID": "42207435401-24td0lvmvr4gfkboab41hp9i4d35utgu.apps.googleusercontent.com"
+      }
+    },
+
+    "play-development": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "development",
+        "GOOGLE_IOS_CLIENT_ID": "42207435401-24td0lvmvr4gfkboab41hp9i4d35utgu.apps.googleusercontent.com"
+      }
+    },
+
     "preview": {
       "distribution": "internal"
     },
+
     "production": {
       "autoIncrement": true
     },
+
     "admin-development": {
       "extends": "development",
-      "env": { "APP_TARGET": "admin" }
+      "env": {
+        "APP_TARGET": "admin"
+      }
     },
+
     "admin-preview": {
       "extends": "preview",
-      "env": { "APP_TARGET": "admin" }
+      "env": {
+        "APP_TARGET": "admin"
+      }
     },
+
     "admin-production": {
       "extends": "production",
-      "env": { "APP_TARGET": "admin" }
+      "env": {
+        "APP_TARGET": "admin"
+      }
     }
   },
+
   "submit": {
     "production": {}
   }
