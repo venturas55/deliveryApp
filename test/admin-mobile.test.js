@@ -31,7 +31,7 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
     const admin = await query("INSERT INTO admins(restaurant_id,email,password_hash) VALUES(?,?,?)", [restaurants[0], `${suffix}@example.invalid`, "not-used"]);
     const token = signAdmin({ id: Number(admin.insertId), restaurant_id: restaurants[1] }); // DB, not claimed restaurant, owns scope.
     for (let index = 0; index < 2; index++) {
-      const result = await query("INSERT INTO customers(name,email,phone) VALUES(?,?,?)", [`Customer ${index}`, `${index}-${suffix}@example.invalid`, `90000000${index}`]);
+      const result = await query("INSERT INTO customers(name,email,phone,delivery_address,delivery_formatted_address) VALUES(?,?,?,?,?)", [`Customer ${index}`, `${index}-${suffix}@example.invalid`, `90000000${index}`, `Address ${index}`, `Formatted address ${index}`]);
       customers.push(Number(result.insertId));
     }
     const product = await query("INSERT INTO products(restaurant_id,name,price_cents) VALUES(?,?,?)", [restaurants[0], "Mobile product", 1234]);
@@ -66,10 +66,10 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
     await request(`/orders/${orderIds[1]}/status`, { method: "PATCH", body: { status: "cancelled" }, status: 404 });
     const [untouched] = await query("SELECT status,payment_status FROM orders WHERE id=?", [orderIds[1]]);
     assert.equal(untouched.status, "new"); assert.equal(untouched.payment_status, "paid");
-    const customerList = await request("/customers"); assert.equal(customerList.length, 1); assert.equal(customerList[0].id, customers[0]);
+    const customerList = await request("/customers"); assert.equal(customerList.length, 1); assert.equal(customerList[0].id, customers[0]); assert.equal(customerList[0].delivery_address, "Address 0"); assert.equal(customerList[0].delivery_formatted_address, "Formatted address 0");
     assert.equal((await request("/customers?q=missing")).length, 0);
     await request(`/customers/${customers[1]}`, { status: 404 });
-    const detail = await request(`/customers/${customers[0]}`); assert.equal(detail.orders.length, 1); assert.equal(detail.password_hash, undefined);
+    const detail = await request(`/customers/${customers[0]}`); assert.equal(detail.orders.length, 1); assert.equal(detail.delivery_address, "Address 0"); assert.equal(detail.delivery_formatted_address, "Formatted address 0"); assert.equal(detail.password_hash, undefined);
     const restaurant = await request("/restaurant"); assert.deepEqual(Object.keys(restaurant).sort(), ["address", "city", "id", "name", "phone"]);
     await request("/restaurant", { method: "PATCH", body: { restaurant_id: restaurants[1], name: "intrusion" }, status: 400 });
     assert.equal((await request("/restaurant", { method: "PATCH", body: { name: "Mobile updated", phone: "900000000" } })).name, "Mobile updated");

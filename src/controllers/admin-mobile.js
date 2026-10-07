@@ -97,10 +97,10 @@ export async function customers(req, detail = false) {
     where = " AND (c.name LIKE ? OR c.email LIKE ? OR c.phone LIKE ?)";
     params.push(...Array(3).fill(`%${search.trim()}%`));
   }
-  const rows = await query(`SELECT c.id,c.name,c.email,c.phone,COUNT(*) AS total_orders,
+  const rows = await query(`SELECT c.id,c.name,c.email,c.phone,c.delivery_address,c.delivery_formatted_address,COUNT(*) AS total_orders,
     COALESCE(SUM(CASE WHEN o.status='delivered' AND o.payment_status<>'refunded' THEN o.total_cents ELSE 0 END),0) AS total_spent_cents
     FROM customers c JOIN orders o ON o.customer_id=c.id AND o.restaurant_id=?
-    WHERE 1=1${where} GROUP BY c.id,c.name,c.email,c.phone ORDER BY c.name,c.id LIMIT 100`, params);
+    WHERE 1=1${where} GROUP BY c.id,c.name,c.email,c.phone,c.delivery_address,c.delivery_formatted_address ORDER BY c.name,c.id LIMIT 100`, params);
   const result = rows.map(row => ({ ...row, total_orders: Number(row.total_orders), total_spent_cents: Number(row.total_spent_cents) }));
   if (!detail) return result;
   if (!result[0]) throw httpError(404, "Cliente no encontrado en este restaurante");
