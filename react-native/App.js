@@ -1,3 +1,4 @@
+import { useTheme, useThemedStyles, ThemeProvider, ThemeToggle } from "./src/shared/theme";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -36,7 +37,9 @@ import {
 
 const money = (cents) =>
   `${(Number(cents || 0) / 100).toFixed(2).replace(".", ",")} €`;
-const Button = ({ title, onPress, secondary = false, disabled = false }) => (
+const Button = ({ title, onPress, secondary = false, disabled = false }) => {
+  const styles = useThemedStyles(baseStyles);
+  return (
   <TouchableOpacity
     disabled={disabled}
     onPress={onPress}
@@ -51,26 +54,33 @@ const Button = ({ title, onPress, secondary = false, disabled = false }) => (
     </Text>
   </TouchableOpacity>
 );
+};
 const Field = ({
   value,
   onChangeText,
   placeholder,
   secureTextEntry,
   keyboardType,
-}) => (
+}) => {
+  const { color } = useTheme();
+  const styles = useThemedStyles(baseStyles);
+  return (
   <TextInput
     value={value}
     onChangeText={onChangeText}
     placeholder={placeholder}
-    placeholderTextColor="#817d75"
+    placeholderTextColor={color("#817d75", "placeholderTextColor")}
     secureTextEntry={secureTextEntry}
     keyboardType={keyboardType}
     autoCapitalize={keyboardType === "email-address" ? "none" : "sentences"}
     style={styles.input}
   />
 );
+};
 
 function ClientNavigator({ onAdminAccess }) {
+  const { color } = useTheme();
+  const styles = useThemedStyles(baseStyles);
   const [token, setToken] = useState(null),
     [profile, setProfile] = useState(null),
     [screen, setScreen] = useState("menu"),
@@ -435,7 +445,7 @@ console.log(
   if (loading)
     return (
       <SafeAreaView style={styles.center}>
-        <ActivityIndicator size="large" color="#9d3d24" />
+        <ActivityIndicator size="large" color={color("#9d3d24", "color")} />
       </SafeAreaView>
     );
   const nav = (
@@ -469,10 +479,11 @@ console.log(
   );
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" />
+
       <View style={styles.header}>
         <Text style={styles.brand}>{restaurant?.name || "Massa e fuoco Dev"}</Text>
         <Text style={styles.sub}>Pide tus pizzas favoritas.</Text>
+        <ThemeToggle />
         {!token && (
           <TouchableOpacity
             accessibilityRole="button"
@@ -758,7 +769,10 @@ console.log(
     </SafeAreaView>
   );
 }
-export default function App() {
+function AppContent() {
+  const { color } = useTheme();
+  const styles = useThemedStyles(baseStyles);
+  const { dark, ready } = useTheme();
   const adminOnly = Constants.expoConfig?.extra?.appTarget === "admin";
   const [mode, setMode] = useState(null);
   useEffect(() => {
@@ -776,9 +790,10 @@ export default function App() {
   }, [adminOnly]);
   return (
     <SafeAreaProvider>
-      {mode === null ? (
+      <StatusBar barStyle={dark ? "light-content" : "dark-content"} />
+      {!ready || mode === null ? (
         <SafeAreaView style={styles.center}>
-          <ActivityIndicator color="#9d3d24" />
+          <ActivityIndicator color={color("#9d3d24", "color")} />
         </SafeAreaView>
       ) : mode === "admin" ? (
         <AdminNavigator
@@ -806,9 +821,13 @@ function statusName(status) {
     }[status] || status
   );
 }
-const styles = StyleSheet.create({
+
+export default function App() {
+  return <ThemeProvider><AppContent /></ThemeProvider>;
+}
+const baseStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#f7f4ee" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  center: { backgroundColor: "#f7f4ee", flex: 1, alignItems: "center", justifyContent: "center" },
   header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14 },
   brand: { color: "#392d27", fontSize: 24, fontWeight: "800" },
   sub: { color: "#777067", marginTop: 3 },

@@ -1,3 +1,4 @@
+import { useTheme, useThemedStyles } from "./shared/theme";
 import React, {useEffect, useRef, useState} from "react";
 import {ActivityIndicator, AppState, Linking, Modal, SafeAreaView, ScrollView,
   StyleSheet, Text, TouchableOpacity, View} from "react-native";
@@ -19,13 +20,17 @@ const date = value => {
     day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
 };
 function Action({title,onPress,disabled,secondary}) {
+  const { color } = useTheme();
+  const s = useThemedStyles(baseStyles);
   return <TouchableOpacity accessibilityRole="button" disabled={disabled} onPress={onPress}
     style={[s.action,secondary && s.secondary,disabled && {opacity:0.5}]}>
-    <Text style={[s.actionText,secondary && {color:"#392d27"}]}>{title}</Text>
+    <Text style={[s.actionText,secondary && {color: color("#392d27", "color")}]}>{title}</Text>
   </TouchableOpacity>;
 }
 
 export default function OrdersPanel({token}) {
+  const { color } = useTheme();
+  const s = useThemedStyles(baseStyles);
   const [orders,setOrders]=useState([]),[tab,setTab]=useState("active"),
     [loading,setLoading]=useState(true),[selected,setSelected]=useState(null),
     [detail,setDetail]=useState(null),[error,setError]=useState(""),[busy,setBusy]=useState(false);
@@ -80,12 +85,12 @@ export default function OrdersPanel({token}) {
       {[["active","En curso",active.length],["history","Historial",history.length]].map(([key,label,count])=>
         <TouchableOpacity key={key} accessibilityRole="tab" accessibilityState={{selected:tab===key}}
           onPress={()=>setTab(key)} style={[s.tab,tab===key && s.tabSelected]}>
-          <Text style={[s.tabText,tab===key && {color:"#fff"}]}>{label} · {count}</Text>
+          <Text style={[s.tabText,tab===key && {color: color("#fff", "color")}]}>{label} · {count}</Text>
         </TouchableOpacity>)}
     </View>
     <Action title="Actualizar pedidos" onPress={refresh} secondary />
     {!selected && !!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-    {loading ? <ActivityIndicator style={{margin:24}} color="#9d3d24"/> : visible.length ? visible.map(order=>
+    {loading ? <ActivityIndicator style={{margin:24}} color={color("#9d3d24", "color")}/> : visible.length ? visible.map(order=>
       <TouchableOpacity key={String(order.id)} accessibilityRole="button"
         accessibilityLabel={`Ver pedido ${order.id}`} onPress={()=>open(order)} style={s.card}>
         <View style={s.line}><Text style={s.title}>Pedido #{order.id}</Text><Text style={s.title}>{money(order.total_cents)}</Text></View>
@@ -101,7 +106,7 @@ export default function OrdersPanel({token}) {
           <Action title="Cerrar" onPress={close} secondary/></View>
         <ScrollView contentContainerStyle={s.content}>
           {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-          {!detail ? <><ActivityIndicator color="#9d3d24"/><Action title="Reintentar" secondary onPress={refresh}/></> : <>
+          {!detail ? <><ActivityIndicator color={color("#9d3d24", "color")}/><Action title="Reintentar" secondary onPress={refresh}/></> : <>
             <Text style={s.badge}>{statuses[detail.status] || detail.status}</Text>
             <Text style={s.muted}>{date(detail.created_at)}</Text>
             <View style={s.card}><Text style={s.title}>Productos</Text>
@@ -134,7 +139,7 @@ export default function OrdersPanel({token}) {
   </>;
 }
 
-const s=StyleSheet.create({
+const baseStyles = StyleSheet.create({
   heading:{fontSize:24,fontWeight:"800",color:"#392d27"},title:{fontSize:16,fontWeight:"700",color:"#392d27"},
   muted:{color:"#777067",lineHeight:21,marginTop:6},tabs:{flexDirection:"row",backgroundColor:"#e9e3d9",borderRadius:14,padding:4,marginTop:20},
   tab:{flex:1,padding:12,borderRadius:11,alignItems:"center"},tabSelected:{backgroundColor:"#9d3d24"},tabText:{fontWeight:"700",color:"#716a61"},

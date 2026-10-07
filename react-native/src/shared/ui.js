@@ -1,3 +1,4 @@
+import { useTheme, useThemedStyles } from "./theme";
 import React from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -7,18 +8,24 @@ export const paymentName = value => ({ cash: "Efectivo", card_on_delivery: "Tarj
 export const paymentStatus = value => ({ pending: "Pendiente", paid: "Pagado", failed: "Fallido", cancelled: "Cancelado", refunded: "Reembolsado", refund_pending: "Devolución en curso" }[value] || value);
 
 export function Button({ title, onPress, disabled, secondary, danger }) {
+  const { color } = useTheme();
+  const s = useThemedStyles(baseStyles);
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress}
     style={({ pressed }) => [s.button, secondary && s.secondary, danger && s.danger, (disabled || pressed) && { opacity: .55 }]}>
-    <Text style={[s.buttonText, secondary && { color: "#713923" }]}>{title}</Text>
+    <Text style={[s.buttonText, secondary && { color: color("#713923", "color") }]}>{title}</Text>
   </Pressable>;
 }
 export function Field({ label, ...props }) {
-  return <View style={{ marginBottom: 12 }}><Text style={s.label}>{label}</Text><TextInput accessibilityLabel={label} placeholderTextColor="#78716c" style={s.input} {...props} /></View>;
+  const { color } = useTheme();
+  const s = useThemedStyles(baseStyles);
+  return <View style={{ marginBottom: 12 }}><Text style={s.label}>{label}</Text><TextInput accessibilityLabel={label} placeholderTextColor={color("#78716c", "placeholderTextColor")} style={s.input} {...props} /></View>;
 }
 export function Card({ children, onPress }) {
+  const { color } = useTheme();
+  const s = useThemedStyles(baseStyles);
   return onPress ? <Pressable accessibilityRole="button" onPress={onPress} style={s.card}>{children}</Pressable> : <View style={s.card}>{children}</View>;
 }
-export const s = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#f7f4ee" },
   content: { padding: 18, paddingBottom: 32, gap: 12 },
   responsiveContent: { width: "100%", maxWidth: 1120, alignSelf: "center" },
@@ -41,3 +48,5 @@ export const s = StyleSheet.create({
   chip: { paddingHorizontal: 14, paddingVertical: 12, minHeight: 48, justifyContent: "center", borderRadius: 24, backgroundColor: "#efe7db" },
   chipActive: { backgroundColor: "#392d27" },
 });
+
+export function useStyles() { return useThemedStyles(baseStyles); }

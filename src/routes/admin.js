@@ -3,6 +3,8 @@ import {auth} from "../auth.js";
 import {query} from "../db.js";
 import * as operations from "../controllers/admin.js";
 import * as mobile from "../controllers/admin-mobile.js";
+import * as customerMail from "../controllers/admin-broadcast.js";
+import multer from "multer";
 import { orderNotificationSnapshot } from "../services/order-notifications.js";
 import { httpError } from "../services/http-error.js";
 import {
@@ -15,6 +17,22 @@ adminApiRoutes.use((req,res,next)=>{res.set("Cache-Control","no-store");next();}
 adminApiRoutes.get("/dashboard",async(req,res)=>res.json(await mobile.summary(req)));
 adminApiRoutes.get("/stats",async(req,res)=>res.json(await mobile.statistics(req)));
 adminApiRoutes.get("/customers",async(req,res)=>res.json(await mobile.customers(req)));
+const emailUpload = multer({ storage: multer.memoryStorage(), limits: {
+  fileSize: 5 * 1024 * 1024, files: 1, fields: 3, fieldSize: 50 * 1024,
+} }).single("image");
+function parseEmailUpload(req, res, next) {
+  emailUpload(req, res, error => next(error ? httpError(400,
+    error.code === "LIMIT_FILE_SIZE" ? "La imagen no puede superar 5 MB." : "Adjunto o formulario no válido.") : undefined));
+}
+adminApiRoutes.get("/customers/email/recipients", async(req,res) =>
+  res.json({ total: await customerMail.countBroadcastRecipients(req.user.restaurant_id) }));
+adminApiRoutes.post("/customers/email", parseEmailUpload, async(req,res) =>
+  res.json(await customerMail.sendCustomerBroadcast(req.body, req.file, req.user.restaurant_id)));
+adminApiRoutes.post("/customers/:id/email", async(req,res,next) => {
+  req.emailCustomer = await mobile.customers(req, true);
+  next();
+}, parseEmailUpload, async(req,res) =>
+  res.json(await customerMail.sendCustomerEmail(req.emailCustomer, req.body, req.file)));
 adminApiRoutes.get("/customers/:id",async(req,res)=>res.json(await mobile.customers(req,true)));
 adminApiRoutes.get("/restaurant",async(req,res)=>res.json(await mobile.restaurant(req)));
 adminApiRoutes.patch("/restaurant",async(req,res)=>res.json(await mobile.updateRestaurant(req)));

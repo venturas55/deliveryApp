@@ -7,6 +7,7 @@ export default function useAdminData(path, interval = 0) {
   const [data, setData] = useState(null), [error, setError] = useState(""), [loading, setLoading] = useState(false);
   const controller = useRef(null), generation = useRef(0);
   const refresh = useCallback(async () => {
+    if (!path) return;
     controller.current?.abort();
     const request = new AbortController(), current = ++generation.current;
     controller.current = request;
@@ -21,6 +22,7 @@ export default function useAdminData(path, interval = 0) {
   }, [path]);
   useEffect(() => {
     setData(null);
+    if (!path) return;
     refresh();
     const listener = AppState.addEventListener("change", state => {
       if (state === "active") refresh();

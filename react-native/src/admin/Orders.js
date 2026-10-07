@@ -1,6 +1,7 @@
+import { useTheme } from "../shared/theme";
 import React, { useState } from "react";
 import { Alert, FlatList, Linking, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
-import { Button, Card, date, money, paymentName, paymentStatus, s } from "../shared/ui";
+import { Button, Card, date, money, paymentName, paymentStatus, useStyles } from "../shared/ui";
 import useAdminData from "./useAdminData";
 import { orderPath, write } from "./api";
 import { Grid, GRID_GAP, useContentLayout } from "../shared/layout";
@@ -9,30 +10,34 @@ const filters = [["new", "Nuevos"], ["accepted", "Aceptados"], ["preparing", "Pr
 const colors = { new: "#923a25", accepted: "#275c91", preparing: "#865e13", ready: "#276944", out_for_delivery: "#62418c", cancelled: "#8b2c2c" };
 
 export function OrderCard({ order, onPress }) {
+  const { color } = useTheme();
+  const s = useStyles();
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000));
   return <Card onPress={onPress}>
     <View style={s.row}><Text style={s.heading}>#{order.id}</Text><Text style={s.heading}>{money(order.total_cents)}</Text></View>
     <Text style={s.text}>{order.customer_name}</Text>
-    <Text style={[s.label, { color: colors[order.status] || "#53483e" }]}>{order.statusLabel}</Text>
+    <Text style={[s.label, { color: color(colors[order.status] || "#53483e") }]}>{order.statusLabel}</Text>
     <Text style={s.muted}>{order.delivery_method === "pickup" ? "Recogida" : "Reparto"} · {paymentName(order.payment_method)} · {paymentStatus(order.payment_status)}</Text>
     <Text style={s.muted}>{date(order.created_at)} · {order.status === "delivered" || order.status === "cancelled" ? "Finalizado" : `${minutes} min transcurridos`}</Text>
   </Card>;
 }
 
 export function Orders({ openOrder, initialStatus = "new" }) {
+  const { color } = useTheme();
+  const s = useStyles();
   const { columns, itemWidth } = useContentLayout(320, 2);
   const [status, setStatus] = useState(initialStatus), [before, setBefore] = useState(""), [delivery, setDelivery] = useState("all");
   const { data, loading, error, refresh } = useAdminData(`/orders?view=mobile&filter=all&status=${status}&delivery_method=${delivery}${before ? `&before_id=${before}` : ""}`, ["delivered", "cancelled"].includes(status) || before ? 0 : 15000);
   const changeStatus = value => { setBefore(""); setStatus(value); };
   return <View style={{ flex: 1 }}>
     <View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, padding: 14 }}>
-      {filters.map(([key,label]) => <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: status === key }} onPress={() => changeStatus(key)} style={[s.chip, status === key && s.chipActive]}><Text style={{ color: status === key ? "white" : "#392d27" }}>{label}</Text></Pressable>)}
+      {filters.map(([key,label]) => <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: status === key }} onPress={() => changeStatus(key)} style={[s.chip, status === key && s.chipActive]}><Text style={{ color: status === key ? "white" : color("#392d27") }}>{label}</Text></Pressable>)}
     </ScrollView></View>
-    <View style={[s.wrap, { paddingHorizontal: 18, marginBottom: 8 }]}>{[["all", "Todos"], ["pickup", "Recogida"], ["delivery", "Reparto"]].map(([key,label]) => <Pressable accessibilityRole="button" key={key} onPress={() => { setDelivery(key); setBefore(""); }} style={[s.chip, delivery === key && s.chipActive]}><Text style={{ color: delivery === key ? "white" : "#392d27" }}>{label}</Text></Pressable>)}</View>
+    <View style={[s.wrap, { paddingHorizontal: 18, marginBottom: 8 }]}>{[["all", "Todos"], ["pickup", "Recogida"], ["delivery", "Reparto"]].map(([key,label]) => <Pressable accessibilityRole="button" key={key} onPress={() => { setDelivery(key); setBefore(""); }} style={[s.chip, delivery === key && s.chipActive]}><Text style={{ color: delivery === key ? "white" : color("#392d27") }}>{label}</Text></Pressable>)}</View>
     {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
     <FlatList key={columns} numColumns={columns} columnWrapperStyle={columns > 1 ? { gap: GRID_GAP } : undefined}
       data={data || []} keyExtractor={item => String(item.id)} contentContainerStyle={[s.content, s.responsiveContent]}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#923a25" />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={color("#923a25", "tintColor")} />}
       renderItem={({ item }) => <View style={{ width: columns === 1 ? "100%" : itemWidth }}><OrderCard order={item} onPress={() => openOrder(item.id)} /></View>}
       ListEmptyComponent={!loading && !error ? <Text style={s.muted}>Sin pedidos en este estado.</Text> : null}
       ListFooterComponent={<View>{data?.length === 200 && <Button secondary title="Pedidos anteriores" onPress={() => setBefore(String(data[data.length - 1].id))} />}{before && <Button secondary title="Volver a los recientes" onPress={() => setBefore("")} />}</View>} />
@@ -40,6 +45,8 @@ export function Orders({ openOrder, initialStatus = "new" }) {
 }
 
 export function OrderDetail({ id }) {
+  const { color } = useTheme();
+  const s = useStyles();
   const { data: order, error, loading, refresh } = useAdminData(`${orderPath(id)}?view=mobile`, 15000);
   const [busy, setBusy] = useState(false), [problem, setProblem] = useState(""), [quotes, setQuotes] = useState([]);
   async function action(path, body = {}, method = "POST") {

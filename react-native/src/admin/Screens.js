@@ -1,20 +1,28 @@
+import { useTheme } from "../shared/theme";
 import React, { useEffect, useRef, useState } from "react";
 import { FlatList, Image, Pressable, RefreshControl, ScrollView, Switch, Text, View } from "react-native";
-import { Button, Card, Field, money, s } from "../shared/ui";
+import { Button, Card, Field, money, useStyles } from "../shared/ui";
 import { OrderCard } from "./Orders";
 import useAdminData from "./useAdminData";
 import { write } from "./api";
 import { Grid, GRID_GAP, useContentLayout } from "../shared/layout";
 import { productImageUrl } from "../config";
+import CustomerEmail from "./CustomerEmail";
 
-function Problem({ error }) { return error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null; }
+function Problem({ error }) {
+  const { color } = useTheme();
+  const s = useStyles(); return error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null; }
 function Page({ resource, children, form = false, scrollRef, onScroll }) {
+  const { color } = useTheme();
+  const s = useStyles();
   return <ScrollView ref={scrollRef} onScroll={onScroll} scrollEventThrottle={100} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.content, s.responsiveContent, form && s.form]} refreshControl={<RefreshControl refreshing={resource.loading} onRefresh={resource.refresh} />}>
     <Problem error={resource.error} />{!resource.data && resource.loading ? <Text style={s.muted}>Cargando…</Text> : children}
   </ScrollView>;
 }
 
 export function Dashboard({ navigate }) {
+  const { color } = useTheme();
+  const s = useStyles();
   const resource = useAdminData("/dashboard", 30000), data = resource.data;
   return <Page resource={resource}>{data && <>
     <Text style={s.heading}>Hoy</Text><Card><Text style={s.title}>{money(data.today.sales_cents)}</Text><Text style={s.muted}>{data.today.orders} pedidos · importe no cancelado ni reembolsado; puede incluir pagos pendientes</Text></Card>
@@ -28,11 +36,19 @@ export function Dashboard({ navigate }) {
 }
 
 export function Customers({ openCustomer, selectCustomer }) {
+  const { color } = useTheme();
+  const s = useStyles();
   const { columns, itemWidth } = useContentLayout();
   const [search, setSearch] = useState(""), [query, setQuery] = useState("");
+  const [emailOpen, setEmailOpen] = useState(false);
   useEffect(() => { const timer = setTimeout(() => setQuery(search), 350); return () => clearTimeout(timer); }, [search]);
   const resource = useAdminData(`/customers?q=${encodeURIComponent(query)}`);
-  return <View style={{ flex: 1 }}><View style={[s.form, { padding: 18 }]}><Field label="Buscar nombre, teléfono o email" value={search} onChangeText={setSearch} /></View><Problem error={resource.error} />
+  return <View style={{ flex: 1 }}>
+    {emailOpen && <CustomerEmail close={() => setEmailOpen(false)} />}
+    <View style={[s.form, { padding: 18 }]}>
+      {!selectCustomer && <Button title="Nueva comunicación" onPress={() => setEmailOpen(true)} />}
+      <Field label="Buscar nombre, teléfono o email" value={search} onChangeText={setSearch} />
+    </View><Problem error={resource.error} />
     <FlatList key={columns} numColumns={columns} columnWrapperStyle={columns > 1 ? { gap: GRID_GAP } : undefined}
       data={resource.data || []} keyExtractor={item => String(item.id)} contentContainerStyle={[s.content, s.responsiveContent]}
       refreshControl={<RefreshControl refreshing={resource.loading} onRefresh={resource.refresh} />}
@@ -43,11 +59,18 @@ export function Customers({ openCustomer, selectCustomer }) {
 }
 
 export function CustomerDetail({ id, openOrder }) {
+  const { color } = useTheme();
+  const s = useStyles();
   const resource = useAdminData(`/customers/${encodeURIComponent(id)}`), customer = resource.data;
-  return <Page resource={resource}>{customer && <><Card><Text style={s.heading}>{customer.name}</Text><Text style={s.text}>{customer.phone}</Text><Text style={s.text}>{customer.email}</Text><Text style={s.text}>{customer.total_orders} pedidos · {money(customer.total_spent_cents)} entregados</Text></Card><Text style={s.heading}>Historial del restaurante</Text><Grid maxColumns={2}>{customer.orders.map(order => <OrderCard key={String(order.id)} order={order} onPress={() => openOrder(order.id)} />)}</Grid>{customer.orders.length === 200 && <Text style={s.muted}>Últimos 200 pedidos. Consulta anteriores desde Pedidos.</Text>}</>}</Page>;
+  const [emailOpen, setEmailOpen] = useState(false);
+  return <Page resource={resource}>{customer && <>
+    {emailOpen && <CustomerEmail customer={customer} close={() => setEmailOpen(false)} />}
+    <Button title="Enviar correo" disabled={!customer.email?.trim()} onPress={() => setEmailOpen(true)} /><Card><Text style={s.heading}>{customer.name}</Text><Text style={s.text}>{customer.phone}</Text><Text style={s.text}>{customer.email}</Text><Text style={s.text}>{customer.total_orders} pedidos · {money(customer.total_spent_cents)} entregados</Text></Card><Text style={s.heading}>Historial del restaurante</Text><Grid maxColumns={2}>{customer.orders.map(order => <OrderCard key={String(order.id)} order={order} onPress={() => openOrder(order.id)} />)}</Grid>{customer.orders.length === 200 && <Text style={s.muted}>Últimos 200 pedidos. Consulta anteriores desde Pedidos.</Text>}</>}</Page>;
 }
 
 export function Products() {
+  const { color } = useTheme();
+  const s = useStyles();
   const resource = useAdminData("/products"), [editing, setEditing] = useState(null), [busy, setBusy] = useState(false), [error, setError] = useState("");
   async function update(id, body) {
     setBusy(true); setError("");
@@ -60,6 +83,8 @@ export function Products() {
     <Text style={s.heading}>{product.name}</Text><Text style={s.muted}>{product.category} · {money(product.price_cents)}</Text><View style={s.row}><Text style={s.text}>{Number(product.active) ? "Disponible" : "Agotado"}</Text><Switch accessibilityLabel={`Disponibilidad de ${product.name}`} disabled={busy} value={!!Number(product.active)} onValueChange={value => update(product.id, { active: Number(value) })} /></View><Button secondary title="Editar artículo" disabled={busy} onPress={() => setEditing(product)} /></Card>)}</Grid>}{resource.data?.length === 0 && <Text style={s.muted}>Sin artículos.</Text>}</Page>;
 }
 function ProductEditor({ product, save, cancel, busy }) {
+  const { color } = useTheme();
+  const s = useStyles();
   const [name, setName] = useState(product.name), [price, setPrice] = useState((product.price_cents / 100).toFixed(2)), [category, setCategory] = useState(product.category), [description, setDescription] = useState(product.description || ""), [imageUrl, setImageUrl] = useState(product.image_url || ""), [error, setError] = useState("");
   function submit() {
     if (!/^\d+([.,]\d{1,2})?$/.test(price)) { setError("Precio no válido"); return; }
@@ -70,6 +95,8 @@ function ProductEditor({ product, save, cancel, busy }) {
 }
 
 export function Statistics() {
+  const { color } = useTheme();
+  const s = useStyles();
   const resource = useAdminData("/stats"), data = resource.data;
   const [selectedDay, setSelectedDay] = useState("");
   const [hourlyMode, setHourlyMode] = useState("day");
@@ -101,10 +128,10 @@ export function Statistics() {
           const height = Math.max(day.total ? 6 : 2, day.total / dailyMax * 106);
           return <Pressable key={day.day} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${day.label}: ${day.total} pedidos`} onPress={() => setSelectedDay(day.day)} style={{ width: 48, alignItems: "center", gap: 5 }}>
             <Text style={[s.muted, { marginTop: 0 }]}>{day.total}</Text>
-            <View style={{ height: 110, width: 26, justifyContent: "flex-end", backgroundColor: "#f4eee5", borderRadius: 7, overflow: "hidden" }}>
+            <View style={{ height: 110, width: 26, justifyContent: "flex-end", backgroundColor: color("#f4eee5", "backgroundColor"), borderRadius: 7, overflow: "hidden" }}>
               <View style={{ height, backgroundColor: active ? "#923a25" : "#bd8a68", borderRadius: 7 }} />
             </View>
-            <Text style={[s.muted, active && { color: "#923a25", fontWeight: "700" }, { marginTop: 0 }]}>{day.label}</Text>
+            <Text style={[s.muted, active && { color: color("#923a25", "color"), fontWeight: "700" }, { marginTop: 0 }]}>{day.label}</Text>
           </Pressable>;
         })}
       </ScrollView>
@@ -124,8 +151,8 @@ export function Statistics() {
             const height = hour.total ? Math.max(5, hour.total / hourlyMax * 104) : 2;
             return <View key={hour.label} accessibilityLabel={`${interval}: ${hour.total} pedidos`} style={{ width: 46, alignItems: "center", gap: 5 }}>
               <Text style={[s.muted, { marginTop: 0 }]}>{hour.total}</Text>
-              <View style={{ height: 108, width: 28, justifyContent: "flex-end", backgroundColor: "#f4eee5", borderRadius: 7, overflow: "hidden" }}>
-                <View style={{ height, backgroundColor: "#923a25", borderRadius: 7 }} />
+              <View style={{ height: 108, width: 28, justifyContent: "flex-end", backgroundColor: color("#f4eee5", "backgroundColor"), borderRadius: 7, overflow: "hidden" }}>
+                <View style={{ height, backgroundColor: color("#923a25", "backgroundColor"), borderRadius: 7 }} />
               </View>
               <Text style={[s.muted, { marginTop: 0 }]}>{String(hourNumber).padStart(2, "0")}</Text>
             </View>;
@@ -135,7 +162,7 @@ export function Statistics() {
       </>}
     </Card>
     <Card><Text style={s.heading}>Clientes que más han gastado</Text><Text style={s.muted}>Histórico · pedidos entregados, sin reembolsos</Text>
-      {customers.length ? customers.map(customer => <View key={customer.id} style={[s.row, { justifyContent: "flex-start", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#e6ded3" }]}>
+      {customers.length ? customers.map(customer => <View key={customer.id} style={[s.row, { justifyContent: "flex-start", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: color("#e6ded3", "borderBottomColor") }]}>
         <Text style={[s.heading, { width: 36, marginBottom: 0 }]}>{customer.rank}.</Text>
         <View style={{ flex: 1 }}><Text style={s.text}>{customer.name}</Text><Text style={s.muted}>{customer.total_orders} pedidos{customer.phone ? ` · ${customer.phone}` : ""}</Text></View>
         <Text style={[s.text, { fontWeight: "700" }]}>{money(customer.total_spent_cents)}</Text>
@@ -145,16 +172,22 @@ export function Statistics() {
 }
 
 export function Settings({ logout }) {
+  const { color } = useTheme();
+  const s = useStyles();
   const resource = useAdminData("/restaurant"), [editing, setEditing] = useState(false);
   return <Page resource={resource} form>{resource.data && <>{editing ? <RestaurantEditor restaurant={resource.data} done={async () => { await resource.refresh(); setEditing(false); }} /> : <Card><Text style={s.heading}>{resource.data.name}</Text><Text style={s.text}>{resource.data.phone}</Text><Text style={s.text}>{resource.data.address}</Text><Text style={s.muted}>Dirección de recogida: modifica desde administración web para conservar los datos de reparto.</Text><Button secondary title="Editar nombre y teléfono" onPress={() => setEditing(true)} /></Card>}<Button secondary title="Cerrar sesión" onPress={logout} /></>}</Page>;
 }
 function RestaurantEditor({ restaurant, done }) {
+  const { color } = useTheme();
+  const s = useStyles();
   const [name,setName] = useState(restaurant.name), [phone,setPhone] = useState(restaurant.phone || ""), [busy,setBusy] = useState(false), [error,setError] = useState("");
   async function save() { setBusy(true); try { await write("/restaurant", { name, phone }, "PATCH"); await done(); } catch (failure) { setError(failure.message); } finally { setBusy(false); } }
   return <Card><Field label="Nombre del restaurante" value={name} onChangeText={setName} maxLength={150} /><Field label="Teléfono" value={phone} onChangeText={setPhone} maxLength={40} keyboardType="phone-pad" /><Problem error={error} /><Button title="Guardar" disabled={busy} onPress={save} /><Button secondary title="Volver" disabled={busy} onPress={done} /></Card>;
 }
 
 export function CreateOrder({ openOrder }) {
+  const { color } = useTheme();
+  const s = useStyles();
   const [customer, setCustomer] = useState(null), [cart, setCart] = useState({}), [pickup, setPickup] = useState(true), [card, setCard] = useState(false), [counter, setCounter] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(""), [activeCategory, setActiveCategory] = useState("");
   const resource = useAdminData("/products");
   const products = (resource.data || []).filter(product => Number(product.active));
