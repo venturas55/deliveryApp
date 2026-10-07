@@ -35,7 +35,7 @@ const customerEmailUpload = multer({
   fileFilter: (req, file, cb) => {
     if (["image/jpeg", "image/png", "image/gif"].includes(file.mimetype))
       return cb(null, true);
-    cb(httpError(400, "Selecciona una imagen JPEG, PNG o GIF válida."));
+    cb(httpError(400, "ERROR MULTER: tipo de imagen no admitido."));
   },
 }).single("image");
 function parseCustomerEmail(req, res, next) {

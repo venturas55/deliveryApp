@@ -13,7 +13,7 @@ export function customerEmailContent(text, image, websiteUrl = process.env.PUBLI
   if (image) {
     const type = imageTypes.get(image.mimetype);
     if (!type || !Buffer.isBuffer(image.buffer) || !type.matches(image.buffer)) {
-      throw httpError(400, "Selecciona una imagen JPEG, PNG o GIF válida.");
+      throw httpError(400, "ERROR BUFFER: el contenido de la imagen no es válido.");
     }
     if (image.buffer.length > 5 * 1024 * 1024) {
       throw httpError(400, "La imagen no puede superar 5 MB.");
