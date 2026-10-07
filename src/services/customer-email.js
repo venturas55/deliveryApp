@@ -45,49 +45,25 @@ export function customerEmailContent(
     html: `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto"><p>${escaped.replace(/\r\n|\r|\n/g, "<br>")}</p>`,
   };
   if (image) {
-    const type = imageTypes.get(image.mimetype);
+    if (!Buffer.isBuffer(image.buffer)) {
+      throw httpError(400, "La imagen recibida no es válida.");
+    }
 
-    console.log("=== DEBUG IMAGEN ===");
-    console.log("mimetype:", image.mimetype);
-    console.log("type encontrado:", !!type);
-    console.log("buffer existe:", !!image.buffer);
-    console.log("es Buffer:", Buffer.isBuffer(image.buffer));
-    console.log("buffer length:", image.buffer?.length);
-    console.log(
-      "matches:",
-      type && Buffer.isBuffer(image.buffer)
-        ? type.matches(image.buffer)
-        : "NO COMPROBADO",
+    const detected = [...imageTypes.entries()].find(([, config]) =>
+      config.matches(image.buffer),
     );
-    if (
-      !type ||
-      !Buffer.isBuffer(image.buffer) ||
-      !type.matches(image.buffer)
-    ) {
-      throw httpError(
-        400,
-        "ERROR BUFFER: el contenido de la imagen no es válido.",
-      );
+
+    if (!detected) {
+      throw httpError(400, "Selecciona una imagen JPEG, PNG o GIF válida.");
     }
-    if (image.buffer.length > 5 * 1024 * 1024) {
-      throw httpError(400, "La imagen no puede superar 5 MB.");
-    }
-    content.attachments = [
-      {
-        filename: `promocion.${type.extension}`,
-        content: image.buffer,
-        contentType: image.mimetype,
-        cid: "promotion-flyer@delivery",
-        contentDisposition: "inline",
-      },
-    ];
-    const origin = publicOrigin(websiteUrl);
-    if (!origin)
-      throw httpError(
-        503,
-        "Configura PUBLIC_URL con el origen público de la web para enlazar la imagen.",
-      );
-    content.html += `<a href="${origin}/" target="_blank" rel="noopener noreferrer"><img src="cid:promotion-flyer@delivery" alt="Flyer de promoción: visitar la web" style="display:block;width:100%;max-width:640px;height:auto;border:0"></a>`;
+
+    const [mimeType, type] = detected;
+
+    console.log("Tipo declarado:", image.mimetype);
+    console.log("Tipo detectado:", mimeType);
+
+    // A partir de aquí usamos el tipo REAL detectado por los bytes
+    image.mimetype = mimeType;
   }
   content.html += "</div>";
   return content;

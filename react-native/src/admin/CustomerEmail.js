@@ -101,8 +101,10 @@ export default function CustomerEmail({ customer, close }) {
           body.append("image", image.file, image.name);
         } else {
           const response = await fetch(image.uri);
-          const blob = await response.blob();
-
+          const rawBlob = await response.blob();
+          const blob = new Blob([rawBlob], {
+            type: image.mimeType || "image/jpeg",
+          });
           body.append("image", blob, image.name || "image.jpg");
         }
       }
