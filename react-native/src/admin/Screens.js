@@ -222,8 +222,6 @@ export function CustomerDetail({ id, openOrder }) {
             <Text style={s.heading}>{customer.name}</Text>
             <Text style={s.text}>{customer.phone}</Text>
             <Text style={s.text}>{customer.email}</Text>
-            <Text style={s.muted}>DA:{customer.delivery_address}</Text>
-            {console.log("DA:", customer.delivery_address)}
             {customer.delivery_formatted_address ||
             customer.delivery_address ? (
               <Text style={s.text}>
@@ -828,8 +826,7 @@ export function CreateOrder({ openOrder }) {
     >
       <Card>
         <Text style={s.heading}>{customer.name}</Text>
-        <Text style={s.muted}>{customer.phone}</Text>
-        <Text style={s.muted}>DA:{customer.delivery_address}</Text>
+        <Text style={s.muted}>{customer.phone} - {customer.email}</Text>
         {customer.delivery_formatted_address || customer.delivery_address ? (
           <Text style={s.muted}>
             Dirección de entrega:{" "}
