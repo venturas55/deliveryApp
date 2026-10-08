@@ -325,7 +325,7 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
           >
             <View style={{ padding: 18 }}>
               <Text style={s.heading}>Massa e fuoco</Text>
-              <Text style={s.muted}>Restaurantee</Text>
+              <Text style={s.muted}>Restaurante</Text>
               <RestaurantLogo />
             </View>
             <Navigation current={current} navigate={navigate} sidebar />
