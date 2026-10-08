@@ -1,3 +1,5 @@
+import { searchAddresses } from "../services/geocoding.js";
+import { rateLimit } from "express-rate-limit";
 import {Router} from "express";
 import {auth} from "../auth.js";
 import {query} from "../db.js";
@@ -34,6 +36,10 @@ adminApiRoutes.post("/customers/:id/email", async(req,res,next) => {
 }, parseEmailUpload, async(req,res) =>
   res.json(await customerMail.sendCustomerEmail(req.emailCustomer, req.body, req.file)));
 adminApiRoutes.get("/customers/:id",async(req,res)=>res.json(await mobile.customers(req,true)));
+adminApiRoutes.get("/address-search", rateLimit({ windowMs: 60000, limit: 30 }), async(req,res) => {
+  try { res.json(await searchAddresses(req.query.q)); }
+  catch { throw httpError(502, "No se pudo consultar el buscador de direcciones"); }
+});
 adminApiRoutes.get("/restaurant",async(req,res)=>res.json(await mobile.restaurant(req)));
 adminApiRoutes.patch("/restaurant",async(req,res)=>res.json(await mobile.updateRestaurant(req)));
 adminApiRoutes.get("/order-notifications",async(req,res)=>{

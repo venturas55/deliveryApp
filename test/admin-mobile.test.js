@@ -70,9 +70,15 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
     assert.equal((await request("/customers?q=missing")).length, 0);
     await request(`/customers/${customers[1]}`, { status: 404 });
     const detail = await request(`/customers/${customers[0]}`); assert.equal(detail.orders.length, 1); assert.equal(detail.delivery_address, "Address 0"); assert.equal(detail.delivery_formatted_address, "Formatted address 0"); assert.equal(detail.password_hash, undefined);
-    const restaurant = await request("/restaurant"); assert.deepEqual(Object.keys(restaurant).sort(), ["address", "city", "id", "name", "phone"]);
+    const restaurant = await request("/restaurant"); assert.ok(restaurant.slug); assert.ok("legal_email" in restaurant); assert.ok("delivery_base_cents" in restaurant);
     await request("/restaurant", { method: "PATCH", body: { restaurant_id: restaurants[1], name: "intrusion" }, status: 400 });
     assert.equal((await request("/restaurant", { method: "PATCH", body: { name: "Mobile updated", phone: "900000000" } })).name, "Mobile updated");
+    const settings = await request("/restaurant", { method: "PATCH", body: { legal_name: "Legal owner", legal_email: "legal@example.invalid", tax_id: "B12345678", legal_address: "", legal_registration: "", delivery_base_cents: "3,25", free_delivery_from_cents: "30.00" } });
+    assert.equal(settings.delivery_base_cents, 325); assert.equal(settings.free_delivery_from_cents, 3000); assert.equal(settings.legal_name, "Legal owner");
+    await request("/restaurant", { method: "PATCH", body: { legal_email: "bad-email" }, status: 400 });
+    await request("/restaurant", { method: "PATCH", body: { delivery_base_cents: "-1" }, status: 400 });
+    await request("/restaurant", { method: "PATCH", body: { address: "unverified" }, status: 400 });
+    await request("/restaurant", { method: "PATCH", body: { delivery_address_data: { formatted_address: "Invalid" } }, status: 400 });
     const [other] = await query("SELECT name FROM restaurants WHERE id=?", [restaurants[1]]); assert.equal(other.name, "Mobile 1");
     const order = await request("/orders", { method: "POST", status: 201, body: { restaurant_id: restaurants[1], customer_id: customers[0], channel: "telephone", delivery_method: "pickup", payment_method: "cash", total_cents: 1, items: [{ product_id: productId, quantity: 2 }] } });
     assert.equal(order.total_cents, 2468); assert.equal(order.items[0].quantity, 2);

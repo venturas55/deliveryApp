@@ -4,7 +4,8 @@ import { httpError } from "../services/http-error.js";
 import { presentOrder } from "../services/order-presenter.js";
 
 const pick = (row, fields) => Object.fromEntries(fields.map(key => [key, row[key] ?? null]));
-const restaurantFields = ["id", "name", "phone", "address", "city"];
+const editableRestaurantFields = ["name", "phone", "slug", "legal_name", "tax_id", "legal_address", "legal_email", "legal_registration", "delivery_base_cents", "free_delivery_from_cents", "delivery_address_data"];
+const restaurantFields = ["id", "name", "phone", "address", "city", "slug", "created_at", "delivery_city", "delivery_number", "legal_name", "tax_id", "legal_address", "legal_email", "legal_registration", "delivery_base_cents", "free_delivery_from_cents"];
 const orderFields = ["id", "customer_id", "customer_name", "customer_phone", "delivery_address", "delivery_notes", "delivery_apartment", "delivery_patio", "payment_method", "payment_status", "delivery_method", "sales_channel", "status", "subtotal_cents", "discount_cents", "delivery_cents", "total_cents", "provider", "provider_status", "created_at", "updated_at", "paid_at"];
 
 export function mobileOrder(row) {
@@ -28,9 +29,9 @@ export async function restaurant(req) {
 export async function updateRestaurant(req) {
   const body = req.body;
   if (!body || typeof body !== "object" || Array.isArray(body) ||
-      Object.keys(body).some(key => !["name", "phone"].includes(key)))
-    throw httpError(400, "Solo se permite editar nombre y teléfono");
-  // Reuse existing server validation; address affects delivery and stays in the web editor.
+      !Object.keys(body).length || Object.keys(body).some(key => !editableRestaurantFields.includes(key)))
+    throw httpError(400, "Campos de configuración no permitidos");
+  // Reuse the web configuration validation, including structured delivery addresses.
   await admin.updateAdminConfigs(req);
   return restaurant(req);
 }

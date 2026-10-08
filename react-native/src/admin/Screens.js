@@ -13,7 +13,7 @@ import {
 import { Button, Card, Field, money, useStyles } from "../shared/ui";
 import { OrderCard } from "./Orders";
 import useAdminData from "./useAdminData";
-import { write } from "./api";
+import { adminApi, write } from "./api";
 import { Grid, GRID_GAP, useContentLayout } from "../shared/layout";
 import { productImageUrl } from "../config";
 import CustomerEmail from "./CustomerEmail";
@@ -670,82 +670,111 @@ export function Statistics() {
 }
 
 export function Settings({ logout }) {
-  const { color } = useTheme();
-  const s = useStyles();
-  const resource = useAdminData("/restaurant"),
-    [editing, setEditing] = useState(false);
+  const resource = useAdminData("/restaurant");
   return (
-    <Page resource={resource} form>
-      {resource.data && (
-        <>
-          {editing ? (
-            <RestaurantEditor
-              restaurant={resource.data}
-              done={async () => {
-                await resource.refresh();
-                setEditing(false);
-              }}
-            />
-          ) : (
-            <Card>
-              <Text style={s.heading}>{resource.data.name}</Text>
-              <Text style={s.text}>{resource.data.phone}</Text>
-              <Text style={s.text}>{resource.data.address}</Text>
-              <Text style={s.muted}>
-                Dirección de recogida: modifica desde administración web para
-                conservar los datos de reparto.
-              </Text>
-              <Button
-                secondary
-                title="Editar nombre y teléfono"
-                onPress={() => setEditing(true)}
-              />
-            </Card>
-          )}
-          <Button secondary title="Cerrar sesión" onPress={logout} />
-        </>
-      )}
+    <Page resource={resource}>
+      {resource.data && <RestaurantEditor restaurant={resource.data} />}
+      <Button secondary title="Cerrar sesión" onPress={logout} />
     </Page>
   );
 }
-function RestaurantEditor({ restaurant, done }) {
-  const { color } = useTheme();
+function RestaurantEditor({ restaurant }) {
   const s = useStyles();
-  const [name, setName] = useState(restaurant.name),
-    [phone, setPhone] = useState(restaurant.phone || ""),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+  const initial = (row) => ({
+    ...Object.fromEntries(["name", "phone", "slug", "legal_name", "tax_id", "legal_address", "legal_email", "legal_registration"].map(key => [key, row[key] || ""])),
+    delivery_base_cents: (Number(row.delivery_base_cents || 0) / 100).toFixed(2),
+    free_delivery_from_cents: (Number(row.free_delivery_from_cents || 0) / 100).toFixed(2),
+  });
+  const [form, setForm] = useState(() => initial(restaurant));
+  const [address, setAddress] = useState(null);
+  const [search, setSearch] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  useEffect(() => { setForm(initial(restaurant)); setAddress(null); setMessage(""); }, [restaurant]);
+  const field = (key, label, maxLength, props = {}) => (
+    <Field key={key} label={label} value={form[key]} maxLength={maxLength}
+      editable={!busy} onChangeText={value => { setForm(previous => ({ ...previous, [key]: value })); setMessage(""); }} {...props} />
+  );
+  const readOnly = (label, value) => <Field label={label} value={String(value || "")} editable={false} />;
+  async function findAddress() {
+    setSearching(true); setError(""); setSuggestions([]);
+    try {
+      const results = await adminApi(`/address-search?q=${encodeURIComponent(search.trim())}`);
+      setSuggestions(results);
+      if (!results.length) setError("No se encontraron direcciones. Añade calle, número y ciudad.");
+    } catch (failure) { setError(failure.message); }
+    finally { setSearching(false); }
+  }
   async function save() {
+    if (busy || searching) return;
+    setError(""); setMessage("");
+    if (!form.name.trim() || !form.slug.trim()) { setError("Completa nombre e identificador web."); return; }
+    for (const key of ["delivery_base_cents", "free_delivery_from_cents"]) {
+      if (!/^\d+(?:[.,]\d{1,2})?$/.test(form[key].trim())) { setError("Introduce importes válidos, positivos o cero, con máximo dos decimales."); return; }
+    }
     setBusy(true);
     try {
-      await write("/restaurant", { name, phone }, "PATCH");
-      await done();
-    } catch (failure) {
-      setError(failure.message);
-    } finally {
-      setBusy(false);
-    }
+      await write("/restaurant", { ...form, ...(address ? { delivery_address_data: address } : {}) }, "PATCH");
+      setMessage("Cambios guardados.");
+    } catch (failure) { setError(failure.message); }
+    finally { setBusy(false); }
   }
-  return (
+  return <>
     <Card>
-      <Field
-        label="Nombre del restaurante"
-        value={name}
-        onChangeText={setName}
-        maxLength={150}
-      />
-      <Field
-        label="Teléfono"
-        value={phone}
-        onChangeText={setPhone}
-        maxLength={40}
-        keyboardType="phone-pad"
-      />
-      <Problem error={error} />
-      <Button title="Guardar" disabled={busy} onPress={save} />
-      <Button secondary title="Volver" disabled={busy} onPress={done} />
+      <Text style={s.heading}>Datos del negocio</Text>
+      <Text style={s.muted}>Información que identifica a tu restaurante.</Text>
+      {field("name", "Nombre del negocio", 120)}
+      <Grid minWidth={260} maxColumns={2}>
+        {field("phone", "Teléfono", 40, { keyboardType: "phone-pad", autoComplete: "tel" })}
+        {readOnly("Ciudad", address?.city || restaurant.delivery_city || restaurant.city)}
+      </Grid>
+      {readOnly("Dirección", address?.formatted_address || restaurant.address)}
+      <Field label="Buscar dirección" value={search} onChangeText={setSearch} maxLength={200} editable={!busy && !searching} placeholder="Calle, número y ciudad" />
+      <Button secondary title={searching ? "Buscando..." : "Buscar dirección"} disabled={busy || searching || search.trim().length < 3} onPress={findAddress} />
+      {suggestions.map(result => <Button key={result.place_id} secondary title={result.suggestion || result.formatted_address} disabled={busy} onPress={() => { setAddress(result); setSuggestions([]); setSearch(""); setMessage(""); }} />)}
+      {readOnly("Número", address?.number || restaurant.delivery_number)}
+      {address && <Text style={s.muted}>Dirección seleccionada: {address.formatted_address}. Se aplicará al guardar.</Text>}
     </Card>
-  );
+    <Card>
+      <Text style={s.heading}>Identificación legal</Text>
+      <Text style={s.muted}>Estos datos aparecerán en las páginas legales públicas. Completa la información real del titular antes de publicar.</Text>
+      <Grid minWidth={260} maxColumns={2}>
+        {field("legal_name", "Razón social o nombre del titular", 150)}
+        {field("tax_id", "NIF", 24, { autoCapitalize: "characters" })}
+      </Grid>
+      {field("legal_address", "Domicilio legal", 500)}
+      <Text style={s.muted}>Si coincide con la dirección del negocio, puedes dejarlo vacío.</Text>
+      <Grid minWidth={260} maxColumns={2}>
+        {field("legal_email", "Correo de contacto legal y privacidad", 190, { keyboardType: "email-address", autoCapitalize: "none", autoComplete: "email" })}
+        {field("legal_registration", "Registro y datos registrales (si procede)", 255)}
+      </Grid>
+    </Card>
+    <Card>
+      <Text style={s.heading}>Configuración del reparto</Text>
+      <Text style={s.muted}>Define el coste estándar y cuándo ofrecer el envío gratuito.</Text>
+      <Grid minWidth={260} maxColumns={2}>
+        <View>{field("delivery_base_cents", "Coste de envío (€)", 12, { keyboardType: "decimal-pad" })}<Text style={s.muted}>Importe aplicado por defecto a los pedidos con reparto.</Text></View>
+        <View>{field("free_delivery_from_cents", "Envío gratis desde (€)", 12, { keyboardType: "decimal-pad" })}<Text style={s.muted}>Importe mínimo del pedido para no cobrar gastos de envío.</Text></View>
+      </Grid>
+    </Card>
+    <Card>
+      <Text style={s.heading}>Información de la cuenta</Text>
+      <Text style={s.muted}>Datos internos asignados al restaurante.</Text>
+      <Grid minWidth={260} maxColumns={2}>
+        {readOnly("ID del restaurante", restaurant.id)}
+        {field("slug", "Identificador web", 80, { autoCapitalize: "none", autoCorrect: false })}
+      </Grid>
+      <Text style={s.muted}>Identificador utilizado internamente en la URL del negocio.</Text>
+      {readOnly("Cuenta creada", restaurant.created_at)}
+    </Card>
+    <Text style={s.muted}>Los cambios se aplicarán a la configuración actual del restaurante.</Text>
+    <Problem error={error} />
+    {message ? <Text accessibilityRole="alert" style={s.text}>{message}</Text> : null}
+    <Button title={busy ? "Guardando..." : "Guardar cambios"} disabled={busy || searching} onPress={save} />
+  </>;
 }
 
 export function CreateOrder({ openOrder }) {

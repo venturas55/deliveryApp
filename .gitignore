@@ -97,3 +97,8 @@ desktop.ini
 tmp/
 temp/
 .cache/
+
+# =========================
+# Imagenes files
+# =========================
+public/uploads/products/
