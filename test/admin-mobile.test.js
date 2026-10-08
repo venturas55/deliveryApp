@@ -34,6 +34,7 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
       const result = await query("INSERT INTO customers(name,email,phone,delivery_address,delivery_formatted_address) VALUES(?,?,?,?,?)", [`Customer ${index}`, `${index}-${suffix}@example.invalid`, `90000000${index}`, `Address ${index}`, `Formatted address ${index}`]);
       customers.push(Number(result.insertId));
     }
+    await query("UPDATE customers SET profile_image_url=? WHERE id=?", ["/uploads/customers/test-avatar.png", customers[0]]);
     const product = await query("INSERT INTO products(restaurant_id,name,price_cents) VALUES(?,?,?)", [restaurants[0], "Mobile product", 1234]);
     productId = Number(product.insertId);
     const orderIds = [];
@@ -98,6 +99,9 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
     const [otherLogo] = await query("SELECT logo_url FROM restaurants WHERE id=?", [restaurants[1]]);
     assert.equal(otherLogo.logo_url, null);
     const [other] = await query("SELECT name FROM restaurants WHERE id=?", [restaurants[1]]); assert.equal(other.name, "Mobile 1");
+    const customerCards = await request("/customers");
+    assert.equal(customerCards.find(customer => Number(customer.id) === customers[0]).profile_image_url, "/uploads/customers/test-avatar.png");
+    assert.ok(!customerCards.some(customer => Number(customer.id) === customers[1]));
     const order = await request("/orders", { method: "POST", status: 201, body: { restaurant_id: restaurants[1], customer_id: customers[0], channel: "telephone", delivery_method: "pickup", payment_method: "cash", total_cents: 1, items: [{ product_id: productId, quantity: 2 }] } });
     assert.equal(order.total_cents, 2468); assert.equal(order.items[0].quantity, 2);
     await request("/orders", { method: "POST", status: 404, body: { customer_id: customers[1], channel: "telephone", delivery_method: "pickup", payment_method: "cash", items: [{ product_id: productId, quantity: 1 }] } });

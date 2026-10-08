@@ -18,6 +18,26 @@ import { adminApi, write } from "./api";
 import { Grid, GRID_GAP, useContentLayout } from "../shared/layout";
 import { productImageUrl } from "../config";
 import CustomerEmail from "./CustomerEmail";
+import { Ionicons } from "@expo/vector-icons";
+
+function CustomerAvatar({ customer }) {
+  const { color } = useTheme();
+  const uri = productImageUrl(customer.profile_image_url);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [uri]);
+  const style = { width: 48, height: 48, borderRadius: 24, flexShrink: 0 };
+  return uri && !failed ? (
+    <Image source={{ uri }} style={style} resizeMode="cover"
+      accessibilityLabel={`Foto de perfil de ${customer.name}`}
+      onError={() => setFailed(true)} />
+  ) : (
+    <View style={[style, { alignItems: "center", justifyContent: "center",
+      backgroundColor: color("#eee8df", "backgroundColor") }]}
+      accessible accessibilityLabel={`Sin foto de perfil de ${customer.name}`}>
+      <Ionicons name="person-outline" size={24} color={color("#716a61", "color")} />
+    </View>
+  );
+}
 
 function Problem({ error }) {
   const { color } = useTheme();
@@ -162,7 +182,10 @@ export function Customers({ openCustomer, selectCustomer }) {
                 selectCustomer ? selectCustomer(item) : openCustomer(item.id)
               }
             >
-              <Text style={s.heading}>{item.name}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <CustomerAvatar customer={item} />
+                <Text style={[s.heading, { flex: 1, minWidth: 0, marginBottom: 0 }]}>{item.name}</Text>
+              </View>
               <Text style={s.muted}>
                 {item.phone} · {item.email}
               </Text>
