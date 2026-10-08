@@ -138,6 +138,8 @@ Para subirla a App Store Connect:
         # 5. Limpiar variables al terminar
         Remove-Item Env:APP_VARIANT -ErrorAction SilentlyContinue
         Remove-Item Env:GOOGLE_IOS_CLIENT_ID -ErrorAction SilentlyContinue
+            ==> SI COMPARTES WIFI CON EL MOVIL
+                npx expo start --dev-client --tunnel
 
     ==> PARA PRODUCCION
         Remove-Item Env:APP_VARIANT -ErrorAction SilentlyContinue
