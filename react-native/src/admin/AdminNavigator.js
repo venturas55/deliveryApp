@@ -151,7 +151,7 @@ function OrderNotice({ navigate, soundEnabled }) {
   const path = cursor
     ? `/order-notifications?afterId=${cursor.afterId}&since=${encodeURIComponent(cursor.since)}`
     : "/order-notifications";
-  const { data, error } = useAdminData(path, 15000);
+  const { data, error } = useAdminData(path, 5000);
   useEffect(() => {
     if (!data) return;
     if (!cursor) {
