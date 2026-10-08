@@ -682,9 +682,24 @@ export function Settings({ logout }) {
 function RestaurantEditor({ restaurant }) {
   const s = useStyles();
   const initial = (row) => ({
-    ...Object.fromEntries(["name", "phone", "slug", "legal_name", "tax_id", "legal_address", "legal_email", "legal_registration"].map(key => [key, row[key] || ""])),
-    delivery_base_cents: (Number(row.delivery_base_cents || 0) / 100).toFixed(2),
-    free_delivery_from_cents: (Number(row.free_delivery_from_cents || 0) / 100).toFixed(2),
+    ...Object.fromEntries(
+      [
+        "name",
+        "phone",
+        "slug",
+        "legal_name",
+        "tax_id",
+        "legal_address",
+        "legal_email",
+        "legal_registration",
+      ].map((key) => [key, row[key] || ""]),
+    ),
+    delivery_base_cents: (Number(row.delivery_base_cents || 0) / 100).toFixed(
+      2,
+    ),
+    free_delivery_from_cents: (
+      Number(row.free_delivery_from_cents || 0) / 100
+    ).toFixed(2),
   });
   const [form, setForm] = useState(() => initial(restaurant));
   const [logo, setLogo] = useState(null);
@@ -697,118 +712,304 @@ function RestaurantEditor({ restaurant }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  useEffect(() => { setForm(initial(restaurant)); setLogo(null); setLogoUrl(restaurant.logo_url); setAddress(null); setMessage(""); }, [restaurant]);
+  useEffect(() => {
+    setForm(initial(restaurant));
+    setLogo(null);
+    setLogoUrl(restaurant.logo_url);
+    setAddress(null);
+    setMessage("");
+  }, [restaurant.id]);
+  useEffect(() => {
+    console.log("ESTADO LOGO:", logo);
+  }, [logo]);
   const field = (key, label, maxLength, props = {}) => (
-    <Field key={key} label={label} value={form[key]} maxLength={maxLength}
-      editable={!busy} onChangeText={value => { setForm(previous => ({ ...previous, [key]: value })); setMessage(""); }} {...props} />
+    <Field
+      key={key}
+      label={label}
+      value={form[key]}
+      maxLength={maxLength}
+      editable={!busy}
+      onChangeText={(value) => {
+        setForm((previous) => ({ ...previous, [key]: value }));
+        setMessage("");
+      }}
+      {...props}
+    />
   );
-  const readOnly = (label, value) => <Field label={label} value={String(value || "")} editable={false} />;
+  const readOnly = (label, value) => (
+    <Field label={label} value={String(value || "")} editable={false} />
+  );
   async function pickLogo() {
-    setPickingLogo(true); setError("");
+    setPickingLogo(true);
+    setError("");
     try {
       const picker = require("expo-document-picker");
-      const result = await picker.getDocumentAsync({ type: ["image/jpeg", "image/png", "image/webp"], multiple: false, copyToCacheDirectory: true });
+      const result = await picker.getDocumentAsync({
+        type: ["image/jpeg", "image/png", "image/webp"],
+        multiple: false,
+        copyToCacheDirectory: true,
+      });
       if (result.canceled) return;
       const asset = result.assets[0];
-      if (!asset || !["image/jpeg", "image/png", "image/webp"].includes(asset.mimeType)) throw new Error("Selecciona JPEG, PNG o WebP.");
-      if (asset.size > 5 * 1024 * 1024) throw new Error("El logo no puede superar 5 MB.");
-      setLogo(asset); setMessage("");
+      if (
+        !asset ||
+        !["image/jpeg", "image/png", "image/webp"].includes(asset.mimeType)
+      )
+        throw new Error("Selecciona JPEG, PNG o WebP.");
+      if (asset.size > 5 * 1024 * 1024)
+        throw new Error("El logo no puede superar 5 MB.");
+      setLogo(asset);
+      setMessage("");
     } catch (failure) {
-      setError(/Cannot find native module.*ExpoDocumentPicker/.test(failure.message)
-        ? "Actualiza la app con una nueva compilación para adjuntar el logo." : failure.message);
-    } finally { setPickingLogo(false); }
+      setError(
+        /Cannot find native module.*ExpoDocumentPicker/.test(failure.message)
+          ? "Actualiza la app con una nueva compilación para adjuntar el logo."
+          : failure.message,
+      );
+    } finally {
+      setPickingLogo(false);
+    }
   }
   async function findAddress() {
-    setSearching(true); setError(""); setSuggestions([]);
+    setSearching(true);
+    setError("");
+    setSuggestions([]);
     try {
-      const results = await adminApi(`/address-search?q=${encodeURIComponent(search.trim())}`);
+      const results = await adminApi(
+        `/address-search?q=${encodeURIComponent(search.trim())}`,
+      );
       setSuggestions(results);
-      if (!results.length) setError("No se encontraron direcciones. Añade calle, número y ciudad.");
-    } catch (failure) { setError(failure.message); }
-    finally { setSearching(false); }
+      if (!results.length)
+        setError(
+          "No se encontraron direcciones. Añade calle, número y ciudad.",
+        );
+    } catch (failure) {
+      setError(failure.message);
+    } finally {
+      setSearching(false);
+    }
   }
   async function save() {
     if (busy || searching || pickingLogo) return;
-    setError(""); setMessage("");
-    if (!form.name.trim() || !form.slug.trim()) { setError("Completa nombre e identificador web."); return; }
+    setError("");
+    setMessage("");
+    if (!form.name.trim() || !form.slug.trim()) {
+      setError("Completa nombre e identificador web.");
+      return;
+    }
     for (const key of ["delivery_base_cents", "free_delivery_from_cents"]) {
-      if (!/^\d+(?:[.,]\d{1,2})?$/.test(form[key].trim())) { setError("Introduce importes válidos, positivos o cero, con máximo dos decimales."); return; }
+      if (!/^\d+(?:[.,]\d{1,2})?$/.test(form[key].trim())) {
+        setError(
+          "Introduce importes válidos, positivos o cero, con máximo dos decimales.",
+        );
+        return;
+      }
     }
     setBusy(true);
     try {
-      let body = { ...form, ...(address ? { delivery_address_data: address } : {}) };
+      console.log("LOGO ANTES DE GUARDAR:", logo);
+      let body = {
+        ...form,
+        ...(address ? { delivery_address_data: address } : {}),
+      };
       if (logo) {
         body = new FormData();
         Object.entries(form).forEach(([key, value]) => body.append(key, value));
-        if (address) body.append("delivery_address_data", JSON.stringify(address));
-        body.append("logo", Platform.OS === "web" ? logo.file : {
-          uri: logo.uri, name: logo.name || "logo.png", type: logo.mimeType,
-        });
+        if (address)
+          body.append("delivery_address_data", JSON.stringify(address));
+        const logoBlob = Platform.OS === "web"
+          ? logo.file
+          : await (await fetch(logo.uri)).blob();
+        body.append(
+          "logo",
+          new Blob([logoBlob], { type: logo.mimeType || "image/png" }),
+          logo.name || "logo.png",
+        );
       }
+      console.log("BODY ES FORMDATA:", body instanceof FormData);
       const saved = await write("/restaurant", body, "PATCH");
-      setLogoUrl(saved.logo_url); setLogo(null);
+      setLogoUrl(saved.logo_url);
+      setLogo(null);
       setMessage("Cambios guardados.");
-    } catch (failure) { setError(failure.message); }
-    finally { setBusy(false); }
+    } catch (failure) {
+      setError(failure.message);
+    } finally {
+      setBusy(false);
+    }
   }
-  return <>
-    <Card>
-      <Text style={s.heading}>Datos del negocio</Text>
-      <Text style={s.muted}>Información que identifica a tu restaurante.</Text>
-      <Text style={s.label}>Logo de la empresa</Text>
-      {(logo?.uri || productImageUrl(logoUrl)) ? <Image source={{ uri: logo?.uri || productImageUrl(logoUrl) }} style={{ width: 160, height: 120, alignSelf: "center", marginVertical: 12 }} resizeMode="contain" accessibilityLabel="Logo de la empresa" /> : <Text style={s.muted}>Sin logo</Text>}
-      <Text style={s.muted}>JPEG, PNG o WebP. Máximo 5 MB. Se aplica al guardar cambios.</Text>
-      <Button secondary title={pickingLogo ? "Abriendo..." : "Adjuntar logo"} disabled={busy || pickingLogo} onPress={pickLogo} />
-      {logo && <Button secondary title="Cancelar selección del logo" disabled={busy} onPress={() => setLogo(null)} />}
-      {field("name", "Nombre del negocio", 120)}
-      <Grid minWidth={260} maxColumns={2}>
-        {field("phone", "Teléfono", 40, { keyboardType: "phone-pad", autoComplete: "tel" })}
-        {readOnly("Ciudad", address?.city || restaurant.delivery_city || restaurant.city)}
-      </Grid>
-      {readOnly("Dirección", address?.formatted_address || restaurant.address)}
-      <Field label="Buscar dirección" value={search} onChangeText={setSearch} maxLength={200} editable={!busy && !searching} placeholder="Calle, número y ciudad" />
-      <Button secondary title={searching ? "Buscando..." : "Buscar dirección"} disabled={busy || searching || search.trim().length < 3} onPress={findAddress} />
-      {suggestions.map(result => <Button key={result.place_id} secondary title={result.suggestion || result.formatted_address} disabled={busy} onPress={() => { setAddress(result); setSuggestions([]); setSearch(""); setMessage(""); }} />)}
-      {readOnly("Número", address?.number || restaurant.delivery_number)}
-      {address && <Text style={s.muted}>Dirección seleccionada: {address.formatted_address}. Se aplicará al guardar.</Text>}
-    </Card>
-    <Card>
-      <Text style={s.heading}>Identificación legal</Text>
-      <Text style={s.muted}>Estos datos aparecerán en las páginas legales públicas. Completa la información real del titular antes de publicar.</Text>
-      <Grid minWidth={260} maxColumns={2}>
-        {field("legal_name", "Razón social o nombre del titular", 150)}
-        {field("tax_id", "NIF", 24, { autoCapitalize: "characters" })}
-      </Grid>
-      {field("legal_address", "Domicilio legal", 500)}
-      <Text style={s.muted}>Si coincide con la dirección del negocio, puedes dejarlo vacío.</Text>
-      <Grid minWidth={260} maxColumns={2}>
-        {field("legal_email", "Correo de contacto legal y privacidad", 190, { keyboardType: "email-address", autoCapitalize: "none", autoComplete: "email" })}
-        {field("legal_registration", "Registro y datos registrales (si procede)", 255)}
-      </Grid>
-    </Card>
-    <Card>
-      <Text style={s.heading}>Configuración del reparto</Text>
-      <Text style={s.muted}>Define el coste estándar y cuándo ofrecer el envío gratuito.</Text>
-      <Grid minWidth={260} maxColumns={2}>
-        <View>{field("delivery_base_cents", "Coste de envío (€)", 12, { keyboardType: "decimal-pad" })}<Text style={s.muted}>Importe aplicado por defecto a los pedidos con reparto.</Text></View>
-        <View>{field("free_delivery_from_cents", "Envío gratis desde (€)", 12, { keyboardType: "decimal-pad" })}<Text style={s.muted}>Importe mínimo del pedido para no cobrar gastos de envío.</Text></View>
-      </Grid>
-    </Card>
-    <Card>
-      <Text style={s.heading}>Información de la cuenta</Text>
-      <Text style={s.muted}>Datos internos asignados al restaurante.</Text>
-      <Grid minWidth={260} maxColumns={2}>
-        {readOnly("ID del restaurante", restaurant.id)}
-        {field("slug", "Identificador web", 80, { autoCapitalize: "none", autoCorrect: false })}
-      </Grid>
-      <Text style={s.muted}>Identificador utilizado internamente en la URL del negocio.</Text>
-      {readOnly("Cuenta creada", restaurant.created_at)}
-    </Card>
-    <Text style={s.muted}>Los cambios se aplicarán a la configuración actual del restaurante.</Text>
-    <Problem error={error} />
-    {message ? <Text accessibilityRole="alert" style={s.text}>{message}</Text> : null}
-    <Button title={busy ? "Guardando..." : "Guardar cambios"} disabled={busy || searching || pickingLogo} onPress={save} />
-  </>;
+  return (
+    <>
+      <Card>
+        <Text style={s.heading}>Datos del negocio</Text>
+        <Text style={s.muted}>
+          Información que identifica a tu restaurante.
+        </Text>
+        <Text style={s.label}>Logo de la empresa</Text>
+        {logo?.uri || productImageUrl(logoUrl) ? (
+          <Image
+            source={{ uri: logo?.uri || productImageUrl(logoUrl) }}
+            style={{
+              width: 160,
+              height: 120,
+              alignSelf: "center",
+              marginVertical: 12,
+            }}
+            resizeMode="contain"
+            accessibilityLabel="Logo de la empresa"
+          />
+        ) : (
+          <Text style={s.muted}>Sin logo</Text>
+        )}
+        <Text style={s.muted}>
+          JPEG, PNG o WebP. Máximo 5 MB. Se aplica al guardar cambios.
+        </Text>
+        <Button
+          secondary
+          title={pickingLogo ? "Abriendo..." : "Adjuntar logo"}
+          disabled={busy || pickingLogo}
+          onPress={pickLogo}
+        />
+        {logo && (
+          <Button
+            secondary
+            title="Cancelar selección del logo"
+            disabled={busy}
+            onPress={() => setLogo(null)}
+          />
+        )}
+        {field("name", "Nombre del negocio", 120)}
+        <Grid minWidth={260} maxColumns={2}>
+          {field("phone", "Teléfono", 40, {
+            keyboardType: "phone-pad",
+            autoComplete: "tel",
+          })}
+          {readOnly(
+            "Ciudad",
+            address?.city || restaurant.delivery_city || restaurant.city,
+          )}
+        </Grid>
+        {readOnly(
+          "Dirección",
+          address?.formatted_address || restaurant.address,
+        )}
+        <Field
+          label="Buscar dirección"
+          value={search}
+          onChangeText={setSearch}
+          maxLength={200}
+          editable={!busy && !searching}
+          placeholder="Calle, número y ciudad"
+        />
+        <Button
+          secondary
+          title={searching ? "Buscando..." : "Buscar dirección"}
+          disabled={busy || searching || search.trim().length < 3}
+          onPress={findAddress}
+        />
+        {suggestions.map((result) => (
+          <Button
+            key={result.place_id}
+            secondary
+            title={result.suggestion || result.formatted_address}
+            disabled={busy}
+            onPress={() => {
+              setAddress(result);
+              setSuggestions([]);
+              setSearch("");
+              setMessage("");
+            }}
+          />
+        ))}
+        {readOnly("Número", address?.number || restaurant.delivery_number)}
+        {address && (
+          <Text style={s.muted}>
+            Dirección seleccionada: {address.formatted_address}. Se aplicará al
+            guardar.
+          </Text>
+        )}
+      </Card>
+      <Card>
+        <Text style={s.heading}>Identificación legal</Text>
+        <Text style={s.muted}>
+          Estos datos aparecerán en las páginas legales públicas. Completa la
+          información real del titular antes de publicar.
+        </Text>
+        <Grid minWidth={260} maxColumns={2}>
+          {field("legal_name", "Razón social o nombre del titular", 150)}
+          {field("tax_id", "NIF", 24, { autoCapitalize: "characters" })}
+        </Grid>
+        {field("legal_address", "Domicilio legal", 500)}
+        <Text style={s.muted}>
+          Si coincide con la dirección del negocio, puedes dejarlo vacío.
+        </Text>
+        <Grid minWidth={260} maxColumns={2}>
+          {field("legal_email", "Correo de contacto legal y privacidad", 190, {
+            keyboardType: "email-address",
+            autoCapitalize: "none",
+            autoComplete: "email",
+          })}
+          {field(
+            "legal_registration",
+            "Registro y datos registrales (si procede)",
+            255,
+          )}
+        </Grid>
+      </Card>
+      <Card>
+        <Text style={s.heading}>Configuración del reparto</Text>
+        <Text style={s.muted}>
+          Define el coste estándar y cuándo ofrecer el envío gratuito.
+        </Text>
+        <Grid minWidth={260} maxColumns={2}>
+          <View>
+            {field("delivery_base_cents", "Coste de envío (€)", 12, {
+              keyboardType: "decimal-pad",
+            })}
+            <Text style={s.muted}>
+              Importe aplicado por defecto a los pedidos con reparto.
+            </Text>
+          </View>
+          <View>
+            {field("free_delivery_from_cents", "Envío gratis desde (€)", 12, {
+              keyboardType: "decimal-pad",
+            })}
+            <Text style={s.muted}>
+              Importe mínimo del pedido para no cobrar gastos de envío.
+            </Text>
+          </View>
+        </Grid>
+      </Card>
+      <Card>
+        <Text style={s.heading}>Información de la cuenta</Text>
+        <Text style={s.muted}>Datos internos asignados al restaurante.</Text>
+        <Grid minWidth={260} maxColumns={2}>
+          {readOnly("ID del restaurante", restaurant.id)}
+          {field("slug", "Identificador web", 80, {
+            autoCapitalize: "none",
+            autoCorrect: false,
+          })}
+        </Grid>
+        <Text style={s.muted}>
+          Identificador utilizado internamente en la URL del negocio.
+        </Text>
+        {readOnly("Cuenta creada", restaurant.created_at)}
+      </Card>
+      <Text style={s.muted}>
+        Los cambios se aplicarán a la configuración actual del restaurante.
+      </Text>
+      <Problem error={error} />
+      {message ? (
+        <Text accessibilityRole="alert" style={s.text}>
+          {message}
+        </Text>
+      ) : null}
+      <Button
+        title={busy ? "Guardando..." : "Guardar cambios"}
+        disabled={busy || searching || pickingLogo}
+        onPress={save}
+      />
+    </>
+  );
 }
 
 export function CreateOrder({ openOrder }) {
@@ -889,7 +1090,9 @@ export function CreateOrder({ openOrder }) {
     >
       <Card>
         <Text style={s.heading}>{customer.name}</Text>
-        <Text style={s.muted}>{customer.phone} - {customer.email}</Text>
+        <Text style={s.muted}>
+          {customer.phone} - {customer.email}
+        </Text>
         {customer.delivery_formatted_address || customer.delivery_address ? (
           <Text style={s.muted}>
             Dirección de entrega:{" "}
