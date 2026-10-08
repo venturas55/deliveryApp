@@ -108,6 +108,9 @@ function ClientNavigator({ onAdminAccess }) {
     [phone, setPhone] = useState(""),
     [notes, setNotes] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
+  const restaurantLogo = productImageUrl(restaurant?.logo_url);
+  const [logoFailed, setLogoFailed] = useState(false);
+  useEffect(() => setLogoFailed(false), [restaurantLogo]);
   const menuScroll = useRef(null);
   const ordersPanel = useRef(null);
   const refreshInFlight = useRef(false);
@@ -507,7 +510,7 @@ function ClientNavigator({ onAdminAccess }) {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        {/* Nombre del restaurante y botón de tema */}
+        {/* Logo, nombre del restaurante y botón de tema */}
         <View
           style={{
             flexDirection: "row",
@@ -516,8 +519,17 @@ function ClientNavigator({ onAdminAccess }) {
             width: "100%",
           }}
         >
+          {restaurantLogo && !logoFailed && (
+            <Image
+              source={{ uri: restaurantLogo }}
+              accessibilityLabel={`Logo de ${restaurant?.name || "restaurante"}`}
+              resizeMode="contain"
+              onError={() => setLogoFailed(true)}
+              style={styles.restaurantLogo}
+            />
+          )}
           <Text
-            style={[styles.brand, { flex: 1, marginRight: 8 }]}
+            style={[styles.brand, { flex: 1, minWidth: 0, marginRight: 8 }]}
             numberOfLines={1}
           >
             {restaurant?.name || "Massa e fuoco Dev"}
@@ -883,6 +895,7 @@ const baseStyles = StyleSheet.create({
     justifyContent: "center",
   },
   header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14 },
+  restaurantLogo: { width: 48, height: 48, marginRight: 12, flexShrink: 0 },
   brand: { color: "#392d27", fontSize: 24, fontWeight: "800" },
   sub: { color: "#777067", marginTop: 3 },
   nav: {
