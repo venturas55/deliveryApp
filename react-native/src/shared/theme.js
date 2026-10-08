@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Button, Field, useStyles } from "../shared/ui";
 
 const ThemeContext = createContext(null);
 const storageKey = "delivery-theme";
@@ -61,13 +62,15 @@ export function useThemedStyles(styles) {
 }
 
 export function ThemeToggle() {
-  const { dark, ready, toggle, color } = useTheme();
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected: dark, disabled: !ready }}
-    disabled={!ready} onPress={toggle}
-    style={{ alignSelf: "flex-start", minHeight: 44, padding: 12, marginVertical: 4, borderRadius: 10,
-      backgroundColor: color("#eee8df", "backgroundColor") }}>
-    <Text style={{ color: color("#51483f"), fontWeight: "600" }}>
-      {dark ? "◐ Tema claro" : "◐ Tema oscuro"}
-    </Text>
-  </Pressable>;
+  const { dark, ready, toggle } = useTheme();
+
+  return (
+    <Button
+      secondary
+      icon={dark ? "sunny-outline" : "moon-outline"}
+      title={dark ? "Tema claro" : "Tema oscuro"}
+      disabled={!ready}
+      onPress={toggle}
+    />
+  );
 }

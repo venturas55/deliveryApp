@@ -65,26 +65,13 @@ function Navigation({ current, navigate, sidebar }) {
       contentContainerStyle={{ padding: 12, gap: 8 }}
     >
       {destinations.map(([name, label]) => (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ selected: selected(name) }}
+        <Button
           key={name}
+          title={label}
+          chip
+          selected={selected(name)}
           onPress={() => navigate(name)}
-          style={[
-            s.chip,
-            { minHeight: 48, justifyContent: "center" },
-            selected(name) && s.chipActive,
-          ]}
-        >
-          <Text
-            style={{
-              color: selected(name) ? "white" : color("#392d27"),
-              fontWeight: selected(name) ? "700" : "400",
-            }}
-          >
-            {label}
-          </Text>
-        </Pressable>
+        />
       ))}
     </ScrollView>
   );
@@ -337,8 +324,13 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
             <ThemeToggle />
             <Button
               secondary
-              icon={soundEnabled ? "volume-high-outline" : "volume-mute-outline"}
-              /* title={soundEnabled ? "avisos" : "avisos"} */
+              icon={
+                soundEnabled ? "volume-high-outline" : "volume-mute-outline"
+              }
+              selected={soundEnabled}
+              accessibilityLabel={
+                soundEnabled ? "Silenciar avisos" : "Activar sonido"
+              }
               onPress={() => setSoundEnabled((value) => !value)}
             />
             <View style={{ flex: 1, minWidth: 140 }}>
