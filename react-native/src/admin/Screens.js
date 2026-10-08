@@ -4,6 +4,7 @@ import {
   FlatList,
   Image,
   Pressable,
+  Platform,
   RefreshControl,
   ScrollView,
   Switch,
@@ -686,6 +687,9 @@ function RestaurantEditor({ restaurant }) {
     free_delivery_from_cents: (Number(row.free_delivery_from_cents || 0) / 100).toFixed(2),
   });
   const [form, setForm] = useState(() => initial(restaurant));
+  const [logo, setLogo] = useState(null);
+  const [logoUrl, setLogoUrl] = useState(restaurant.logo_url);
+  const [pickingLogo, setPickingLogo] = useState(false);
   const [address, setAddress] = useState(null);
   const [search, setSearch] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -693,12 +697,27 @@ function RestaurantEditor({ restaurant }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  useEffect(() => { setForm(initial(restaurant)); setAddress(null); setMessage(""); }, [restaurant]);
+  useEffect(() => { setForm(initial(restaurant)); setLogo(null); setLogoUrl(restaurant.logo_url); setAddress(null); setMessage(""); }, [restaurant]);
   const field = (key, label, maxLength, props = {}) => (
     <Field key={key} label={label} value={form[key]} maxLength={maxLength}
       editable={!busy} onChangeText={value => { setForm(previous => ({ ...previous, [key]: value })); setMessage(""); }} {...props} />
   );
   const readOnly = (label, value) => <Field label={label} value={String(value || "")} editable={false} />;
+  async function pickLogo() {
+    setPickingLogo(true); setError("");
+    try {
+      const picker = require("expo-document-picker");
+      const result = await picker.getDocumentAsync({ type: ["image/jpeg", "image/png", "image/webp"], multiple: false, copyToCacheDirectory: true });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset || !["image/jpeg", "image/png", "image/webp"].includes(asset.mimeType)) throw new Error("Selecciona JPEG, PNG o WebP.");
+      if (asset.size > 5 * 1024 * 1024) throw new Error("El logo no puede superar 5 MB.");
+      setLogo(asset); setMessage("");
+    } catch (failure) {
+      setError(/Cannot find native module.*ExpoDocumentPicker/.test(failure.message)
+        ? "Actualiza la app con una nueva compilación para adjuntar el logo." : failure.message);
+    } finally { setPickingLogo(false); }
+  }
   async function findAddress() {
     setSearching(true); setError(""); setSuggestions([]);
     try {
@@ -709,7 +728,7 @@ function RestaurantEditor({ restaurant }) {
     finally { setSearching(false); }
   }
   async function save() {
-    if (busy || searching) return;
+    if (busy || searching || pickingLogo) return;
     setError(""); setMessage("");
     if (!form.name.trim() || !form.slug.trim()) { setError("Completa nombre e identificador web."); return; }
     for (const key of ["delivery_base_cents", "free_delivery_from_cents"]) {
@@ -717,7 +736,17 @@ function RestaurantEditor({ restaurant }) {
     }
     setBusy(true);
     try {
-      await write("/restaurant", { ...form, ...(address ? { delivery_address_data: address } : {}) }, "PATCH");
+      let body = { ...form, ...(address ? { delivery_address_data: address } : {}) };
+      if (logo) {
+        body = new FormData();
+        Object.entries(form).forEach(([key, value]) => body.append(key, value));
+        if (address) body.append("delivery_address_data", JSON.stringify(address));
+        body.append("logo", Platform.OS === "web" ? logo.file : {
+          uri: logo.uri, name: logo.name || "logo.png", type: logo.mimeType,
+        });
+      }
+      const saved = await write("/restaurant", body, "PATCH");
+      setLogoUrl(saved.logo_url); setLogo(null);
       setMessage("Cambios guardados.");
     } catch (failure) { setError(failure.message); }
     finally { setBusy(false); }
@@ -726,6 +755,11 @@ function RestaurantEditor({ restaurant }) {
     <Card>
       <Text style={s.heading}>Datos del negocio</Text>
       <Text style={s.muted}>Información que identifica a tu restaurante.</Text>
+      <Text style={s.label}>Logo de la empresa</Text>
+      {(logo?.uri || productImageUrl(logoUrl)) ? <Image source={{ uri: logo?.uri || productImageUrl(logoUrl) }} style={{ width: 160, height: 120, alignSelf: "center", marginVertical: 12 }} resizeMode="contain" accessibilityLabel="Logo de la empresa" /> : <Text style={s.muted}>Sin logo</Text>}
+      <Text style={s.muted}>JPEG, PNG o WebP. Máximo 5 MB. Se aplica al guardar cambios.</Text>
+      <Button secondary title={pickingLogo ? "Abriendo..." : "Adjuntar logo"} disabled={busy || pickingLogo} onPress={pickLogo} />
+      {logo && <Button secondary title="Cancelar selección del logo" disabled={busy} onPress={() => setLogo(null)} />}
       {field("name", "Nombre del negocio", 120)}
       <Grid minWidth={260} maxColumns={2}>
         {field("phone", "Teléfono", 40, { keyboardType: "phone-pad", autoComplete: "tel" })}
@@ -773,7 +807,7 @@ function RestaurantEditor({ restaurant }) {
     <Text style={s.muted}>Los cambios se aplicarán a la configuración actual del restaurante.</Text>
     <Problem error={error} />
     {message ? <Text accessibilityRole="alert" style={s.text}>{message}</Text> : null}
-    <Button title={busy ? "Guardando..." : "Guardar cambios"} disabled={busy || searching} onPress={save} />
+    <Button title={busy ? "Guardando..." : "Guardar cambios"} disabled={busy || searching || pickingLogo} onPress={save} />
   </>;
 }
 

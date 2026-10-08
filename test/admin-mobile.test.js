@@ -79,6 +79,24 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
     await request("/restaurant", { method: "PATCH", body: { delivery_base_cents: "-1" }, status: 400 });
     await request("/restaurant", { method: "PATCH", body: { address: "unverified" }, status: 400 });
     await request("/restaurant", { method: "PATCH", body: { delivery_address_data: { formatted_address: "Invalid" } }, status: 400 });
+    const logoForm = new FormData();
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64");
+    logoForm.append("logo", new Blob([png], { type: "image/png" }), "logo.png");
+    const logoResponse = await fetch(`${base}/restaurant`, { method: "PATCH", headers: { Authorization: `Bearer ${token}` }, body: logoForm });
+    assert.equal(logoResponse.status, 200);
+    const savedLogo = await logoResponse.json();
+    assert.match(savedLogo.logo_url, /^\/uploads\/restaurants\/[0-9a-f-]+\.png$/);
+    assert.equal((await request("/restaurant")).logo_url, savedLogo.logo_url);
+    // This test app has no public static middleware; verify actual bytes on disk.
+    const { readFile } = await import("node:fs/promises");
+    assert.deepEqual(await readFile(path.join(process.cwd(), "public", savedLogo.logo_url.slice(1))), png);
+    const badLogo = new FormData();
+    badLogo.append("logo", new Blob(["invalid"], { type: "image/png" }), "bad.png");
+    assert.equal((await fetch(`${base}/restaurant`, { method: "PATCH", headers: { Authorization: `Bearer ${token}` }, body: badLogo })).status, 400);
+    assert.equal((await request("/restaurant")).logo_url, savedLogo.logo_url);
+    await request("/restaurant", { method: "PATCH", body: { logo_url: "https://example.invalid/logo.png" }, status: 400 });
+    const [otherLogo] = await query("SELECT logo_url FROM restaurants WHERE id=?", [restaurants[1]]);
+    assert.equal(otherLogo.logo_url, null);
     const [other] = await query("SELECT name FROM restaurants WHERE id=?", [restaurants[1]]); assert.equal(other.name, "Mobile 1");
     const order = await request("/orders", { method: "POST", status: 201, body: { restaurant_id: restaurants[1], customer_id: customers[0], channel: "telephone", delivery_method: "pickup", payment_method: "cash", total_cents: 1, items: [{ product_id: productId, quantity: 2 }] } });
     assert.equal(order.total_cents, 2468); assert.equal(order.items[0].quantity, 2);
@@ -124,7 +142,11 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
       if (product?.image_url?.startsWith("/uploads/products/"))
         await rm(path.join(process.cwd(), "public", product.image_url.slice(1)), { force: true });
     }
-    for (const id of restaurants) await query("DELETE FROM restaurants WHERE id=?", [id]);
+    for (const id of restaurants) {
+      const [restaurant] = await query("SELECT logo_url FROM restaurants WHERE id=?", [id]);
+      if (restaurant?.logo_url?.startsWith("/uploads/restaurants/")) await rm(path.join(process.cwd(), "public", restaurant.logo_url.slice(1)), { force: true });
+      await query("DELETE FROM restaurants WHERE id=?", [id]);
+    }
     for (const id of customers) await query("DELETE FROM customers WHERE id=?", [id]);
     await pool.end();
   }

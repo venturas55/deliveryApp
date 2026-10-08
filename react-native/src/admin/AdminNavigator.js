@@ -5,6 +5,7 @@ import {
   Alert,
   BackHandler,
   KeyboardAvoidingView,
+  Image,
   Platform,
   ScrollView,
   Text,
@@ -26,6 +27,7 @@ import {
 } from "../api";
 import { Button, Field, useStyles } from "../shared/ui";
 import { adminApi } from "./api";
+import { productImageUrl } from "../config";
 import { Orders, OrderDetail } from "./Orders";
 import {
   CustomerDetail,
@@ -49,6 +51,20 @@ const destinations = [
   ["stats", "Estadísticas"],
   ["settings", "Ajustes"],
 ];
+
+function RestaurantLogo() {
+  const { data } = useAdminData("/restaurant", 15000);
+  const uri = productImageUrl(data?.logo_url);
+  if (!uri) return null;
+  return (
+    <Image
+      source={{ uri }}
+      accessibilityLabel="Logo de la empresa"
+      resizeMode="contain"
+      style={{ width: "100%", height: 100, marginTop: 12 }}
+    />
+  );
+}
 
 function Navigation({ current, navigate, sidebar }) {
   const { color } = useTheme();
@@ -309,7 +325,8 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
           >
             <View style={{ padding: 18 }}>
               <Text style={s.heading}>Massa e fuoco</Text>
-              <Text style={s.muted}>Restaurante</Text>
+              <Text style={s.muted}>Restaurantee</Text>
+              <RestaurantLogo />
             </View>
             <Navigation current={current} navigate={navigate} sidebar />
           </View>

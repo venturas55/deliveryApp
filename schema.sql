@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS restaurants (
   legal_address VARCHAR(500) NOT NULL DEFAULT '',
   legal_email VARCHAR(190) NOT NULL DEFAULT '',
   legal_registration VARCHAR(255) NOT NULL DEFAULT '',
+  logo_url VARCHAR(500) NULL,
   delivery_formatted_address VARCHAR(500) NOT NULL DEFAULT '',
   delivery_street VARCHAR(180) NOT NULL DEFAULT '',
   delivery_number VARCHAR(40) NOT NULL DEFAULT '',

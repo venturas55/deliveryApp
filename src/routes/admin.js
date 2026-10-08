@@ -1,3 +1,4 @@
+import { restaurantLogoUpload } from "../services/restaurant-logo-upload.js";
 import { searchAddresses } from "../services/geocoding.js";
 import { rateLimit } from "express-rate-limit";
 import {Router} from "express";
@@ -41,7 +42,7 @@ adminApiRoutes.get("/address-search", rateLimit({ windowMs: 60000, limit: 30 }),
   catch { throw httpError(502, "No se pudo consultar el buscador de direcciones"); }
 });
 adminApiRoutes.get("/restaurant",async(req,res)=>res.json(await mobile.restaurant(req)));
-adminApiRoutes.patch("/restaurant",async(req,res)=>res.json(await mobile.updateRestaurant(req)));
+adminApiRoutes.patch("/restaurant",restaurantLogoUpload,async(req,res)=>res.json(await mobile.updateRestaurant(req)));
 adminApiRoutes.get("/order-notifications",async(req,res)=>{
   const {afterId,since}=req.query;
   if ((afterId!==undefined||since!==undefined) &&
