@@ -41,7 +41,7 @@ export async function menu(req){
   const r=await getRestaurant(req.query.slug||"demo"); if(!r)throw httpError(404,"Restaurante no encontrado");
   const products=await query("SELECT * FROM products WHERE restaurant_id=? AND active=1 ORDER BY category,sort_order,id",[r.id]);
   const zones=await query("SELECT * FROM delivery_zones WHERE restaurant_id=? AND active=1",[r.id]);
-  return ({restaurant:r,products,zones});
+  return ({restaurant:r,products,zones,delivery_pricing:{base_cents:Number(r.delivery_base_cents ?? process.env.DELIVERY_BASE_CENTS ?? 399),free_from_cents:Number(r.free_delivery_from_cents ?? process.env.FREE_DELIVERY_FROM_CENTS ?? 3000)}});
 }
 
 export async function product(id) {
@@ -84,7 +84,7 @@ export async function createOrder(req){
     subtotal+=p.price_cents*q;normalized.push({id:p.id,product_id:p.id,product_name:p.name,category:p.category,price_cents:p.price_cents,quantity:q,unit_price_cents:p.price_cents});
   }
   const promotion=await quotePromotion(r.id,body.promo_code,normalized);
-  const delivery=isPickup?0:subtotal>=Number(process.env.FREE_DELIVERY_FROM_CENTS||3000)?0:Number(process.env.DELIVERY_BASE_CENTS||399);
+  const delivery=isPickup?0:subtotal>=Number(r.free_delivery_from_cents ?? process.env.FREE_DELIVERY_FROM_CENTS ?? 3000)?0:Number(r.delivery_base_cents ?? process.env.DELIVERY_BASE_CENTS ?? 399);
   const total=subtotal-promotion.discount_cents+delivery;
   const orderId=await transaction(async c=>{
     const result=await c.query(`INSERT INTO orders(customer_id,restaurant_id,customer_name,customer_phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,delivery_apartment,delivery_patio,payment_method,delivery_method,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,

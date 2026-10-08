@@ -86,6 +86,7 @@ function ClientNavigator({ onAdminAccess }) {
     [screen, setScreen] = useState("menu"),
     [menu, setMenu] = useState([]),
     [restaurant, setRestaurant] = useState(null),
+    [deliveryPricing, setDeliveryPricing] = useState(null),
     [orders, setOrders] = useState([]),
     [cart, setCart] = useState({}),
     [loading, setLoading] = useState(true),
@@ -157,6 +158,13 @@ function ClientNavigator({ onAdminAccess }) {
       ),
     [menu, cart],
   );
+  const deliveryCents = pickup
+    ? 0
+    : deliveryPricing
+      ? total >= Number(deliveryPricing.free_from_cents)
+        ? 0
+        : Number(deliveryPricing.base_cents)
+      : null;
   async function refreshProfile(auth = token) {
     if (!auth) return;
     const p = await api("/customer-auth/me", {}, auth);
@@ -174,6 +182,10 @@ function ClientNavigator({ onAdminAccess }) {
         const m = await api("/public/menu");
         setMenu(m.products || []);
         setRestaurant(m.restaurant);
+        setDeliveryPricing(m.delivery_pricing || (m.restaurant ? {
+          base_cents: m.restaurant.delivery_base_cents,
+          free_from_cents: m.restaurant.free_delivery_from_cents,
+        } : null));
         const restored = await restoreSession();
         if (restored) {
           setToken(restored);
@@ -668,6 +680,20 @@ console.log(
                 </View>
               ))}
             <Text style={styles.total}>Subtotal {money(total)}</Text>
+            {!!quantities && (
+              <>
+                {!pickup && (
+                  <Text style={[styles.muted, { textAlign: "right" }]}>
+                    {deliveryCents === null
+                      ? "Coste de env\u00edo no disponible"
+                      : `Env\u00edo ${money(deliveryCents)}`}
+                  </Text>
+                )}
+                {deliveryCents !== null && (
+                  <Text style={styles.total}>Total {money(total + deliveryCents)}</Text>
+                )}
+              </>
+            )}
             {!!quantities && (
               <>
                 <Text style={styles.label}>Entrega</Text>
