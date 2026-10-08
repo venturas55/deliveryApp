@@ -1,8 +1,5 @@
+import { profileImageUpload, saveProfileImage } from "../services/customer-profile-image.js";
 import { Router } from "express";
-import multer from "multer";
-import {randomUUID} from "node:crypto";
-import {mkdir,writeFile} from "node:fs/promises";
-import path from "node:path";
 import rateLimit from "express-rate-limit";
 import { signCustomer } from "../auth.js";
 import * as clients from "../controllers/clients.js";
@@ -29,10 +26,6 @@ const router = Router();
 const loginLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 });
 const passwordResetLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 8 });
 const addressLimit = rateLimit({ windowMs: 60 * 1000, max: 30 });
-const profileImageUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:5*1024*1024,files:1},fileFilter:(req,file,cb)=>{
-  if(["image/jpeg","image/png","image/webp"].includes(file.mimetype))return cb(null,true);
-  const error=new Error("Formato de imagen no válido");error.status=400;cb(error);
-}});
 
 const legalPages = [
   { path: "/aviso-legal", title: "Aviso legal", view: "legal-notice" },
@@ -520,12 +513,8 @@ router.get("/client/account", requireCustomer, async (req, res) => {
 });
 router.post("/client/account/photo", requireCustomer, profileImageUpload.single("image"), validateCsrf, async(req,res,next)=>{
   if(!req.file)return res.redirect(303,"/client/account");
-  const extension={"image/jpeg":".jpg","image/png":".png","image/webp":".webp"}[req.file.mimetype];
-  const filename=randomUUID()+extension,directory=path.join(process.cwd(),"public","uploads","customers");
   try{
-    await mkdir(directory,{recursive:true});
-    await writeFile(path.join(directory,filename),req.file.buffer,{flag:"wx"});
-    await accounts.updateProfileImage(req.customer.sub,"/uploads/customers/"+filename);
+    await saveProfileImage(req.customer.sub,req.file);
     res.redirect(303,"/client/account?saved=1");
   }catch(error){next(error)}
 });

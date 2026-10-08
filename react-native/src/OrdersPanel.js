@@ -1,5 +1,5 @@
 import { useTheme, useThemedStyles } from "./shared/theme";
-import React, {useEffect, useRef, useState} from "react";
+import React, {forwardRef, useEffect, useImperativeHandle, useRef, useState} from "react";
 import {ActivityIndicator, AppState, Linking, Modal, SafeAreaView, ScrollView,
   StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import Constants from "expo-constants";
@@ -28,7 +28,7 @@ function Action({title,onPress,disabled,secondary}) {
   </TouchableOpacity>;
 }
 
-export default function OrdersPanel({token}) {
+const OrdersPanel = forwardRef(function OrdersPanel({token}, ref) {
   const { color } = useTheme();
   const s = useThemedStyles(baseStyles);
   const [orders,setOrders]=useState([]),[tab,setTab]=useState("active"),
@@ -48,6 +48,7 @@ export default function OrdersPanel({token}) {
     } catch(e) {if(mounted.current)setError(e.message);}
     finally {if(mounted.current)setLoading(false);}
   }
+  useImperativeHandle(ref, () => ({ refresh }));
   useEffect(()=>{
     mounted.current=true;
     refresh();
@@ -137,7 +138,9 @@ export default function OrdersPanel({token}) {
       </SafeAreaView>
     </Modal>
   </>;
-}
+});
+
+export default OrdersPanel;
 
 const baseStyles = StyleSheet.create({
   heading:{fontSize:24,fontWeight:"800",color:"#392d27"},title:{fontSize:16,fontWeight:"700",color:"#392d27"},

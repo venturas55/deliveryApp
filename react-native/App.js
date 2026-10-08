@@ -1,4 +1,9 @@
-import { useTheme, useThemedStyles, ThemeProvider, ThemeToggle } from "./src/shared/theme";
+import {
+  useTheme,
+  useThemedStyles,
+  ThemeProvider,
+  ThemeToggle,
+} from "./src/shared/theme";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,6 +13,7 @@ import {
   Linking,
   Platform,
   ScrollView,
+  RefreshControl,
   StatusBar,
   StyleSheet,
   Text,
@@ -27,6 +33,7 @@ import {
 import { productImageUrl } from "./src/config";
 import Constants from "expo-constants";
 import OrdersPanel from "./src/OrdersPanel";
+import CustomerAccount from "./src/CustomerAccount";
 import AdminNavigator from "./src/admin/AdminNavigator";
 import {
   GoogleOneTapSignIn,
@@ -40,20 +47,20 @@ const money = (cents) =>
 const Button = ({ title, onPress, secondary = false, disabled = false }) => {
   const styles = useThemedStyles(baseStyles);
   return (
-  <TouchableOpacity
-    disabled={disabled}
-    onPress={onPress}
-    style={[
-      styles.button,
-      secondary && styles.secondary,
-      disabled && { opacity: 0.5 },
-    ]}
-  >
-    <Text style={[styles.buttonText, secondary && styles.secondaryText]}>
-      {title}
-    </Text>
-  </TouchableOpacity>
-);
+    <TouchableOpacity
+      disabled={disabled}
+      onPress={onPress}
+      style={[
+        styles.button,
+        secondary && styles.secondary,
+        disabled && { opacity: 0.5 },
+      ]}
+    >
+      <Text style={[styles.buttonText, secondary && styles.secondaryText]}>
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
 };
 const Field = ({
   value,
@@ -65,17 +72,17 @@ const Field = ({
   const { color } = useTheme();
   const styles = useThemedStyles(baseStyles);
   return (
-  <TextInput
-    value={value}
-    onChangeText={onChangeText}
-    placeholder={placeholder}
-    placeholderTextColor={color("#817d75", "placeholderTextColor")}
-    secureTextEntry={secureTextEntry}
-    keyboardType={keyboardType}
-    autoCapitalize={keyboardType === "email-address" ? "none" : "sentences"}
-    style={styles.input}
-  />
-);
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor={color("#817d75", "placeholderTextColor")}
+      secureTextEntry={secureTextEntry}
+      keyboardType={keyboardType}
+      autoCapitalize={keyboardType === "email-address" ? "none" : "sentences"}
+      style={styles.input}
+    />
+  );
 };
 
 function ClientNavigator({ onAdminAccess }) {
@@ -102,6 +109,9 @@ function ClientNavigator({ onAdminAccess }) {
     [notes, setNotes] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const menuScroll = useRef(null);
+  const ordersPanel = useRef(null);
+  const refreshInFlight = useRef(false);
+  const [refreshing, setRefreshing] = useState(false);
   const categoryOffsets = useRef({});
   const menuCategories = useMemo(() => {
     const groups = new Map();
@@ -165,27 +175,55 @@ function ClientNavigator({ onAdminAccess }) {
         ? 0
         : Number(deliveryPricing.base_cents)
       : null;
-  async function refreshProfile(auth = token) {
+  async function refreshProfile(auth = token, syncFields = true) {
     if (!auth) return;
     const p = await api("/customer-auth/me", {}, auth);
     setProfile(p);
-    setName(p.name || "");
-    setPhone(p.phone || "");
-    setNotes(p.delivery_notes || "");
+    if (syncFields) {
+      setName(p.name || "");
+      setPhone(p.phone || "");
+      setNotes(p.delivery_notes || "");
+    }
   }
   async function refreshOrders(auth = token) {
     if (auth) setOrders(await api("/customer/orders?filter=all", {}, auth));
   }
+  async function refreshMenu() {
+    const m = await api("/public/menu");
+    setMenu(m.products || []);
+    setRestaurant(m.restaurant);
+    setDeliveryPricing(
+      m.delivery_pricing ||
+        (m.restaurant
+          ? {
+              base_cents: m.restaurant.delivery_base_cents,
+              free_from_cents: m.restaurant.free_delivery_from_cents,
+            }
+          : null),
+    );
+  }
+  async function refreshClient() {
+    if (refreshInFlight.current || busy) return;
+    refreshInFlight.current = true;
+    setRefreshing(true);
+    setError("");
+    try {
+      const results = await Promise.allSettled([
+        refreshMenu(),
+        token ? refreshProfile(token, false) : Promise.resolve(),
+        ordersPanel.current ? ordersPanel.current.refresh() : refreshOrders(),
+      ]);
+      const failure = results.find(result => result.status === "rejected");
+      if (failure) setError(failure.reason.message || "No se pudo actualizar.");
+    } finally {
+      refreshInFlight.current = false;
+      setRefreshing(false);
+    }
+  }
   useEffect(() => {
     (async () => {
       try {
-        const m = await api("/public/menu");
-        setMenu(m.products || []);
-        setRestaurant(m.restaurant);
-        setDeliveryPricing(m.delivery_pricing || (m.restaurant ? {
-          base_cents: m.restaurant.delivery_base_cents,
-          free_from_cents: m.restaurant.free_delivery_from_cents,
-        } : null));
+        await refreshMenu();
         const restored = await restoreSession();
         if (restored) {
           setToken(restored);
@@ -279,11 +317,8 @@ function ClientNavigator({ onAdminAccess }) {
           "El acceso con Google no está configurado en el servidor.",
         );
       }
-console.log("EXPO CONFIG COMPLETA:", Constants.expoConfig);
-console.log(
-  "EXPO EXTRA:",
-  Constants.expoConfig?.extra
-);
+      console.log("EXPO CONFIG COMPLETA:", Constants.expoConfig);
+      console.log("EXPO EXTRA:", Constants.expoConfig?.extra);
       GoogleOneTapSignIn.configure({
         webClientId: config.clientId,
         iosClientId: Constants.expoConfig?.extra?.googleIosClientId,
@@ -372,7 +407,7 @@ console.log(
         throw new Error("Añade un teléfono a tu perfil antes de pedir.");
       if (!pickup && !profile?.delivery_place_id)
         throw new Error(
-          "Guarda una Dirección validada en tu cuenta web, o elige recogida en local.",
+          "Guarda una dirección validada en Mi cuenta, o elige recogida en local.",
         );
       const items = Object.entries(cart)
         .filter(([, quantity]) => quantity > 0)
@@ -414,26 +449,6 @@ console.log(
         "Pedido realizado",
         `Pedido #${order.id} - ${money(order.total_cents)}`,
       );
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function saveProfile() {
-    setBusy(true);
-    try {
-      await api(
-        "/customer-auth/me",
-        {
-          method: "PATCH",
-          body: JSON.stringify({ name, phone, delivery_notes: notes }),
-        },
-        token,
-      );
-      await refreshProfile();
-      setError("");
-      Alert.alert("Cuenta guardada");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -491,11 +506,28 @@ console.log(
   );
   return (
     <SafeAreaView style={styles.safe}>
-
       <View style={styles.header}>
-        <Text style={styles.brand}>{restaurant?.name || "Massa e fuoco Dev"}</Text>
+        {/* Nombre del restaurante y botón de tema */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: "100%",
+          }}
+        >
+          <Text
+            style={[styles.brand, { flex: 1, marginRight: 8 }]}
+            numberOfLines={1}
+          >
+            {restaurant?.name || "Massa e fuoco Dev"}
+          </Text>
+
+          <ThemeToggle small />
+        </View>
+
         <Text style={styles.sub}>Pide tus pizzas favoritas.</Text>
-        <ThemeToggle />
+
         {!token && (
           <TouchableOpacity
             accessibilityRole="button"
@@ -543,9 +575,20 @@ console.log(
       )}
       <ScrollView
         ref={menuScroll}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
         onScroll={screen === "menu" ? updateActiveCategory : undefined}
         scrollEventThrottle={100}
+        alwaysBounceVertical
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={refreshClient}
+            enabled={!busy}
+            tintColor={color("#9d3d24", "color")}
+            colors={[color("#9d3d24", "color")]}
+          />
+        }
       >
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {screen === "menu" && (
@@ -690,7 +733,9 @@ console.log(
                   </Text>
                 )}
                 {deliveryCents !== null && (
-                  <Text style={styles.total}>Total {money(total + deliveryCents)}</Text>
+                  <Text style={styles.total}>
+                    Total {money(total + deliveryCents)}
+                  </Text>
                 )}
               </>
             )}
@@ -746,7 +791,7 @@ console.log(
             )}
           </>
         )}
-        {screen === "orders" && <OrdersPanel token={token} />}
+        {screen === "orders" && <OrdersPanel ref={ordersPanel} token={token} />}
         {screen === "order" && (
           <>
             <Text style={styles.title}>Pedido enviado</Text>
@@ -763,33 +808,7 @@ console.log(
           </>
         )}
         {screen === "account" && (
-          <>
-            <Text style={styles.title}>Mi cuenta</Text>
-            <Text style={styles.muted}>{profile?.email}</Text>
-            <Field value={name} onChangeText={setName} placeholder="Nombre" />
-            <Field
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="Teléfono"
-              keyboardType="phone-pad"
-            />
-            <Field
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Notas de entrega"
-            />
-            <Text style={styles.label}>Dirección guardada</Text>
-            <Text style={styles.muted}>
-              {profile?.delivery_formatted_address ||
-                "Sin Dirección. Guárdala desde la cuenta web para pedir a domicilio."}
-            </Text>
-            <Button
-              title={busy ? "Guardando..." : "Guardar cambios"}
-              onPress={saveProfile}
-              disabled={busy}
-            />
-            <Button secondary title="Cerrar sesión" onPress={logout} />
-          </>
+          <CustomerAccount profile={profile} token={token} onUpdated={refreshProfile} onLogout={logout} />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -849,11 +868,20 @@ function statusName(status) {
 }
 
 export default function App() {
-  return <ThemeProvider><AppContent /></ThemeProvider>;
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
 }
 const baseStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#f7f4ee" },
-  center: { backgroundColor: "#f7f4ee", flex: 1, alignItems: "center", justifyContent: "center" },
+  center: {
+    backgroundColor: "#f7f4ee",
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14 },
   brand: { color: "#392d27", fontSize: 24, fontWeight: "800" },
   sub: { color: "#777067", marginTop: 3 },

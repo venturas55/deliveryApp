@@ -1,3 +1,5 @@
+import { profileImageUpload, saveProfileImage } from "../services/customer-profile-image.js";
+import { searchAddresses } from "../services/geocoding.js";
 import {Router} from "express";
 import {registerCustomer,loginCustomer,customerProfile,updateProfile,emailValue,validEmail} from "../controllers/accounts.js";
 import {setSession} from "../services/web-session.js";
@@ -31,6 +33,18 @@ router.post("/register",limit,async(req,res)=>apiSession(res,await registerCusto
 router.post("/login",limit,async(req,res)=>apiSession(res,await loginCustomer(req.body)));
 router.get("/me",customerAuth,async(req,res)=>res.json(await customerProfile(req.customer.sub)));
 router.patch("/me",customerAuth,async(req,res)=>res.json(await updateProfile(req.customer.sub,req.body)));
+const addressLimit=rateLimit({windowMs:60000,max:30});
+router.get("/address-search",customerAuth,addressLimit,async(req,res)=>{
+  res.set("Cache-Control","no-store");
+  try { res.json(await searchAddresses(req.query.q)); }
+  catch { res.status(502).json({error:"No se pudo consultar el buscador de direcciones"}); }
+});
+router.post("/me/photo",customerAuth,(req,res,next)=>{
+  profileImageUpload.single("image")(req,res,error=>{
+    if(error)return res.status(error.code==="LIMIT_FILE_SIZE"?413:400).json({error:error.code==="LIMIT_FILE_SIZE"?"La imagen no puede superar 5 MB.":"Selecciona una imagen JPG, PNG o WebP válida."});
+    next();
+  });
+},async(req,res)=>res.set("Cache-Control","no-store").json(await saveProfileImage(req.customer.sub,req.file)));
 router.get("/google/config",limit,(req,res)=>{
   res.set("Cache-Control","no-store");
   if(!process.env.GOOGLE_CLIENT_ID)return res.json({enabled:false});

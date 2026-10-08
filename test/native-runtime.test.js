@@ -323,3 +323,62 @@ test("native notice detects every paid order across repeated snapshots without d
   assert.equal(h.plays(), 5);
   h.sound.unmount();
 });
+function accountAction(name, context) {
+  const source = readFileSync(resolve(nativeRoot, "src/CustomerAccount.js"), "utf8");
+  const ast = parse(source, { sourceType: "module", plugins: ["jsx"] });
+  const component = ast.program.body.find(node => node.type === "ExportDefaultDeclaration").declaration;
+  const action = component.body.body.find(node => node.type === "FunctionDeclaration" && node.id.name === name);
+  vm.createContext(context);
+  return vm.runInContext(`(${source.slice(action.start, action.end)})`, context);
+}
+
+test("native account requires selected address and submits all editable fields", async () => {
+  let body, updates = 0;
+  const context = {
+    operation: { current: false }, dirty: { current: true },
+    name: "Customer", phone: "600123456", apartment: "3 B", notes: "Ring bell",
+    search: "Manual address", address: null, token: "customer-token",
+    setError(value) { context.error = value; }, setSaved() {}, setBusy() {}, setSearch() {},
+    async onUpdated() { updates++; },
+    async api(url, options, token) {
+      assert.equal(url, "/customer-auth/me");
+      assert.equal(token, "customer-token");
+      assert.equal(options.method, "PATCH");
+      body = JSON.parse(options.body);
+    },
+  };
+  const save = accountAction("save", context);
+  await save();
+  assert.match(context.error, /Selecciona/);
+  assert.equal(body, undefined);
+  context.search = "";
+  context.address = { place_id: "selected", formatted_address: "Validated address" };
+  await save();
+  assert.deepEqual(body, { name: "Customer", phone: "600123456", delivery_apartment: "3 B", delivery_notes: "Ring bell", delivery_address_data: context.address });
+  assert.equal(body.email, undefined);
+  assert.equal(context.dirty.current, false);
+  assert.equal(updates, 1);
+});
+
+test("native photo sends multipart image with authenticated API and refreshes avatar", async () => {
+  let file, updates = 0;
+  class NativeFormData { append(name, value) { assert.equal(name, "image"); file = value; } }
+  const context = {
+    image: { uri: "file:///photo.png", name: "photo.png", mimeType: "image/png" },
+    token: "customer-token", operation: { current: false }, FormData: NativeFormData,
+    setBusy() {}, setError() {}, setSaved() {}, setImage(value) { context.image = value; },
+    async onUpdated() { updates++; },
+    async api(url, options, token) {
+      assert.equal(url, "/customer-auth/me/photo");
+      assert.equal(options.method, "POST");
+      assert.ok(options.body instanceof NativeFormData);
+      assert.equal(token, "customer-token");
+    },
+  };
+  await accountAction("uploadPhoto", context)();
+  assert.equal(file.uri, "file:///photo.png");
+  assert.equal(file.type, "image/png");
+  assert.equal(updates, 1);
+  assert.equal(context.image, null);
+  assert.equal(context.operation.current, false);
+});
