@@ -138,6 +138,7 @@ export function Customers({ openCustomer, selectCustomer }) {
           label="Buscar nombre, teléfono o email"
           value={search}
           onChangeText={setSearch}
+           keyboardType="phone-pad"
         />
       </View>
       <Problem error={resource.error} />

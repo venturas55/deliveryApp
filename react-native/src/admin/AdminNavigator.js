@@ -61,7 +61,13 @@ function RestaurantLogo() {
       source={{ uri }}
       accessibilityLabel="Logo de la empresa"
       resizeMode="contain"
-      style={{ width: "100%", height: 100, marginTop: 12 }}
+      style={{
+        width: "100%",
+        height: 100,
+        marginTop: 12,
+        borderRadius: 16,
+        overflow: "hidden",
+      }}
     />
   );
 }
@@ -150,6 +156,9 @@ function OrderNotice({ navigate, soundEnabled }) {
 }
 
 export default function AdminNavigator({ onClient, adminOnly = false }) {
+  const { data } = useAdminData("/restaurant", 30000);
+  const restaurantName =
+  data?.name || data?.legal_name || "My business";
   const { color } = useTheme();
   const s = useStyles();
   const { width, fontScale } = useWindowDimensions();
@@ -257,7 +266,7 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
             ]}
             keyboardShouldPersistTaps="handled"
           >
-            <Text style={s.title}>Massa e fuoco Admin</Text>
+            <Text style={s.title}> {restaurantName} Admin</Text>
             <Text style={s.muted}>Acceso del restaurante</Text>
             <ThemeToggle />
             <Field
@@ -324,35 +333,92 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
             }}
           >
             <View style={{ padding: 18 }}>
-              <Text style={s.heading}>Massa e fuoco</Text>
+              <Text style={[s.heading, { textTransform: "uppercase" }]}> {restaurantName}</Text>
               <Text style={s.muted}>Restaurante</Text>
-              <RestaurantLogo />
             </View>
             <Navigation current={current} navigate={navigate} sidebar />
           </View>
         )}
         <ContentPane key="workspace">
-          <View style={[s.header, { flexWrap: "wrap" }]}>
-            <ThemeToggle />
-            <Button
-              secondary
-              icon={
-                soundEnabled ? "volume-high-outline" : "volume-mute-outline"
-              }
-              selected={soundEnabled}
-              accessibilityLabel={
-                soundEnabled ? "Silenciar avisos" : "Activar sonido"
-              }
-              onPress={() => setSoundEnabled((value) => !value)}
-            />
-            <View style={{ flex: 1, minWidth: 140 }}>
-              <Text style={s.muted}>MASSA E FUOCO · ADMIN</Text>
-              <Text style={s.title}>{titles[current.name]}</Text>
+          <View
+            style={[
+              s.header,
+              {
+                flexDirection: "row",
+                flexWrap: "nowrap",
+                alignItems: "center",
+                width: "100%",
+                gap: 8,
+              },
+            ]}
+          >
+            {/* IZQUIERDA */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                flexShrink: 0,
+              }}
+            >
+              <ThemeToggle />
+
+              <Button
+                secondary
+                icon={
+                  soundEnabled ? "volume-high-outline" : "volume-mute-outline"
+                }
+                selected={soundEnabled}
+                accessibilityLabel={
+                  soundEnabled ? "Silenciar avisos" : "Activar sonido"
+                }
+                onPress={() => setSoundEnabled((value) => !value)}
+              />
+
+              {stack.length > 1 && (
+                <Button secondary title="Volver" onPress={back} />
+              )}
             </View>
-            {stack.length > 1 && (
-              <Button secondary title="Volver" onPress={back} />
-            )}
+
+            {/* CENTRO */}
+            <View
+              style={{
+                flex: 1,
+                minWidth: 0,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text
+                style={[s.muted, { textAlign: "center" , textTransform: "uppercase"}]}
+                numberOfLines={1}
+              >
+
+                {restaurantName}· ADMIN
+              </Text>
+
+              <Text
+                style={[s.title, { textAlign: "center" }]}
+                numberOfLines={1}
+              >
+                {titles[current.name]}
+              </Text>
+            </View>
+
+            {/* DERECHA: espacio reservado para el logo */}
+            <View
+              style={{
+                width: 100,
+                minHeight: 70,
+                flexShrink: 0,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <RestaurantLogo />
+            </View>
           </View>
+
           <OrderNotice navigate={navigate} soundEnabled={soundEnabled} />
           <View
             style={{ flex: 1 }}
