@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 
 // Keep playback in the navigator so filters and screen changes do not reset it.
 export default function useOrderSound(enabled) {
-  const player = useAudioPlayer(require("../../assets/order-notification.wav"));
   const controls = useRef(null);
   const [error, setError] = useState("");
   const notify = useCallback(count => controls.current?.notify(count), []);
@@ -13,7 +11,16 @@ export default function useOrderSound(enabled) {
     setError("");
     if (!enabled) {
       controls.current = null;
-      player.pause();
+      return;
+    }
+    let player, setAudioModeAsync;
+    try {
+      // Native audio is optional. Old development clients must still open.
+      const audio = require("expo-audio");
+      setAudioModeAsync = audio.setAudioModeAsync;
+      player = audio.createAudioPlayer(require("../../assets/order-notification.wav"));
+    } catch (failure) {
+      setError("Sonido no disponible. Reconstruye e instala la app con expo-audio.");
       return;
     }
     async function drain() {
@@ -49,8 +56,9 @@ export default function useOrderSound(enabled) {
       controls.current = null;
       listener.remove();
       player.pause();
+      player.remove();
     };
-  }, [player, enabled]);
+  }, [enabled]);
 
   return { notify, error };
 }

@@ -25,7 +25,7 @@ import {
   saveSession,
   setAuthLostHandler,
 } from "../api";
-import { Button, Field, useStyles } from "../shared/ui";
+import { Button, Card, Field, useStyles } from "../shared/ui";
 import { adminApi } from "./api";
 import { productImageUrl } from "../config";
 import { Orders, OrderDetail } from "./Orders";
@@ -52,9 +52,7 @@ const destinations = [
   ["settings", "Ajustes"],
 ];
 
-function RestaurantLogo() {
-  const { data } = useAdminData("/restaurant", 15000);
-  const uri = productImageUrl(data?.logo_url);
+function RestaurantLogo({ uri, compact }) {
   if (!uri) return null;
   return (
     <Image
@@ -62,19 +60,64 @@ function RestaurantLogo() {
       accessibilityLabel="Logo de la empresa"
       resizeMode="contain"
       style={{
-        width: "100%",
-        height: 100,
-        marginTop: 12,
-        borderRadius: 16,
-        overflow: "hidden",
+        width: compact ? 56 : 100,
+        height: compact ? 56 : 100,
+        borderRadius: 12,
       }}
     />
   );
 }
 
-function Navigation({ current, navigate, sidebar }) {
-  const { color } = useTheme();
+function AdminHeader({ restaurantName, logoUri, title, soundEnabled, toggleSound, back }) {
   const s = useStyles();
+  const [width, setWidth] = useState(0);
+  const { fontScale } = useWindowDimensions();
+  const compact = width < 720 * Math.max(1, fontScale);
+  return (
+    <View
+      onLayout={({ nativeEvent }) => setWidth(nativeEvent.layout.width)}
+      style={[s.header, {
+        flexDirection: compact ? "column" : "row",
+        alignItems: compact ? "stretch" : "center",
+      }]}
+    >
+      <View style={{
+        flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8,
+        flexShrink: 1, minWidth: 0,
+      }}>
+        <ThemeToggle />
+        <Button
+          secondary
+          icon={soundEnabled ? "volume-high-outline" : "volume-mute-outline"}
+          selected={soundEnabled}
+          accessibilityLabel={soundEnabled ? "Silenciar avisos" : "Activar sonido"}
+          onPress={toggleSound}
+        />
+        {back && <Button secondary title="Volver" onPress={back} />}
+      </View>
+      <View style={{
+        flexDirection: "row", alignItems: "center", gap: 12,
+        ...(compact ? {} : { flex: 1 }), minWidth: 0,
+      }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[s.muted, {
+            textAlign: compact ? "left" : "center", textTransform: "uppercase",
+          }]}>
+            {restaurantName} · ADMIN
+          </Text>
+          <Text accessibilityRole="header" style={[s.title, {
+            textAlign: compact ? "left" : "center",
+          }]}>
+            {title}
+          </Text>
+        </View>
+        <RestaurantLogo uri={logoUri} compact={compact} />
+      </View>
+    </View>
+  );
+}
+
+function Navigation({ current, navigate, sidebar }) {
   const selected = (name) =>
     current.name === name ||
     (name === "orders" && current.name === "order") ||
@@ -156,9 +199,6 @@ function OrderNotice({ navigate, soundEnabled }) {
 }
 
 export default function AdminNavigator({ onClient, adminOnly = false }) {
-  const { data } = useAdminData("/restaurant", 30000);
-  const restaurantName =
-  data?.name || data?.legal_name || "My business";
   const { color } = useTheme();
   const s = useStyles();
   const { width, fontScale } = useWindowDimensions();
@@ -171,6 +211,9 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
     [error, setError] = useState(""),
     [email, setEmail] = useState(""),
     [password, setPassword] = useState("");
+  const { data: restaurant } = useAdminData(authenticated ? "/restaurant" : null, 30000);
+  const restaurantName = restaurant?.name || restaurant?.legal_name || "Restaurante";
+  const logoUri = productImageUrl(restaurant?.logo_url);
   const [stack, setStack] = useState([{ name: "dashboard", params: {} }]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const current = stack[stack.length - 1];
@@ -266,7 +309,7 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
             ]}
             keyboardShouldPersistTaps="handled"
           >
-            <Text style={s.title}> {restaurantName} Admin</Text>
+            <Text style={s.title}>{restaurantName} Admin</Text>
             <Text style={s.muted}>Acceso del restaurante</Text>
             <ThemeToggle />
             <Field
@@ -333,91 +376,21 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
             }}
           >
             <View style={{ padding: 18 }}>
-              <Text style={[s.heading, { textTransform: "uppercase" }]}> {restaurantName}</Text>
+              <Text style={[s.heading, { textTransform: "uppercase" }]}>{restaurantName}</Text>
               <Text style={s.muted}>Restaurante</Text>
             </View>
             <Navigation current={current} navigate={navigate} sidebar />
           </View>
         )}
         <ContentPane key="workspace">
-          <View
-            style={[
-              s.header,
-              {
-                flexDirection: "row",
-                flexWrap: "nowrap",
-                alignItems: "center",
-                width: "100%",
-                gap: 8,
-              },
-            ]}
-          >
-            {/* IZQUIERDA */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                flexShrink: 0,
-              }}
-            >
-              <ThemeToggle />
-
-              <Button
-                secondary
-                icon={
-                  soundEnabled ? "volume-high-outline" : "volume-mute-outline"
-                }
-                selected={soundEnabled}
-                accessibilityLabel={
-                  soundEnabled ? "Silenciar avisos" : "Activar sonido"
-                }
-                onPress={() => setSoundEnabled((value) => !value)}
-              />
-
-              {stack.length > 1 && (
-                <Button secondary title="Volver" onPress={back} />
-              )}
-            </View>
-
-            {/* CENTRO */}
-            <View
-              style={{
-                flex: 1,
-                minWidth: 0,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text
-                style={[s.muted, { textAlign: "center" , textTransform: "uppercase"}]}
-                numberOfLines={1}
-              >
-
-                {restaurantName}· ADMIN
-              </Text>
-
-              <Text
-                style={[s.title, { textAlign: "center" }]}
-                numberOfLines={1}
-              >
-                {titles[current.name]}
-              </Text>
-            </View>
-
-            {/* DERECHA: espacio reservado para el logo */}
-            <View
-              style={{
-                width: 100,
-                minHeight: 70,
-                flexShrink: 0,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <RestaurantLogo />
-            </View>
-          </View>
+          <AdminHeader
+            restaurantName={restaurantName}
+            logoUri={logoUri}
+            title={titles[current.name]}
+            soundEnabled={soundEnabled}
+            toggleSound={() => setSoundEnabled((value) => !value)}
+            back={stack.length > 1 ? back : undefined}
+          />
 
           <OrderNotice navigate={navigate} soundEnabled={soundEnabled} />
           <View
