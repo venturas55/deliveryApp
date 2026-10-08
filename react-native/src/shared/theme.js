@@ -67,7 +67,7 @@ export function ThemeToggle() {
     style={{ alignSelf: "flex-start", minHeight: 44, padding: 12, marginVertical: 4, borderRadius: 10,
       backgroundColor: color("#eee8df", "backgroundColor") }}>
     <Text style={{ color: color("#51483f"), fontWeight: "600" }}>
-      {dark ? "Usar tema claro" : "Usar tema oscuro"}
+      {dark ? "◐ Tema claro" : "◐ Tema oscuro"}
     </Text>
   </Pressable>;
 }

@@ -11,11 +11,15 @@
     "dev:clear": "cross-env APP_VARIANT=development GOOGLE_IOS_CLIENT_ID=42207435401-24td0lvmvr4gfkboab41hp9i4d35utgu.apps.googleusercontent.com expo start --dev-client --clear"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~57.0.27",
+    "expo-asset": "~57.0.19",
+    "expo-audio": "~57.0.5",
     "expo-build-properties": "~57.0.22",
     "expo-dev-client": "~57.0.19",
     "expo-document-picker": "~57.0.3",
+    "expo-font": "~57.0.4",
     "expo-secure-store": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",

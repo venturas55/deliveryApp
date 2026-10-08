@@ -1,4 +1,5 @@
 import { useTheme, useThemedStyles } from "./theme";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -7,13 +8,54 @@ export const date = value => new Date(value).toLocaleString("es-ES", { day: "2-d
 export const paymentName = value => ({ cash: "Efectivo", card_on_delivery: "Tarjeta al entregar", online: "Tarjeta online" }[value] || value);
 export const paymentStatus = value => ({ pending: "Pendiente", paid: "Pagado", failed: "Fallido", cancelled: "Cancelado", refunded: "Reembolsado", refund_pending: "Devolución en curso" }[value] || value);
 
-export function Button({ title, onPress, disabled, secondary, danger }) {
+export function Button({ title, icon, onPress, disabled, secondary, danger }) {
   const { color } = useTheme();
   const s = useThemedStyles(baseStyles);
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress}
-    style={({ pressed }) => [s.button, secondary && s.secondary, danger && s.danger, (disabled || pressed) && { opacity: .55 }]}>
-    <Text style={[s.buttonText, secondary && { color: color("#713923", "color") }]}>{title}</Text>
-  </Pressable>;
+
+  const textColor = secondary
+    ? color("#713923", "color")
+    : s.buttonText.color;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title || (icon ? "Botón de acción" : undefined)}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        s.button,
+        secondary && s.secondary,
+        danger && s.danger,
+        (disabled || pressed) && { opacity: 0.55 },
+        icon && !title && {
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          minWidth: 44,
+          minHeight: 44,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+      ]}
+    >
+      {icon ? (
+        <Ionicons
+          name={icon}
+          size={22}
+          color={textColor}
+        />
+      ) : null}
+
+      {title ? (
+        <Text style={[
+          s.buttonText,
+          secondary && { color: color("#713923", "color") },
+        ]}>
+          {title}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
 }
 export function Field({ label, ...props }) {
   const { color } = useTheme();

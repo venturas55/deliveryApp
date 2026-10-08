@@ -126,12 +126,18 @@ Para subirla a App Store Connect:
 
     ==> PARA DESARROLLO
         cd D:\CFGS\development\dev\delivery\react-native
-        npx expo-doctor
+        # 1. Seleccionar entorno DEV
         $env:APP_VARIANT="development"
         $env:GOOGLE_IOS_CLIENT_ID="42207435401-24td0lvmvr4gfkboab41hp9i4d35utgu.apps.googleusercontent.com"
+        # 2. Comprobar dependencias
+        npx expo-doctor
+        # 3. Comprobar configuración efectiva
         npx expo config --type public
-        Remove-Item Env:APP_VARIANT -ErrorAction SilentlyContinue
+        # 4. Compilar APK de desarrollo
         npx eas-cli@latest build --platform android --profile development
+        # 5. Limpiar variables al terminar
+        Remove-Item Env:APP_VARIANT -ErrorAction SilentlyContinue
+        Remove-Item Env:GOOGLE_IOS_CLIENT_ID -ErrorAction SilentlyContinue
 
     ==> PARA PRODUCCION
         Remove-Item Env:APP_VARIANT -ErrorAction SilentlyContinue
