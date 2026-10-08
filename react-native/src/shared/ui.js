@@ -33,25 +33,25 @@ export const paymentStatus = (value) =>
 
 const BUTTON_SIZES = {
   sm: {
-    minHeight: 36,
-    minWidth: 36,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    iconSize: 18,
+    minHeight: 44,
+    minWidth: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    iconSize: 20,
   },
   md: {
-    minHeight: 48,
-    minWidth: 48,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    iconSize: 22,
-  },
-  lg: {
     minHeight: 56,
     minWidth: 56,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     iconSize: 26,
+  },
+  lg: {
+    minHeight: 64,
+    minWidth: 64,
+    paddingHorizontal: 24,
+    paddingVertical: 18,
+    iconSize: 30,
   },
 };
 
@@ -94,12 +94,8 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => [
         s.button,
-
         secondary && s.secondary,
         danger && s.danger,
-
-        chip && s.chip,
-        chip && selected && s.chipActive,
 
         {
           minHeight: dimensions.minHeight,
@@ -107,6 +103,9 @@ export function Button({
           paddingHorizontal: dimensions.paddingHorizontal,
           paddingVertical: dimensions.paddingVertical,
         },
+
+        chip && s.chip,
+        chip && selected && s.chipActive,
 
         iconOnly && {
           paddingHorizontal: 0,
@@ -155,16 +154,23 @@ export function Field({ label, ...props }) {
     </View>
   );
 }
-export function Card({ children, onPress }) {
-  const { color } = useTheme();
+export function Card({ children, onPress, style, accessibilityLiveRegion }) {
   const s = useThemedStyles(baseStyles);
-  return onPress ? (
-    <Pressable accessibilityRole="button" onPress={onPress} style={s.card}>
-      {children}
-    </Pressable>
-  ) : (
-    <View style={s.card}>{children}</View>
-  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLiveRegion={accessibilityLiveRegion}
+        onPress={onPress}
+        style={[s.card, style]}
+      >
+        {children}
+      </Pressable>
+    );
+  }
+
+  return <View style={[s.card, style]}>{children}</View>;
 }
 const baseStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#f7f4ee" },
@@ -229,7 +235,7 @@ const baseStyles = StyleSheet.create({
   danger: { backgroundColor: "#a32121" },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
     textAlign: "center",
   },
@@ -240,7 +246,7 @@ const baseStyles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  wrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  wrap: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   error: {
     color: "#9f2525",
     backgroundColor: "#fff0ed",
@@ -249,11 +255,11 @@ const baseStyles = StyleSheet.create({
     fontSize: 15,
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    minHeight: 48,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    minHeight: 56,
     justifyContent: "center",
-    borderRadius: 24,
+    borderRadius: 28,
     backgroundColor: "#efe7db",
   },
   chipActive: { backgroundColor: "#392d27" },

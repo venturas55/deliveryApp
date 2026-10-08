@@ -6,7 +6,6 @@ import {
   BackHandler,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   Text,
   Vibration,
@@ -116,23 +115,19 @@ function OrderNotice({ navigate, soundEnabled }) {
         </Text>
       )}
       {count > 0 && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLiveRegion="polite"
-          style={[
-            s.card,
-            {
-              margin: 12,
-              backgroundColor: color("#fce8da", "backgroundColor"),
-            },
-          ]}
+        <Card
           onPress={() => {
             setCount(0);
             navigate("orders");
           }}
+          style={{
+            margin: 12,
+            backgroundColor: color("#fce8da", "backgroundColor"),
+          }}
+          accessibilityLiveRegion="polite"
         >
           <Text style={s.heading}>{count} avisos de pedidos · Ver pedidos</Text>
-        </Pressable>
+        </Card>
       )}
     </>
   );

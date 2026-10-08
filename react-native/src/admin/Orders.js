@@ -101,19 +101,13 @@ export function Orders({ openOrder, initialStatus = "new" }) {
           contentContainerStyle={{ gap: 8, padding: 14 }}
         >
           {filters.map(([key, label]) => (
-            <Pressable
+            <Button
               key={key}
-              accessibilityRole="button"
-              accessibilityState={{ selected: status === key }}
+              title={label}
+              chip
+              selected={status === key}
               onPress={() => changeStatus(key)}
-              style={[s.chip, status === key && s.chipActive]}
-            >
-              <Text
-                style={{ color: status === key ? "white" : color("#392d27") }}
-              >
-                {label}
-              </Text>
-            </Pressable>
+            />
           ))}
         </ScrollView>
       </View>
@@ -123,21 +117,16 @@ export function Orders({ openOrder, initialStatus = "new" }) {
           ["pickup", "Recogida"],
           ["delivery", "Reparto"],
         ].map(([key, label]) => (
-          <Pressable
-            accessibilityRole="button"
+          <Button
             key={key}
+            title={label}
+            chip
+            selected={delivery === key}
             onPress={() => {
               setDelivery(key);
               setBefore("");
             }}
-            style={[s.chip, delivery === key && s.chipActive]}
-          >
-            <Text
-              style={{ color: delivery === key ? "white" : color("#392d27") }}
-            >
-              {label}
-            </Text>
-          </Pressable>
+          />
         ))}
       </View>
       {error ? (
