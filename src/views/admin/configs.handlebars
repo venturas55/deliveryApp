@@ -18,6 +18,21 @@
     </div>
   {{/if}}
 
+  <section class="settings-card">
+    <div class="settings-card-header"><div><h2>Logo del negocio</h2><p>Se muestra en la barra superior.</p></div></div>
+    {{#if logoSaved}}<p class="notice" role="status">Logo actualizado.</p>{{/if}}
+    {{#if logoError}}<p class="notice" role="alert">{{logoError}}</p>{{/if}}
+    {{#if configs.logo_url}}<img class="settings-business-logo" src="{{configs.logo_url}}" alt="Logo de {{configs.name}}">{{else}}<p>No hay logo guardado.</p>{{/if}}
+    <form method="post" action="/admin/configs/logo" enctype="multipart/form-data">
+      {{> csrf}}
+      <label class="form-field" for="business-logo">Cambiar logo
+        <input id="business-logo" name="logo" type="file" accept="image/jpeg,image/png,image/webp" required>
+        <small>JPEG, PNG o WebP. Máximo 5 MB.</small>
+      </label>
+      <button type="submit">Guardar logo</button>
+    </form>
+  </section>
+
   <form id="accountForm" method="post" action="/admin/configs" class="settings-form">
     {{> csrf}}
 
@@ -33,6 +48,7 @@
       </div>
 
       <div class="settings-grid">
+
 
         <div class="form-field form-field--full">
           <label for="business-name">Nombre del negocio</label>

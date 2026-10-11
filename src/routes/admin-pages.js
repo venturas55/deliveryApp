@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { restaurantLogoUpload, saveRestaurantLogo } from "../services/restaurant-logo-upload.js";
 import { orderNotificationSnapshot } from "../services/order-notifications.js";
 import multer from "multer";
 import rateLimit from "express-rate-limit";
@@ -426,9 +427,21 @@ router.get("/admin/configs", async (req, res) => {
     title: "Configuración",
     configsActive: true,
     configs,
+    logoSaved: req.query.logo_saved === "1",
+    logoError: typeof req.query.logo_error === "string" ? req.query.logo_error : null,
     addressData,
     refresh: true,
   });
+});
+router.post("/admin/configs/logo", (req, res, next) => {
+  restaurantLogoUpload(req, res, (error) => {
+    if (error) return res.redirect(303, "/admin/configs?logo_error=" + encodeURIComponent(error.message));
+    next();
+  });
+}, validateCsrf, async (req, res) => {
+  if (!req.file) return res.redirect(303, "/admin/configs?logo_error=" + encodeURIComponent("Selecciona un logo."));
+  await saveRestaurantLogo(req);
+  res.redirect(303, "/admin/configs?logo_saved=1");
 });
 router.post("/admin/configs", async (req, res) => {
   console.log(req.body);
