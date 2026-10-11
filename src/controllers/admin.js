@@ -52,10 +52,15 @@ export async function telephoneCustomer(phone, restaurantId) {
   if (digits.startsWith("34") && digits.length === 11)
     candidates.push(digits.slice(2));
   const rows = await query(
-    `SELECT id,name,email,phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id FROM customers WHERE REGEXP_REPLACE(phone,'[^0-9]','') IN (${candidates.map(() => "?").join(",")}) LIMIT 1`,
+    `SELECT id,name,email,phone,profile_image_url,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id FROM customers WHERE REGEXP_REPLACE(phone,'[^0-9]','') IN (${candidates.map(() => "?").join(",")}) LIMIT 1`,
     candidates,
   );
-  return rows[0] || null;
+  if (!rows[0]) return null;
+  return {
+    ...rows[0],
+    initials: String(rows[0].name || "?").trim().split(/\s+/).slice(0, 2)
+      .map((part) => Array.from(part)[0] || "?").join("").toUpperCase(),
+  };
 }
 
 export async function createAdminCustomer(req) {
@@ -512,10 +517,16 @@ export async function adminOrders(req) {
     params.push(...methods);
   }
   const orders = await query(
-    `SELECT * FROM orders WHERE restaurant_id=?${clause} ORDER BY id DESC LIMIT 200`,
+    `SELECT orders.*,
+      (SELECT c.profile_image_url FROM customers c WHERE c.id=orders.customer_id) AS customer_profile_image_url
+    FROM orders WHERE restaurant_id=?${clause} ORDER BY id DESC LIMIT 200`,
     params,
   );
-  return orders;
+  return orders.map((order) => ({
+    ...order,
+    customer_initials: String(order.customer_name || "?")
+      .trim().split(/\s+/).slice(0, 2).map((part) => Array.from(part)[0] || "?").join("").toUpperCase(),
+  }));
 }
 
 export async function adminOrderStats(req) {
@@ -552,15 +563,15 @@ export async function adminOrderStats(req) {
     };
   });
   const hours = await query(
-    `SELECT FLOOR(HOUR(created_at)/3) AS slot,COUNT(*) AS total FROM orders
-    WHERE restaurant_id=? GROUP BY FLOOR(HOUR(created_at)/3)`,
+    `SELECT HOUR(created_at) AS slot,COUNT(*) AS total FROM orders
+    WHERE restaurant_id=? GROUP BY HOUR(created_at)`,
     [restaurantId],
   );
   const bySlot = new Map(
     hours.map((row) => [Number(row.slot), Number(row.total)]),
   );
-  const hourly = Array.from({ length: 8 }, (_, slot) => ({
-    label: `${String(slot * 3).padStart(2, "0")}:00–${String(slot * 3 + 3).padStart(2, "0")}:00`,
+  const hourly = Array.from({ length: 24 }, (_, slot) => ({
+    label: `${String(slot).padStart(2, "0")}:00`,
     total: bySlot.get(slot) || 0,
   }));
   const dailyMax = Math.max(1, ...daily.map((row) => row.total));
@@ -1232,7 +1243,7 @@ export async function getClientes(id = null) {
       c.email AS customer_email,
       c.phone AS customer_phone,
       c.google_sub AS customer_google_sub,
-
+      c.profile_image_url AS customer_profile_image_url,
       c.delivery_address AS customer_delivery_address,
       c.delivery_notes AS customer_delivery_notes,
       c.delivery_formatted_address AS customer_delivery_formatted_address,
@@ -1300,6 +1311,8 @@ export async function getClientes(id = null) {
     if (!customersMap.has(row.customer_id)) {
       customersMap.set(row.customer_id, {
         ...extractByPrefix(row, "customer_"),
+        initials: String(row.customer_name || "?")
+          .trim().split(/\s+/).slice(0, 2).map((part) => Array.from(part)[0] || "?").join("").toUpperCase(),
         orders: [],
         total_orders: 0,
         total_spent_cents: 0,

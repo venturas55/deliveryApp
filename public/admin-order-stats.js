@@ -1,21 +1,48 @@
-const dialog = document.querySelector(".stats-day-dialog");
-if (dialog) {
-  const title = dialog.querySelector("#stats-day-dialog-title");
-  const content = dialog.querySelector(".stats-day-dialog-content");
-  const close = dialog.querySelector(".stats-day-dialog-close");
+﻿const chart = document.getElementById("stats-hourly-chart");
+const mode = document.getElementById("stats-hourly-mode");
+const description = document.getElementById("stats-hourly-description");
 
-  document.querySelectorAll(".stats-day-button").forEach((button) => {
+if (chart && mode && description) {
+  const accumulated = chart.cloneNode(true);
+  const buttons = [...document.querySelectorAll(".stats-day-button")];
+  const modeButtons = [...mode.querySelectorAll("button[data-mode]")];
+  const dayOption = mode.querySelector('button[data-mode="day"]');
+  let selectedButton = null;
+
+  function renderChart() {
+    const showDay = mode.dataset.mode === "day" && selectedButton;
+    const template = showDay
+      ? document.getElementById(`hours-${selectedButton.dataset.day}`)
+      : null;
+    if (showDay && !template) return;
+    chart.replaceChildren(
+      ...(template ? template.content : accumulated).cloneNode(true).childNodes,
+    );
+    description.textContent = showDay
+      ? `Día ${selectedButton.dataset.day} · Intervalos de 1 hora`
+      : "Totales acumulados · Intervalos de 1 hora";
+    buttons.forEach((button) => {
+      button.setAttribute("aria-pressed", String(Boolean(showDay && button === selectedButton)));
+    });
+    modeButtons.forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.mode === mode.dataset.mode));
+    });
+  }
+
+  buttons.forEach((button) => {
     button.addEventListener("click", () => {
-      const template = document.getElementById(`hours-${button.dataset.day}`);
-      if (!template) return;
-      title.textContent = `Pedidos por hora · ${button.querySelector(".stats-bar-label").textContent}`;
-      content.replaceChildren(template.content.cloneNode(true));
-      dialog.showModal();
+      if (!document.getElementById(`hours-${button.dataset.day}`)) return;
+      selectedButton = button;
+      dayOption.disabled = false;
+      dayOption.setAttribute("aria-label", `Día seleccionado (${button.dataset.day})`);
+      mode.dataset.mode = "day";
+      renderChart();
     });
   });
-
-  close.addEventListener("click", () => dialog.close());
-  dialog.addEventListener("click", (event) => {
-    if (event.target === dialog) dialog.close();
+  modeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      mode.dataset.mode = button.dataset.mode;
+      renderChart();
+    });
   });
 }

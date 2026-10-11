@@ -35,7 +35,13 @@
           <div class="order-customer">
 
             <div class="order-info-row">
-              <span class="order-info-icon" aria-hidden="true">👤{{id}}</span>
+              <span class="order-customer-avatar" aria-hidden="true">
+              {{#if profile_image_url}}
+                <img src="{{profile_image_url}}" alt="" loading="lazy" referrerpolicy="no-referrer">
+              {{else}}
+                {{initials}}
+              {{/if}}
+              </span>
               <div>
                 <span class="order-info-label">Cliente</span>
                 <strong>{{name}}</strong>

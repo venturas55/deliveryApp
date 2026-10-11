@@ -155,7 +155,13 @@
               </div>
             </div>
             <div class="order-info-row">
-              <span class="order-info-icon" aria-hidden="true">👤</span>
+              <span class="order-customer-avatar" aria-hidden="true">
+                {{#if customer_profile_image_url}}
+                  <img src="{{customer_profile_image_url}}" alt="" loading="lazy" referrerpolicy="no-referrer">
+                {{else}}
+                  {{customer_initials}}
+                {{/if}}
+              </span>
               <div>
                 <span class="order-info-label">Cliente</span>
                 <strong>{{customer_name}}</strong>

@@ -12,15 +12,15 @@
     <div class="stats-panel-heading"><div><h2 id="daily-title">Pedidos por día</h2><p>Últimos 14 días</p></div></div>
     <div class="stats-bars stats-bars--daily">
       {{#each stats.daily}}
-        <button class="stats-bar-item stats-day-button" type="button" data-day="{{day}}" aria-label="Ver pedidos por hora del {{label}}: {{total}} pedidos">
+        <button class="stats-bar-item stats-day-button" type="button" data-day="{{day}}" aria-pressed="false" aria-controls="stats-hourly-chart" aria-label="Ver pedidos por hora del {{label}}: {{total}} pedidos">
           <span class="stats-bar-value">{{total}}</span>
           <div class="stats-bar-track"><span class="stats-bar-fill" style="height:{{width}}%"></span></div>
           <span class="stats-bar-label">{{label}}</span>
         </button>
         <template id="hours-{{day}}">
-          <div class="stats-hours stats-hours--dialog">
+          <div class="stats-bars stats-bars--hourly">
             {{#each hourly}}
-              <div class="stats-hour-item"><span class="stats-hour-label">{{label}}</span><span class="stats-hour-track"><span class="stats-hour-fill" style="width:{{width}}%"></span></span><strong>{{total}}</strong></div>
+              <div class="stats-bar-item"><span class="stats-bar-value">{{total}}</span><div class="stats-bar-track"><span class="stats-bar-fill" style="height:{{width}}%"></span></div><span class="stats-bar-label">{{label}}</span></div>
             {{/each}}
           </div>
         </template>
@@ -29,11 +29,18 @@
   </section>
 
   <section class="stats-panel" aria-labelledby="hours-title">
-    <div class="stats-panel-heading"><div><h2 id="hours-title">Pedidos por franja horaria</h2><p>Totales acumulados</p></div></div>
-    <div class="stats-hours">
+    <div class="stats-panel-heading"><div><h2 id="hours-title">Pedidos por franja horaria</h2><p id="stats-hourly-description" aria-live="polite">Totales acumulados · Intervalos de 1 hora</p></div>
+      <div class="stats-hourly-selector" id="stats-hourly-mode" role="group" aria-label="Mostrar pedidos por franja horaria" data-mode="total">
+        <button type="button" data-mode="total" aria-controls="stats-hourly-chart" aria-pressed="true">Acumulado total</button>
+        <button type="button" data-mode="day" aria-controls="stats-hourly-chart" aria-pressed="false" disabled>Día seleccionado</button>
+      </div>
+    </div>
+    <div id="stats-hourly-chart">
+    <div class="stats-bars stats-bars--hourly">
       {{#each stats.hourly}}
-        <div class="stats-hour-item"><span class="stats-hour-label">{{label}}</span><span class="stats-hour-track"><span class="stats-hour-fill" style="width:{{width}}%"></span></span><strong>{{total}}</strong></div>
+        <div class="stats-bar-item"><span class="stats-bar-value">{{total}}</span><div class="stats-bar-track"><span class="stats-bar-fill" style="height:{{width}}%"></span></div><span class="stats-bar-label">{{label}}</span></div>
       {{/each}}
+    </div>
     </div>
   </section>
   <section class="stats-panel" aria-labelledby="customer-spending-title">
@@ -53,9 +60,5 @@
       <p>Todavía no hay clientes con pedidos entregados.</p>
     {{/if}}
   </section>
-  <dialog class="stats-day-dialog" aria-labelledby="stats-day-dialog-title">
-    <div class="stats-day-dialog-header"><h2 id="stats-day-dialog-title">Pedidos por hora</h2><button type="button" class="stats-day-dialog-close" aria-label="Cerrar">×</button></div>
-    <div class="stats-day-dialog-content"></div>
-  </dialog>
 </section>
 <script src="/admin-order-stats.js" defer></script>

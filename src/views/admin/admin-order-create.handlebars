@@ -9,12 +9,27 @@
     {{#if phone}}
       {{#if createError}}<p class="notice" role="alert">{{createError}}</p>{{/if}}
       {{#if customer}}
-        <p>Cliente encontrado: <strong>{{customer.name}}</strong> · {{customer.email}} · {{customer.phone}}</p>
+        <article class="assisted-customer-card" aria-labelledby="assisted-customer-name">
+          <div class="assisted-customer-heading">
+            <span class="order-customer-avatar" aria-hidden="true">
+              {{#if customer.profile_image_url}}<img src="{{customer.profile_image_url}}" alt="" loading="lazy" referrerpolicy="no-referrer">{{else}}{{customer.initials}}{{/if}}
+            </span>
+            <div><span class="order-info-label">Cliente encontrado · #{{customer.id}}</span><h3 id="assisted-customer-name">{{customer.name}}</h3></div>
+          </div>
+          <dl class="assisted-customer-details">
+            <div><dt>Teléfono</dt><dd>{{customer.phone}}</dd></div>
+            <div><dt>Correo electrónico</dt><dd>{{customer.email}}</dd></div>
+            <div><dt>Dirección de entrega</dt><dd>{{#if customer.delivery_formatted_address}}{{customer.delivery_formatted_address}}{{else if customer.delivery_address}}{{customer.delivery_address}}{{else}}Sin dirección guardada{{/if}}</dd></div>
+          </dl>
+          {{#if customer.delivery_notes}}<div class="order-notes"><span>Notas de entrega</span><p>{{customer.delivery_notes}}</p></div>{{/if}}
+        </article>
         {{#if created}}<p class="notice">Cuenta creada. Enviamos un correo para que establezca su contraseña.</p>{{/if}}
 
         <h2>2. Añadir artículos</h2>
-        <div class="field-grid">{{#each products}}
-          <article class="card"><h3>{{name}}</h3><p>{{description}}</p><strong>{{money price_cents}}</strong>
+        <div class="assisted-products-grid">{{#each products}}
+          <article class="card assisted-product-card">
+            {{#if image_url}}<img class="assisted-product-image" src="{{image_url}}" alt="{{#if image_description}}{{image_description}}{{else}}{{name}}{{/if}}" loading="lazy">{{/if}}
+            <h3>{{name}}</h3><p>{{description}}</p><strong>{{money price_cents}}</strong>
             <form method="post" action="/admin/pedidotelefonico/carrito/add">{{> csrf}}<input type="hidden" name="phone" value="{{../phone}}"><input type="hidden" name="product_id" value="{{id}}"><button>Añadir al carrito</button></form>
           </article>
         {{/each}}</div>
