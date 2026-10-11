@@ -985,6 +985,54 @@ a:focus-visible {
   margin: 0 0 10px
 }
 
+.password-field {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.password-field input {
+  box-sizing: border-box;
+  width: 100%;
+  padding-right: 52px;
+  min-width: 0;
+  margin: 0;
+}
+
+.password-field .password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--admin-text, #0f172a);
+  font-size: .85rem;
+}
+
+.password-toggle .password-eye-slash {
+  display: none;
+}
+
+.password-toggle[aria-pressed="true"] .password-eye-slash {
+  display: block;
+}
+
+html[data-theme="dark"] .password-field .password-toggle {
+  color: #a8b4c4;
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid var(--admin-green, #15803d);
+  outline-offset: 2px;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
