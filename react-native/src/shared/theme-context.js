@@ -1,5 +1,6 @@
+import { LocalizedAlert as Alert } from "../i18n/LocaleProvider";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Alert } from "react-native";
+import { } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ThemeContext = createContext(null);

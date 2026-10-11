@@ -1,3 +1,4 @@
+import { t } from "../i18n/index";
 import React, { useRef, useState } from "react";
 import {
   Image,
@@ -141,35 +142,29 @@ export default function CustomerEmail({ customer, close }) {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[s.content, s.form]}
           >
-            <Text style={s.title}>
-              {broadcast ? "Nueva comunicación" : "Enviar correo"}
-            </Text>
-            <Text style={s.muted}>
-              {broadcast
+            <Text style={s.title}>{t(broadcast ? "Nueva comunicación" : "Enviar correo")}</Text>
+            <Text style={s.muted}>{t(broadcast
                 ? `Clientes del restaurante con email: ${recipients.data?.total ?? "…"}. Incluye todos, aunque la lista tenga filtros.`
-                : `${customer.name} · ${customer.email}`}
-            </Text>
+                : `${customer.name} · ${customer.email}`)}</Text>
             {recipients.error ? (
               <>
-                <Text accessibilityRole="alert" style={s.error}>
-                  {recipients.error}
-                </Text>
+                <Text accessibilityRole="alert" style={s.error}>{t(recipients.error)}</Text>
                 <Button
                   secondary
-                  title="Reintentar"
+                  title={t("Reintentar")}
                   onPress={recipients.refresh}
                 />
               </>
             ) : null}
             <Field
-              label="Asunto"
+              label={t("Asunto")}
               value={subject}
               onChangeText={setSubject}
               maxLength={160}
               editable={!locked}
             />
             <Field
-              label="Mensaje"
+              label={t("Mensaje")}
               value={message}
               onChangeText={setMessage}
               maxLength={10000}
@@ -178,10 +173,7 @@ export default function CustomerEmail({ customer, close }) {
               editable={!locked}
               style={[s.input, { minHeight: 160 }]}
             />
-            <Text style={s.muted}>
-              Imagen opcional: JPEG, PNG o GIF, máximo 5 MB. Apareece en el
-              correo y enlaza a la web.
-            </Text>
+            <Text style={s.muted}>{t("Imagen opcional: JPEG, PNG o GIF, máximo 5 MB. Apareece en el correo y enlaza a la web.")}</Text>
             {image ? (
               <>
                 <Image
@@ -192,7 +184,7 @@ export default function CustomerEmail({ customer, close }) {
                 <Text style={s.muted}>{image.name}</Text>
                 <Button
                   secondary
-                  title="Quitar imagen"
+                  title={t("Quitar imagen")}
                   disabled={locked}
                   onPress={() => setImage(null)}
                 />
@@ -200,17 +192,15 @@ export default function CustomerEmail({ customer, close }) {
             ) : null}
             <Button
               secondary
-              title={picking ? "Seleccionando…" : "Adjuntar imagen"}
+              title={t(picking ? "Seleccionando…" : "Adjuntar imagen")}
               disabled={locked}
               onPress={pickImage}
             />
             {broadcast ? (
               <View style={s.row}>
-                <Text style={[s.text, { flex: 1 }]}>
-                  Confirmo el envío a todos los clientes del restaurante.
-                </Text>
+                <Text style={[s.text, { flex: 1 }]}>{t("Confirmo el envío a todos los clientes del restaurante.")}</Text>
                 <Switch
-                  accessibilityLabel="Confirmar envío a todos"
+                  accessibilityLabel={t("Confirmar envío a todos")}
                   value={confirmed}
                   onValueChange={setConfirmed}
                   disabled={locked}
@@ -218,24 +208,19 @@ export default function CustomerEmail({ customer, close }) {
               </View>
             ) : null}
             {error ? (
-              <Text accessibilityRole="alert" style={s.error}>
-                {error}
-              </Text>
+              <Text accessibilityRole="alert" style={s.error}>{t(error)}</Text>
             ) : null}
             {result ? (
-              <Text accessibilityLiveRegion="polite" style={s.text}>
-                Enviados: {result.sent}. Fallidos: {result.failed}. Total:{" "}
-                {result.total}.
-              </Text>
+              <Text accessibilityLiveRegion="polite" style={s.text}>{t("Enviados: {{v0}}. Fallidos: {{v1}}. Total: {{v2}}.", { v0: t(result.sent), v1: t(result.failed), v2: t(result.total) })}</Text>
             ) : null}
             {!result ? (
               <Button
                 title={
-                  busy
+                  t(busy
                     ? "Enviando…"
                     : broadcast
                       ? "Nueva comunicación"
-                      : "Enviar correo"
+                      : "Enviar correo")
                 }
                 onPress={send}
                 disabled={
@@ -251,7 +236,7 @@ export default function CustomerEmail({ customer, close }) {
             ) : null}
             <Button
               secondary
-              title={result ? "Cerrar" : "Cancelar"}
+              title={t(result ? "Cerrar" : "Cancelar")}
               onPress={close}
               disabled={busy || picking}
             />

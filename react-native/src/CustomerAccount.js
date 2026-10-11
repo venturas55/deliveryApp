@@ -1,3 +1,5 @@
+import { t } from "./i18n/index";
+import LanguageSettings from "./i18n/LanguageSettings";
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, Text, View } from "react-native";
 import { api } from "./api";
@@ -128,42 +130,43 @@ export default function CustomerAccount({ profile, token, onUpdated, onLogout })
   return <View style={{ gap: 16 }}>
     <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
       {avatar && !brokenImage ? <Image source={{ uri: avatar }} onError={() => setBrokenImage(true)}
-        accessibilityLabel={`Foto de perfil de ${profile?.name || "cliente"}`} style={{ width: 80, height: 80, borderRadius: 40 }} />
-        : <Text accessibilityLabel="Sin foto de perfil" style={{ fontSize: 48 }}>👤</Text>}
-      <View style={{ flex: 1 }}><Text accessibilityRole="header" style={s.title}>Mi cuenta</Text>
-        <Text style={s.muted}>Datos y dirección habitual para tus pedidos.</Text></View>
+        accessibilityLabel={t("Foto de perfil de {{v0}}", { v0: t(profile?.name || "cliente") })} style={{ width: 80, height: 80, borderRadius: 40 }} />
+        : <Text accessibilityLabel={t("Sin foto de perfil")} style={{ fontSize: 48 }}>{t("👤")}</Text>}
+      <View style={{ flex: 1 }}><Text accessibilityRole="header" style={s.title}>{t("Mi cuenta")}</Text>
+        <Text style={s.muted}>{t("Datos y dirección habitual para tus pedidos.")}</Text></View>
     </View>
-    {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-    {!!saved && <Text accessibilityLiveRegion="polite" style={s.text}>{saved}</Text>}
+    {!!error && <Text accessibilityRole="alert" style={s.error}>{t(error)}</Text>}
+    {!!saved && <Text accessibilityLiveRegion="polite" style={s.text}>{t(saved)}</Text>}
+    <LanguageSettings />
     <Card>
-      <Text style={s.heading}>Foto de perfil</Text>
-      <Text style={s.muted}>JPG, PNG o WebP; máximo 5 MB.</Text>
-      <Button secondary title="Seleccionar foto" onPress={pickPhoto} disabled={busy} />
-      {image && <><Button title="Subir foto" onPress={uploadPhoto} disabled={busy} />
-        <Button secondary title="Cancelar selección" onPress={() => setImage(null)} disabled={busy} /></>}
+      <Text style={s.heading}>{t("Foto de perfil")}</Text>
+      <Text style={s.muted}>{t("JPG, PNG o WebP; máximo 5 MB.")}</Text>
+      <Button secondary title={t("Seleccionar foto")} onPress={pickPhoto} disabled={busy} />
+      {image && <><Button title={t("Subir foto")} onPress={uploadPhoto} disabled={busy} />
+        <Button secondary title={t("Cancelar selección")} onPress={() => setImage(null)} disabled={busy} /></>}
     </Card>
     <Card>
-      <Field label="Email de acceso" value={profile?.email || ""} editable={false} autoCapitalize="none" />
-      <Field label="Nombre" value={name} onChangeText={value => edit(setName, value)} maxLength={120} autoComplete="name" editable={!busy} />
-      <Field label="Teléfono" value={phone} onChangeText={value => edit(setPhone, value)} maxLength={40} keyboardType="phone-pad" autoComplete="tel" editable={!busy} />
-      <Field label="Buscar dirección" value={search} onChangeText={value => {
+      <Field label={t("Email de acceso")} value={profile?.email || ""} editable={false} autoCapitalize="none" />
+      <Field label={t("Nombre")} value={name} onChangeText={value => edit(setName, value)} maxLength={120} autoComplete="name" editable={!busy} />
+      <Field label={t("Teléfono")} value={phone} onChangeText={value => edit(setPhone, value)} maxLength={40} keyboardType="phone-pad" autoComplete="tel" editable={!busy} />
+      <Field label={t("Buscar dirección")} value={search} onChangeText={value => {
         edit(setSearch, value);
         setAddress(value.trim() ? null : savedAddress(profile));
-      }} placeholder="Calle Alcalá 123, Madrid" maxLength={200} autoCorrect={false} autoCapitalize="none" editable={!busy} />
+      }} placeholder={t("Calle Alcalá 123, Madrid")} maxLength={200} autoCorrect={false} autoCapitalize="none" editable={!busy} />
       {searching && <ActivityIndicator />}
-      {!!searchError && <Text accessibilityRole="alert" style={s.error}>{searchError}</Text>}
+      {!!searchError && <Text accessibilityRole="alert" style={s.error}>{t(searchError)}</Text>}
       {suggestions.map(item => <Button key={item.place_id} secondary title={item.suggestion || item.formatted_address}
         disabled={busy} onPress={() => { edit(setAddress, item); setSearch(""); setSuggestions([]); }} />)}
       {address && <View style={{ marginBottom: 16 }}>
-        <Text style={s.heading}>Dirección seleccionada</Text>
-        <Text style={s.text}>{address.street} {address.number}</Text>
+        <Text style={s.heading}>{t("Dirección seleccionada")}</Text>
+        <Text style={s.text}>{t("{{v0}} {{v1}}", { v0: address.street, v1: address.number })}</Text>
         <Text style={s.muted}>{address.formatted_address}</Text>
         <Text style={s.muted}>{[address.city, address.postal_code, address.country].filter(Boolean).join(" · ")}</Text>
       </View>}
-      <Field label="Puerta / piso / apartamento" value={apartment} onChangeText={value => edit(setApartment, value)} maxLength={20} placeholder="3º B" autoComplete="address-line2" editable={!busy} />
-      <Field label="Instrucciones al repartidor" value={notes} onChangeText={value => edit(setNotes, value)} maxLength={500} multiline editable={!busy} />
-      <Button title={busy ? "Procesando…" : "Guardar datos"} onPress={save} disabled={busy} />
+      <Field label={t("Puerta / piso / apartamento")} value={apartment} onChangeText={value => edit(setApartment, value)} maxLength={20} placeholder={t("3º B")} autoComplete="address-line2" editable={!busy} />
+      <Field label={t("Instrucciones al repartidor")} value={notes} onChangeText={value => edit(setNotes, value)} maxLength={500} multiline editable={!busy} />
+      <Button title={t(busy ? "Procesando…" : "Guardar datos")} onPress={save} disabled={busy} />
     </Card>
-    <Button secondary title="Cerrar sesión" onPress={onLogout} disabled={busy} />
+    <Button secondary title={t("Cerrar sesión")} onPress={onLogout} disabled={busy} />
   </View>;
 }

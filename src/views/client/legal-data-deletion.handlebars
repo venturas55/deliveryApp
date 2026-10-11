@@ -1,0 +1,41 @@
+<article class="legal-document">
+  <header>
+    <h1>Eliminar datos de Massa e fuoco sin cerrar tu cuenta</h1>
+    <p>Puedes solicitar la eliminación de algunos datos personales o de todos los datos prescindibles de la aplicación Massa e fuoco y mantener tu cuenta activa. No necesitas iniciar sesión ni tener instalada la aplicación.</p>
+  </header>
+
+  {{> client/legal-identity}}
+
+  <h2>Solicitar la eliminación de datos</h2>
+  {{#if legal.legal_email}}
+    <p><a href="mailto:{{legal.legal_email}}?subject=Eliminar%20datos%20sin%20cerrar%20cuenta%20-%20Massa%20e%20fuoco&amp;body=Solicito%20eliminar%20los%20siguientes%20datos%20y%20mantener%20mi%20cuenta%20activa%3A%20">Solicitar eliminación de datos y mantener mi cuenta</a></p>
+    <ol>
+      <li>Escribe desde el correo asociado a tu cuenta a <a href="mailto:{{legal.legal_email}}">{{legal.legal_email}}</a>, con el asunto «Eliminar datos sin cerrar cuenta - Massa e fuoco». Si accedes con Google, utiliza el correo de esa cuenta.</li>
+      <li>Indica qué datos deseas eliminar, por ejemplo tu imagen de perfil, teléfono, direcciones o notas de pedidos anteriores. También puedes pedir «todos mis datos prescindibles, manteniendo mi cuenta activa».</li>
+      <li>El equipo verificará que la cuenta te pertenece. Si no tienes acceso a ese correo, escribe a la misma dirección para acordar otra forma de verificar tu identidad. No envíes contraseñas ni datos de tarjeta.</li>
+      <li>Recibirás una confirmación con los datos eliminados y los que deban conservarse, sus motivos y plazos. La cuenta seguirá activa. Enviar el correo inicia una solicitud; no borra los datos automáticamente.</li>
+    </ol>
+  {{else}}
+    <p role="alert">El canal de solicitud todavía no está disponible. El titular debe completar el correo de contacto en Configuración antes de publicar esta URL en Google Play.</p>
+  {{/if}}
+
+  <h2>Qué datos puedes solicitar que se eliminen</h2>
+  <p>Imagen de perfil, teléfono del perfil y direcciones, notas u otros datos personales de pedidos anteriores que ya no sean necesarios para prestar el servicio ni estén sujetos a conservación. La solicitud puede abarcar una categoría concreta o todos estos datos prescindibles.</p>
+  <p>Conservaremos el identificador de cuenta, el correo y las credenciales protegidas o el identificador de acceso con Google necesarios para mantener tu cuenta y permitir el inicio de sesión. También se conservarán los datos mínimos necesarios para pedidos en curso y obligaciones legales. Si deseas eliminar también los datos necesarios para mantener la cuenta, utiliza la <a href="/eliminar-cuenta">solicitud de eliminación de cuenta y datos asociados</a>.</p>
+
+  <h2>Plazos y datos conservados</h2>
+  <table>
+    <thead><tr><th>Datos</th><th>Tratamiento y plazo</th></tr></thead>
+    <tbody>
+      <tr><td>Datos solicitados sin obligación de conservación</td><td>Se eliminan o anonimizan. {{deletion.responsePeriod}}</td></tr>
+      <tr><td>Datos necesarios para mantener el acceso a la cuenta</td><td>Se conservan mientras mantengas la cuenta activa.</td></tr>
+      <tr><td>Facturas y justificantes contables</td><td>{{deletion.recordsPeriod}} Se conservan únicamente los datos necesarios y no se utilizan para publicidad.</td></tr>
+      <tr><td>Otros datos de pedidos o reclamaciones</td><td>Solo se conservan mientras sean necesarios para completar un pedido, cumplir una obligación legal o atender una reclamación. La respuesta a tu solicitud indicará los datos afectados, el motivo y el plazo aplicable. El plazo contable de 6 años no se aplica automáticamente a todos los datos del pedido.</td></tr>
+      <tr><td>Copias de seguridad</td><td>{{#if deletion.backupsPeriod}}{{deletion.backupsPeriod}}{{else}}Plazo pendiente de confirmar. El objetivo propuesto es un máximo de 90 días desde la eliminación en producción; la rotación actual todavía no permite garantizarlo.{{/if}}</td></tr>
+    </tbody>
+  </table>
+  {{#unless deletion.ready}}
+    <p class="legal-data-warning" role="alert">Esta página todavía no está lista para su declaración en Google Play. El titular debe confirmar el canal de atención y el plazo real de eliminación de copias de seguridad.</p>
+  {{/unless}}
+  <p>Consulta la <a href="/declaracion-de-privacidad">Declaración de privacidad</a> y la información sobre <a href="/proteccion-de-datos">Protección de datos</a>.</p>
+</article>

@@ -67,6 +67,7 @@ module.exports = ({ config }) => {
       ],
 
       "expo-secure-store",
+      ["expo-localization", { supportedLocales: { ios: ["es", "en"], android: ["es", "en"] } }],
       ["expo-build-properties", { ios: { enableSceneSupport: true } }],
     ],
 

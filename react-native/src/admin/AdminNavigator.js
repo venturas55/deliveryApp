@@ -1,8 +1,9 @@
+import { LocalizedAlert as Alert } from "../i18n/LocaleProvider";
+import { t } from "../i18n/index";
 import { useTheme, ThemeToggle } from "../shared/theme";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   BackHandler,
   KeyboardAvoidingView,
   Image,
@@ -57,7 +58,7 @@ function RestaurantLogo({ uri, compact }) {
   return (
     <Image
       source={{ uri }}
-      accessibilityLabel="Logo de la empresa"
+      accessibilityLabel={t("Logo de la empresa")}
       resizeMode="contain"
       style={{
         width: compact ? 56 : 100,
@@ -90,10 +91,10 @@ function AdminHeader({ restaurantName, logoUri, title, soundEnabled, toggleSound
           secondary
           icon={soundEnabled ? "volume-high-outline" : "volume-mute-outline"}
           selected={soundEnabled}
-          accessibilityLabel={soundEnabled ? "Silenciar avisos" : "Activar sonido"}
+          accessibilityLabel={t(soundEnabled ? "Silenciar avisos" : "Activar sonido")}
           onPress={toggleSound}
         />
-        {back && <Button secondary title="Volver" onPress={back} />}
+        {back && <Button secondary title={t("Volver")} onPress={back} />}
       </View>
       <View style={{
         flexDirection: "row", alignItems: "center", gap: 12,
@@ -102,14 +103,10 @@ function AdminHeader({ restaurantName, logoUri, title, soundEnabled, toggleSound
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={[s.muted, {
             textAlign: compact ? "left" : "center", textTransform: "uppercase",
-          }]}>
-            {restaurantName} · ADMIN
-          </Text>
+          }]}>{t("{{v0}} · ADMIN", { v0: restaurantName })}</Text>
           <Text accessibilityRole="header" style={[s.title, {
             textAlign: compact ? "left" : "center",
-          }]}>
-            {title}
-          </Text>
+          }]}>{t(title)}</Text>
         </View>
         <RestaurantLogo uri={logoUri} compact={compact} />
       </View>
@@ -131,7 +128,7 @@ function Navigation({ current, navigate, sidebar }) {
       {destinations.map(([name, label]) => (
         <Button
           key={name}
-          title={label}
+          title={t(label)}
           chip
           selected={selected(name)}
           onPress={() => navigate(name)}
@@ -173,11 +170,9 @@ function OrderNotice({ navigate, soundEnabled }) {
   }, [data, cursor, notify]);
   return (
     <>
-      {error && <Text style={s.error}>Avisos: {error}</Text>}
+      {error && <Text style={s.error}>{t("Avisos: {{v0}}", { v0: t(error) })}</Text>}
       {soundError && (
-        <Text accessibilityRole="alert" style={s.error}>
-          Sonido: {soundError}
-        </Text>
+        <Text accessibilityRole="alert" style={s.error}>{t("Sonido: {{v0}}", { v0: t(soundError) })}</Text>
       )}
       {count > 0 && (
         <Card
@@ -191,7 +186,7 @@ function OrderNotice({ navigate, soundEnabled }) {
           }}
           accessibilityLiveRegion="polite"
         >
-          <Text style={s.heading}>{count} avisos de pedidos · Ver pedidos</Text>
+          <Text style={s.heading}>{t("{{v0}} avisos de pedidos · Ver pedidos", { v0: t(count) })}</Text>
         </Card>
       )}
     </>
@@ -212,7 +207,7 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
     [email, setEmail] = useState(""),
     [password, setPassword] = useState("");
   const { data: restaurant } = useAdminData(authenticated ? "/restaurant" : null, 30000);
-  const restaurantName = restaurant?.name || restaurant?.legal_name || "Restaurante";
+  const restaurantName = restaurant?.name || restaurant?.legal_name || t("Restaurante");
   const logoUri = productImageUrl(restaurant?.logo_url);
   const [stack, setStack] = useState([{ name: "dashboard", params: {} }]);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -309,11 +304,11 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
             ]}
             keyboardShouldPersistTaps="handled"
           >
-            <Text style={s.title}>{restaurantName} Admin</Text>
-            <Text style={s.muted}>Acceso del restaurante</Text>
+            <Text style={s.title}>{t("{{v0}} Admin", { v0: restaurantName })}</Text>
+            <Text style={s.muted}>{t("Acceso del restaurante")}</Text>
             <ThemeToggle />
             <Field
-              label="Email"
+              label={t("Email")}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -321,7 +316,7 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
               autoComplete="email"
             />
             <Field
-              label="Contraseña"
+              label={t("Contraseña")}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -329,19 +324,17 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
               autoComplete="current-password"
             />
             {error && (
-              <Text accessibilityRole="alert" style={s.error}>
-                {error}
-              </Text>
+              <Text accessibilityRole="alert" style={s.error}>{t(error)}</Text>
             )}
             <Button
-              title={busy ? "Entrando…" : "Entrar"}
+              title={t(busy ? "Entrando…" : "Entrar")}
               onPress={login}
               disabled={busy || !email || !password}
             />
             {!adminOnly && (
               <Button
                 secondary
-                title="Volver a cliente"
+                title={t("Volver a cliente")}
                 disabled={busy}
                 onPress={onClient}
               />
@@ -377,7 +370,7 @@ export default function AdminNavigator({ onClient, adminOnly = false }) {
           >
             <View style={{ padding: 18 }}>
               <Text style={[s.heading, { textTransform: "uppercase" }]}>{restaurantName}</Text>
-              <Text style={s.muted}>Restaurante</Text>
+              <Text style={s.muted}>{t("Restaurante")}</Text>
             </View>
             <Navigation current={current} navigate={navigate} sidebar />
           </View>

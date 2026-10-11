@@ -1,3 +1,5 @@
+import { t } from "../i18n/index";
+import LanguageSettings from "../i18n/LanguageSettings";
 import { useTheme } from "../shared/theme";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -43,9 +45,7 @@ function Problem({ error }) {
   const { color } = useTheme();
   const s = useStyles();
   return error ? (
-    <Text accessibilityRole="alert" style={s.error}>
-      {error}
-    </Text>
+    <Text accessibilityRole="alert" style={s.error}>{t(error)}</Text>
   ) : null;
 }
 function Page({ resource, children, form = false, scrollRef, onScroll }) {
@@ -67,7 +67,7 @@ function Page({ resource, children, form = false, scrollRef, onScroll }) {
     >
       <Problem error={resource.error} />
       {!resource.data && resource.loading ? (
-        <Text style={s.muted}>Cargando…</Text>
+        <Text style={s.muted}>{t("Cargando…")}</Text>
       ) : (
         children
       )}
@@ -84,15 +84,12 @@ export function Dashboard({ navigate }) {
     <Page resource={resource}>
       {data && (
         <>
-          <Text style={s.heading}>Hoy</Text>
+          <Text style={s.heading}>{t("Hoy")}</Text>
           <Card>
-            <Text style={s.title}>{money(data.today.sales_cents)}</Text>
-            <Text style={s.muted}>
-              {data.today.orders} pedidos · importe no cancelado ni reembolsado;
-              puede incluir pagos pendientes
-            </Text>
+            <Text style={s.title}>{t(money(data.today.sales_cents))}</Text>
+            <Text style={s.muted}>{t("{{v0}} pedidos · importe no cancelado ni reembolsado; puede incluir pagos pendientes", { v0: t(data.today.orders) })}</Text>
           </Card>
-          <Text style={s.heading}>Operación</Text>
+          <Text style={s.heading}>{t("Operación")}</Text>
           <Grid>
             {[
               ["new", "Pendientes"],
@@ -103,8 +100,8 @@ export function Dashboard({ navigate }) {
             ].map(([status, label]) => (
               <Card key={status} onPress={() => navigate("orders", { status })}>
                 <View style={s.row}>
-                  <Text style={s.text}>{label}</Text>
-                  <Text style={s.title}>{data.counts[status] || 0}</Text>
+                  <Text style={s.text}>{t(label)}</Text>
+                  <Text style={s.title}>{t(data.counts[status] || 0)}</Text>
                 </View>
               </Card>
             ))}
@@ -113,17 +110,14 @@ export function Dashboard({ navigate }) {
                 navigate("orders", { status: "delivery_requested" })
               }
             >
-              <Text style={s.text}>
-                Repartos buscando/asignados:{" "}
-                {(data.counts.delivery_requested || 0) +
-                  (data.counts.courier_assigned || 0)}
-              </Text>
+              <Text style={s.text}>{t("Repartos buscando/asignados: {{v0}}", { v0: t((data.counts.delivery_requested || 0) +
+                  (data.counts.courier_assigned || 0)) })}</Text>
             </Card>
           </Grid>
-          <Button title="Nuevo pedido" onPress={() => navigate("create")} />
+          <Button title={t("Nuevo pedido")} onPress={() => navigate("create")} />
           <Button
             secondary
-            title="Estadísticas"
+            title={t("Estadísticas")}
             onPress={() => navigate("stats")}
           />
         </>
@@ -150,12 +144,12 @@ export function Customers({ openCustomer, selectCustomer }) {
       <View style={[s.form, { padding: 18 }]}>
         {!selectCustomer && (
           <Button
-            title="Nueva comunicación"
+            title={t("Nueva comunicación")}
             onPress={() => setEmailOpen(true)}
           />
         )}
         <Field
-          label="Buscar nombre, teléfono o email"
+          label={t("Buscar nombre, teléfono o email")}
           value={search}
           onChangeText={setSearch}
            keyboardType="phone-pad"
@@ -186,35 +180,23 @@ export function Customers({ openCustomer, selectCustomer }) {
                 <CustomerAvatar customer={item} />
                 <Text style={[s.heading, { flex: 1, minWidth: 0, marginBottom: 0 }]}>{item.name}</Text>
               </View>
-              <Text style={s.muted}>
-                {item.phone} · {item.email}
-              </Text>
+              <Text style={s.muted}>{t("{{v0}} · {{v1}}", { v0: item.phone, v1: item.email })}</Text>
               {selectCustomer &&
               (item.delivery_formatted_address || item.delivery_address) ? (
-                <Text style={s.muted}>
-                  Dirección de entrega:{" "}
-                  {item.delivery_formatted_address || item.delivery_address}
-                </Text>
+                <Text style={s.muted}>{t("Dirección de entrega: {{v0}}", { v0: item.delivery_formatted_address || item.delivery_address })}</Text>
               ) : null}
-              <Text style={s.text}>
-                {item.total_orders} pedidos · {money(item.total_spent_cents)}{" "}
-                entregados
-              </Text>
+              <Text style={s.text}>{t("{{v0}} pedidos · {{v1}} entregados", { v0: t(item.total_orders), v1: t(money(item.total_spent_cents)) })}</Text>
             </Card>
           </View>
         )}
         ListEmptyComponent={
           !resource.loading && !resource.error ? (
-            <Text style={s.muted}>
-              Sin clientes con pedidos en este restaurante.
-            </Text>
+            <Text style={s.muted}>{t("Sin clientes con pedidos en este restaurante.")}</Text>
           ) : null
         }
         ListFooterComponent={
           resource.data?.length === 100 ? (
-            <Text style={s.muted}>
-              Mostrando 100 clientes. Afina la búsqueda.
-            </Text>
+            <Text style={s.muted}>{t("Mostrando 100 clientes. Afina la búsqueda.")}</Text>
           ) : null
         }
       />
@@ -239,7 +221,7 @@ export function CustomerDetail({ id, openOrder }) {
             />
           )}
           <Button
-            title="Enviar correo"
+            title={t("Enviar correo")}
             disabled={!customer.email?.trim()}
             onPress={() => setEmailOpen(true)}
           />
@@ -249,18 +231,12 @@ export function CustomerDetail({ id, openOrder }) {
             <Text style={s.text}>{customer.email}</Text>
             {customer.delivery_formatted_address ||
             customer.delivery_address ? (
-              <Text style={s.text}>
-                Dirección de entrega:{" "}
-                {customer.delivery_formatted_address ||
-                  customer.delivery_address}
-              </Text>
+              <Text style={s.text}>{t("Dirección de entrega: {{v0}}", { v0: customer.delivery_formatted_address ||
+                  customer.delivery_address })}</Text>
             ) : null}
-            <Text style={s.text}>
-              {customer.total_orders} pedidos ·{" "}
-              {money(customer.total_spent_cents)} entregados
-            </Text>
+            <Text style={s.text}>{t("{{v0}} pedidos · {{v1}} entregados", { v0: t(customer.total_orders), v1: t(money(customer.total_spent_cents)) })}</Text>
           </Card>
-          <Text style={s.heading}>Historial del restaurante</Text>
+          <Text style={s.heading}>{t("Historial del restaurante")}</Text>
           <Grid maxColumns={2}>
             {customer.orders.map((order) => (
               <OrderCard
@@ -271,9 +247,7 @@ export function CustomerDetail({ id, openOrder }) {
             ))}
           </Grid>
           {customer.orders.length === 200 && (
-            <Text style={s.muted}>
-              Últimos 200 pedidos. Consulta anteriores desde Pedidos.
-            </Text>
+            <Text style={s.muted}>{t("Últimos 200 pedidos. Consulta anteriores desde Pedidos.")}</Text>
           )}
         </>
       )}
@@ -330,17 +304,13 @@ export function Products() {
                 />
               ) : (
                 <View style={{ height: 64, justifyContent: "center" }}>
-                  <Text style={s.muted}>Sin foto</Text>
+                  <Text style={s.muted}>{t("Sin foto")}</Text>
                 </View>
               )}
               <Text style={s.heading}>{product.name}</Text>
-              <Text style={s.muted}>
-                {product.category} · {money(product.price_cents)}
-              </Text>
+              <Text style={s.muted}>{t("{{v0}} · {{v1}}", { v0: product.category, v1: t(money(product.price_cents)) })}</Text>
               <View style={s.row}>
-                <Text style={s.text}>
-                  {Number(product.active) ? "Disponible" : "Agotado"}
-                </Text>
+                <Text style={s.text}>{t(Number(product.active) ? "Disponible" : "Agotado")}</Text>
                 <Switch
                   accessibilityLabel={`Disponibilidad de ${product.name}`}
                   disabled={busy}
@@ -352,7 +322,7 @@ export function Products() {
               </View>
               <Button
                 secondary
-                title="Editar artículo"
+                title={t("Editar artículo")}
                 disabled={busy}
                 onPress={() => setEditing(product)}
               />
@@ -361,7 +331,7 @@ export function Products() {
         </Grid>
       )}
       {resource.data?.length === 0 && (
-        <Text style={s.muted}>Sin artículos.</Text>
+        <Text style={s.muted}>{t("Sin artículos.")}</Text>
       )}
     </Page>
   );
@@ -404,10 +374,10 @@ function ProductEditor({ product, save, cancel, busy }) {
           }}
         />
       ) : (
-        <Text style={s.muted}>Sin foto</Text>
+        <Text style={s.muted}>{t("Sin foto")}</Text>
       )}
       <Field
-        label="URL de la imagen (vacío para quitarla)"
+        label={t("URL de la imagen (vacío para quitarla)")}
         value={imageUrl}
         onChangeText={setImageUrl}
         maxLength={500}
@@ -415,33 +385,33 @@ function ProductEditor({ product, save, cancel, busy }) {
         keyboardType="url"
       />
       <Field
-        label="Nombre"
+        label={t("Nombre")}
         value={name}
         onChangeText={setName}
         maxLength={120}
       />
       <Field
-        label="Precio (€)"
+        label={t("Precio (€)")}
         value={price}
         onChangeText={setPrice}
         keyboardType="decimal-pad"
       />
       <Field
-        label="Categoría"
+        label={t("Categoría")}
         value={category}
         onChangeText={setCategory}
         maxLength={80}
       />
       <Field
-        label="Descripción"
+        label={t("Descripción")}
         value={description}
         onChangeText={setDescription}
         maxLength={255}
         multiline
       />
       <Problem error={error} />
-      <Button title="Guardar artículo" disabled={busy} onPress={submit} />
-      <Button secondary title="Volver" disabled={busy} onPress={cancel} />
+      <Button title={t("Guardar artículo")} disabled={busy} onPress={submit} />
+      <Button secondary title={t("Volver")} disabled={busy} onPress={cancel} />
     </Card>
   );
 }
@@ -479,20 +449,14 @@ export function Statistics() {
       {data && (
         <>
           <Card>
-            <Text style={s.heading}>Resumen de pedidos entregados</Text>
-            <Text style={s.title}>{money(data.totals.sales_cents)}</Text>
-            <Text style={s.text}>
-              {data.totals.orders} pedidos · {data.totals.customers} clientes
-            </Text>
-            <Text style={s.text}>
-              Ticket medio: {money(data.totals.average_cents)}
-            </Text>
+            <Text style={s.heading}>{t("Resumen de pedidos entregados")}</Text>
+            <Text style={s.title}>{t(money(data.totals.sales_cents))}</Text>
+            <Text style={s.text}>{t("{{v0}} pedidos · {{v1}} clientes", { v0: t(data.totals.orders), v1: t(data.totals.customers) })}</Text>
+            <Text style={s.text}>{t("Ticket medio: {{v0}}", { v0: t(money(data.totals.average_cents)) })}</Text>
           </Card>
           <Card>
-            <Text style={s.heading}>Pedidos por día</Text>
-            <Text style={s.muted}>
-              Últimos 14 días · selecciona un día para ver sus horas
-            </Text>
+            <Text style={s.heading}>{t("Pedidos por día")}</Text>
+            <Text style={s.muted}>{t("Últimos 14 días · selecciona un día para ver sus horas")}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -513,11 +477,11 @@ export function Statistics() {
                     key={day.day}
                     accessibilityRole="button"
                     accessibilityState={{ selected: active }}
-                    accessibilityLabel={`${day.label}: ${day.total} pedidos`}
+                    accessibilityLabel={t("{{v0}}: {{v1}} pedidos", { v0: t(day.label), v1: t(day.total) })}
                     onPress={() => setSelectedDay(day.day)}
                     style={{ width: 48, alignItems: "center", gap: 5 }}
                   >
-                    <Text style={[s.muted, { marginTop: 0 }]}>{day.total}</Text>
+                    <Text style={[s.muted, { marginTop: 0 }]}>{t(day.total)}</Text>
                     <View
                       style={{
                         height: 110,
@@ -545,43 +509,33 @@ export function Statistics() {
                         },
                         { marginTop: 0 },
                       ]}
-                    >
-                      {day.label}
-                    </Text>
+                    >{t(day.label)}</Text>
                   </Pressable>
                 );
               })}
             </ScrollView>
           </Card>
           <Card>
-            <Text style={s.heading}>
-              Pedidos por hora
-              {hourlyMode === "day" && selected
+            <Text style={s.heading}>{t("Pedidos por hora {{v0}}", { v0: t(hourlyMode === "day" && selected
                 ? ` · ${selected.label}`
-                : " · histórico"}
-            </Text>
+                : " · histórico") })}</Text>
             <View style={s.row}>
               <Button
                 secondary={hourlyMode !== "day"}
-                title="Día seleccionado"
+                title={t("Día seleccionado")}
                 onPress={() => setHourlyMode("day")}
               />
               <Button
                 secondary={hourlyMode !== "history"}
-                title="Todo el histórico"
+                title={t("Todo el histórico")}
                 onPress={() => setHourlyMode("history")}
               />
             </View>
             {!hasHourlyData ? (
-              <Text style={s.muted}>
-                El servidor no devolvió los datos horarios. Actualiza el
-                servidor para ver esta gráfica.
-              </Text>
+              <Text style={s.muted}>{t("El servidor no devolvió los datos horarios. Actualiza el servidor para ver esta gráfica.")}</Text>
             ) : (
               <>
-                <Text style={s.muted}>
-                  Cada barra representa el intervalo indicado (24 horas).
-                </Text>
+                <Text style={s.muted}>{t("Cada barra representa el intervalo indicado (24 horas).")}</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator
@@ -601,12 +555,10 @@ export function Statistics() {
                     return (
                       <View
                         key={hour.label}
-                        accessibilityLabel={`${interval}: ${hour.total} pedidos`}
+                        accessibilityLabel={t("{{v0}}: {{v1}} pedidos", { v0: t(interval), v1: t(hour.total) })}
                         style={{ width: 46, alignItems: "center", gap: 5 }}
                       >
-                        <Text style={[s.muted, { marginTop: 0 }]}>
-                          {hour.total}
-                        </Text>
+                        <Text style={[s.muted, { marginTop: 0 }]}>{t(hour.total)}</Text>
                         <View
                           style={{
                             height: 108,
@@ -631,28 +583,22 @@ export function Statistics() {
                             }}
                           />
                         </View>
-                        <Text style={[s.muted, { marginTop: 0 }]}>
-                          {String(hourNumber).padStart(2, "0")}
-                        </Text>
+                        <Text style={[s.muted, { marginTop: 0 }]}>{t(String(hourNumber).padStart(2, "0"))}</Text>
                       </View>
                     );
                   })}
                 </ScrollView>
                 {hourly.every((hour) => hour.total === 0) && (
-                  <Text style={s.muted}>
-                    {hourlyMode === "day"
+                  <Text style={s.muted}>{t(hourlyMode === "day"
                       ? "No hay pedidos registrados en este día."
-                      : "Todavía no hay pedidos en el histórico."}
-                  </Text>
+                      : "Todavía no hay pedidos en el histórico.")}</Text>
                 )}
               </>
             )}
           </Card>
           <Card>
-            <Text style={s.heading}>Clientes que más han gastado</Text>
-            <Text style={s.muted}>
-              Histórico · pedidos entregados, sin reembolsos
-            </Text>
+            <Text style={s.heading}>{t("Clientes que más han gastado")}</Text>
+            <Text style={s.muted}>{t("Histórico · pedidos entregados, sin reembolsos")}</Text>
             {customers.length ? (
               customers.map((customer) => (
                 <View
@@ -667,25 +613,16 @@ export function Statistics() {
                     },
                   ]}
                 >
-                  <Text style={[s.heading, { width: 36, marginBottom: 0 }]}>
-                    {customer.rank}.
-                  </Text>
+                  <Text style={[s.heading, { width: 36, marginBottom: 0 }]}>{t("{{v0}}.", { v0: t(customer.rank) })}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={s.text}>{customer.name}</Text>
-                    <Text style={s.muted}>
-                      {customer.total_orders} pedidos
-                      {customer.phone ? ` · ${customer.phone}` : ""}
-                    </Text>
+                    <Text style={s.muted}>{t("{{v0}} pedidos {{v1}}", { v0: t(customer.total_orders), v1: t(customer.phone ? ` · ${customer.phone}` : "") })}</Text>
                   </View>
-                  <Text style={[s.text, { fontWeight: "700" }]}>
-                    {money(customer.total_spent_cents)}
-                  </Text>
+                  <Text style={[s.text, { fontWeight: "700" }]}>{t(money(customer.total_spent_cents))}</Text>
                 </View>
               ))
             ) : (
-              <Text style={s.muted}>
-                Todavía no hay clientes con pedidos entregados.
-              </Text>
+              <Text style={s.muted}>{t("Todavía no hay clientes con pedidos entregados.")}</Text>
             )}
           </Card>
         </>
@@ -698,8 +635,9 @@ export function Settings({ logout }) {
   const resource = useAdminData("/restaurant");
   return (
     <Page resource={resource}>
+      <LanguageSettings />
       {resource.data && <RestaurantEditor restaurant={resource.data} />}
-      <Button secondary title="Cerrar sesión" onPress={logout} />
+      <Button secondary title={t("Cerrar sesión")} onPress={logout} />
     </Page>
   );
 }
@@ -749,7 +687,7 @@ function RestaurantEditor({ restaurant }) {
   const field = (key, label, maxLength, props = {}) => (
     <Field
       key={key}
-      label={label}
+      label={t(label)}
       value={form[key]}
       maxLength={maxLength}
       editable={!busy}
@@ -761,7 +699,7 @@ function RestaurantEditor({ restaurant }) {
     />
   );
   const readOnly = (label, value) => (
-    <Field label={label} value={String(value || "")} editable={false} />
+    <Field label={t(label)} value={String(value || "")} editable={false} />
   );
   async function pickLogo() {
     setPickingLogo(true);
@@ -864,11 +802,9 @@ function RestaurantEditor({ restaurant }) {
   return (
     <>
       <Card>
-        <Text style={s.heading}>Datos del negocio</Text>
-        <Text style={s.muted}>
-          Información que identifica a tu restaurante.
-        </Text>
-        <Text style={s.label}>Logo de la empresa</Text>
+        <Text style={s.heading}>{t("Datos del negocio")}</Text>
+        <Text style={s.muted}>{t("Información que identifica a tu restaurante.")}</Text>
+        <Text style={s.label}>{t("Logo de la empresa")}</Text>
         {logo?.uri || productImageUrl(logoUrl) ? (
           <Image
             source={{ uri: logo?.uri || productImageUrl(logoUrl) }}
@@ -879,24 +815,22 @@ function RestaurantEditor({ restaurant }) {
               marginVertical: 12,
             }}
             resizeMode="contain"
-            accessibilityLabel="Logo de la empresa"
+            accessibilityLabel={t("Logo de la empresa")}
           />
         ) : (
-          <Text style={s.muted}>Sin logo</Text>
+          <Text style={s.muted}>{t("Sin logo")}</Text>
         )}
-        <Text style={s.muted}>
-          JPEG, PNG o WebP. Máximo 5 MB. Se aplica al guardar cambios.
-        </Text>
+        <Text style={s.muted}>{t("JPEG, PNG o WebP. Máximo 5 MB. Se aplica al guardar cambios.")}</Text>
         <Button
           secondary
-          title={pickingLogo ? "Abriendo..." : "Adjuntar logo"}
+          title={t(pickingLogo ? "Abriendo..." : "Adjuntar logo")}
           disabled={busy || pickingLogo}
           onPress={pickLogo}
         />
         {logo && (
           <Button
             secondary
-            title="Cancelar selección del logo"
+            title={t("Cancelar selección del logo")}
             disabled={busy}
             onPress={() => setLogo(null)}
           />
@@ -917,16 +851,16 @@ function RestaurantEditor({ restaurant }) {
           address?.formatted_address || restaurant.address,
         )}
         <Field
-          label="Buscar dirección"
+          label={t("Buscar dirección")}
           value={search}
           onChangeText={setSearch}
           maxLength={200}
           editable={!busy && !searching}
-          placeholder="Calle, número y ciudad"
+          placeholder={t("Calle, número y ciudad")}
         />
         <Button
           secondary
-          title={searching ? "Buscando..." : "Buscar dirección"}
+          title={t(searching ? "Buscando..." : "Buscar dirección")}
           disabled={busy || searching || search.trim().length < 3}
           onPress={findAddress}
         />
@@ -946,26 +880,18 @@ function RestaurantEditor({ restaurant }) {
         ))}
         {readOnly("Número", address?.number || restaurant.delivery_number)}
         {address && (
-          <Text style={s.muted}>
-            Dirección seleccionada: {address.formatted_address}. Se aplicará al
-            guardar.
-          </Text>
+          <Text style={s.muted}>{t("Dirección seleccionada: {{v0}}. Se aplicará al guardar.", { v0: address.formatted_address })}</Text>
         )}
       </Card>
       <Card>
-        <Text style={s.heading}>Identificación legal</Text>
-        <Text style={s.muted}>
-          Estos datos aparecerán en las páginas legales públicas. Completa la
-          información real del titular antes de publicar.
-        </Text>
+        <Text style={s.heading}>{t("Identificación legal")}</Text>
+        <Text style={s.muted}>{t("Estos datos aparecerán en las páginas legales públicas. Completa la información real del titular antes de publicar.")}</Text>
         <Grid minWidth={260} maxColumns={2}>
           {field("legal_name", "Razón social o nombre del titular", 150)}
           {field("tax_id", "NIF", 24, { autoCapitalize: "characters" })}
         </Grid>
         {field("legal_address", "Domicilio legal", 500)}
-        <Text style={s.muted}>
-          Si coincide con la dirección del negocio, puedes dejarlo vacío.
-        </Text>
+        <Text style={s.muted}>{t("Si coincide con la dirección del negocio, puedes dejarlo vacío.")}</Text>
         <Grid minWidth={260} maxColumns={2}>
           {field("legal_email", "Correo de contacto legal y privacidad", 190, {
             keyboardType: "email-address",
@@ -980,32 +906,26 @@ function RestaurantEditor({ restaurant }) {
         </Grid>
       </Card>
       <Card>
-        <Text style={s.heading}>Configuración del reparto</Text>
-        <Text style={s.muted}>
-          Define el coste estándar y cuándo ofrecer el envío gratuito.
-        </Text>
+        <Text style={s.heading}>{t("Configuración del reparto")}</Text>
+        <Text style={s.muted}>{t("Define el coste estándar y cuándo ofrecer el envío gratuito.")}</Text>
         <Grid minWidth={260} maxColumns={2}>
           <View>
             {field("delivery_base_cents", "Coste de envío (€)", 12, {
               keyboardType: "decimal-pad",
             })}
-            <Text style={s.muted}>
-              Importe aplicado por defecto a los pedidos con reparto.
-            </Text>
+            <Text style={s.muted}>{t("Importe aplicado por defecto a los pedidos con reparto.")}</Text>
           </View>
           <View>
             {field("free_delivery_from_cents", "Envío gratis desde (€)", 12, {
               keyboardType: "decimal-pad",
             })}
-            <Text style={s.muted}>
-              Importe mínimo del pedido para no cobrar gastos de envío.
-            </Text>
+            <Text style={s.muted}>{t("Importe mínimo del pedido para no cobrar gastos de envío.")}</Text>
           </View>
         </Grid>
       </Card>
       <Card>
-        <Text style={s.heading}>Información de la cuenta</Text>
-        <Text style={s.muted}>Datos internos asignados al restaurante.</Text>
+        <Text style={s.heading}>{t("Información de la cuenta")}</Text>
+        <Text style={s.muted}>{t("Datos internos asignados al restaurante.")}</Text>
         <Grid minWidth={260} maxColumns={2}>
           {readOnly("ID del restaurante", restaurant.id)}
           {field("slug", "Identificador web", 80, {
@@ -1013,22 +933,16 @@ function RestaurantEditor({ restaurant }) {
             autoCorrect: false,
           })}
         </Grid>
-        <Text style={s.muted}>
-          Identificador utilizado internamente en la URL del negocio.
-        </Text>
+        <Text style={s.muted}>{t("Identificador utilizado internamente en la URL del negocio.")}</Text>
         {readOnly("Cuenta creada", restaurant.created_at)}
       </Card>
-      <Text style={s.muted}>
-        Los cambios se aplicarán a la configuración actual del restaurante.
-      </Text>
+      <Text style={s.muted}>{t("Los cambios se aplicarán a la configuración actual del restaurante.")}</Text>
       <Problem error={error} />
       {message ? (
-        <Text accessibilityRole="alert" style={s.text}>
-          {message}
-        </Text>
+        <Text accessibilityRole="alert" style={s.text}>{t(message)}</Text>
       ) : null}
       <Button
-        title={busy ? "Guardando..." : "Guardar cambios"}
+        title={t(busy ? "Guardando..." : "Guardar cambios")}
         disabled={busy || searching || pickingLogo}
         onPress={save}
       />
@@ -1114,25 +1028,17 @@ export function CreateOrder({ openOrder }) {
     >
       <Card>
         <Text style={s.heading}>{customer.name}</Text>
-        <Text style={s.muted}>
-          {customer.phone} - {customer.email}
-        </Text>
+        <Text style={s.muted}>{t("{{v0}} - {{v1}}", { v0: customer.phone, v1: customer.email })}</Text>
         {customer.delivery_formatted_address || customer.delivery_address ? (
-          <Text style={s.muted}>
-            Dirección de entrega:{" "}
-            {customer.delivery_formatted_address || customer.delivery_address}
-          </Text>
+          <Text style={s.muted}>{t("Dirección de entrega: {{v0}}", { v0: customer.delivery_formatted_address || customer.delivery_address })}</Text>
         ) : null}
         <Button
           secondary
-          title="Cambiar cliente"
+          title={t("Cambiar cliente")}
           onPress={() => setCustomer(null)}
         />
       </Card>
-      <Text style={s.muted}>
-        Clientes con pedidos previos en este restaurante. Nuevos clientes: alta
-        desde administración web.
-      </Text>
+      <Text style={s.muted}>{t("Clientes con pedidos previos en este restaurante. Nuevos clientes: alta desde administración web.")}</Text>
       {!!categories.length && (
         <ScrollView
           horizontal
@@ -1145,7 +1051,7 @@ export function CreateOrder({ openOrder }) {
               <Button
                 key={category}
                 secondary={!active}
-                title={category}
+                title={t(category)}
                 onPress={() => selectCategory(category)}
               />
             );
@@ -1163,7 +1069,7 @@ export function CreateOrder({ openOrder }) {
               categoryOffsets.current[category] = nativeEvent.layout.y;
             }}
           >
-            <Text style={s.heading}>{category}</Text>
+            <Text style={s.heading}>{t(category)}</Text>
             <View
               style={{ flexDirection: "row", flexWrap: "wrap", gap: GRID_GAP }}
             >
@@ -1187,20 +1093,18 @@ export function CreateOrder({ openOrder }) {
                       />
                     ) : (
                       <View style={{ height: 48, justifyContent: "center" }}>
-                        <Text style={s.muted}>Sin foto</Text>
+                        <Text style={s.muted}>{t("Sin foto")}</Text>
                       </View>
                     )}
                     <Text style={s.heading}>{product.name}</Text>
                     {!!product.description && (
                       <Text style={s.muted}>{product.description}</Text>
                     )}
-                    <Text style={[s.text, { fontWeight: "700" }]}>
-                      {money(product.price_cents)}
-                    </Text>
+                    <Text style={[s.text, { fontWeight: "700" }]}>{t(money(product.price_cents))}</Text>
                     <View style={s.row}>
                       <Button
                         secondary
-                        title="−"
+                        title={t("−")}
                         disabled={busy || !cart[product.id]}
                         onPress={() =>
                           setCart((current) => ({
@@ -1212,10 +1116,10 @@ export function CreateOrder({ openOrder }) {
                           }))
                         }
                       />
-                      <Text style={s.text}>{cart[product.id] || 0}</Text>
+                      <Text style={s.text}>{t(cart[product.id] || 0)}</Text>
                       <Button
                         secondary
-                        title="+"
+                        title={t("+")}
                         disabled={busy || cart[product.id] >= 50}
                         onPress={() =>
                           setCart((current) => ({
@@ -1233,17 +1137,14 @@ export function CreateOrder({ openOrder }) {
         );
       })}
       <Card>
-        <Text style={s.heading}>Resumen del pedido</Text>
+        <Text style={s.heading}>{t("Resumen del pedido")}</Text>
         {products
           .filter((product) => cart[product.id] > 0)
           .map((product) => (
-            <Text key={product.id} style={s.text}>
-              {cart[product.id]} × {product.name} ·{" "}
-              {money(cart[product.id] * product.price_cents)}
-            </Text>
+            <Text key={product.id} style={s.text}>{t("{{v0}} × {{v1}} · {{v2}}", { v0: t(cart[product.id]), v1: product.name, v2: t(money(cart[product.id] * product.price_cents)) })}</Text>
           ))}
         {!subtotal && (
-          <Text style={s.muted}>Añade artículos para crear el pedido.</Text>
+          <Text style={s.muted}>{t("Añade artículos para crear el pedido.")}</Text>
         )}
         {[
           ["Recogida en local", pickup, setPickup],
@@ -1251,25 +1152,23 @@ export function CreateOrder({ openOrder }) {
           ["Pedido en mostrador", counter, setCounter],
         ].map(([label, value, set]) => (
           <View key={label} style={s.row}>
-            <Text style={[s.text, { flex: 1 }]}>{label}</Text>
+            <Text style={[s.text, { flex: 1 }]}>{t(label)}</Text>
             <Switch
-              accessibilityLabel={label}
+              accessibilityLabel={t(label)}
               value={value}
               onValueChange={set}
               disabled={busy}
             />
           </View>
         ))}
-        <Text style={s.muted}>
-          {pickup
+        <Text style={s.muted}>{t(pickup
             ? "Recogida sin gastos de reparto."
-            : "Usa dirección guardada del cliente. El reparto se calcula al crear el pedido."}
-        </Text>
-        <Text style={s.heading}>Total de artículos: {money(subtotal)}</Text>
+            : "Usa dirección guardada del cliente. El reparto se calcula al crear el pedido.")}</Text>
+        <Text style={s.heading}>{t("Total de artículos: {{v0}}", { v0: t(money(subtotal)) })}</Text>
       </Card>
       <Problem error={error} />
       <Button
-        title={busy ? "Creando…" : "Crear pedido"}
+        title={t(busy ? "Creando…" : "Crear pedido")}
         disabled={busy || subtotal === 0}
         onPress={submit}
       />

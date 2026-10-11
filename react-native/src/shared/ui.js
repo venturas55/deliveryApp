@@ -1,15 +1,12 @@
+import { t, formatMoney, getLocale } from "../i18n/index";
 import { useTheme, useThemedStyles } from "./theme-context";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-export const money = (cents) =>
-  (Number(cents || 0) / 100).toLocaleString("es-ES", {
-    style: "currency",
-    currency: "EUR",
-  });
+export const money = formatMoney;
 export const date = (value) =>
-  new Date(value).toLocaleString("es-ES", {
+  new Date(value).toLocaleString(getLocale(), {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
@@ -85,7 +82,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel || title || "Botón de acción"}
+      accessibilityLabel={t(accessibilityLabel || title || "Botón de acción")}
       accessibilityState={{
         disabled: !!disabled,
         selected: !!selected,
@@ -131,9 +128,7 @@ export function Button({
                 fontWeight: selected ? "700" : "400",
               },
             ]}
-          >
-            {title}
-          </Text>
+          >{t(title)}</Text>
         ) : null}
       </View>
     </Pressable>
@@ -144,9 +139,9 @@ export function Field({ label, ...props }) {
   const s = useThemedStyles(baseStyles);
   return (
     <View style={{ marginBottom: 12 }}>
-      <Text style={s.label}>{label}</Text>
+      <Text style={s.label}>{t(label)}</Text>
       <TextInput
-        accessibilityLabel={label}
+        accessibilityLabel={t(label)}
         placeholderTextColor={color("#78716c", "placeholderTextColor")}
         style={s.input}
         {...props}

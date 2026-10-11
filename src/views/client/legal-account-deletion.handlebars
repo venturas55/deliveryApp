@@ -1,0 +1,42 @@
+<article class="legal-document">
+  <header>
+    <h1>Solicitar la eliminación de tu cuenta de Massa e fuoco</h1>
+    <p>Puedes solicitar la eliminación de tu cuenta de cliente y los datos asociados de la aplicación Massa e fuoco, aunque hayas desinstalado la aplicación. No necesitas iniciar sesión.</p>
+  </header>
+
+  {{> client/legal-identity}}
+
+  <h2>Cómo solicitar la eliminación</h2>
+  <p>Si quieres conservar tu cuenta, puedes <a href="/eliminar-datos">solicitar la eliminación de datos concretos sin cerrar la cuenta</a>.</p>
+  {{#if legal.legal_email}}
+    <p><a href="mailto:{{legal.legal_email}}?subject=Solicitud%20de%20eliminaci%C3%B3n%20de%20cuenta%20Massa%20e%20fuoco">Solicitar eliminación de cuenta y datos por correo</a></p>
+    <ol>
+      <li>Escribe desde el correo asociado a tu cuenta a <a href="mailto:{{legal.legal_email}}">{{legal.legal_email}}</a>, con el asunto «Solicitud de eliminación de cuenta Massa e fuoco».</li>
+      <li>Indica que deseas eliminar tu cuenta y sus datos asociados. Si accedes con Google, utiliza el correo de esa cuenta. No envíes tu contraseña ni datos de tarjeta.</li>
+      <li>El equipo verificará que la cuenta te pertenece antes de tramitar la eliminación. Si no tienes acceso a ese correo, contacta con la misma dirección para verificar tu identidad por otro medio.</li>
+      <li>Recibirás una confirmación cuando termine la eliminación, indicando los datos que deban conservarse y su plazo. Enviar el correo inicia una solicitud; no elimina la cuenta automáticamente.</li>
+    </ol>
+  {{else}}
+    <p role="alert">El canal de solicitud todavía no está disponible. El titular debe completar el correo de contacto en Configuración antes de publicar esta URL en Google Play.</p>
+  {{/if}}
+
+  <h2>Datos que se eliminan</h2>
+  <p>La solicitud incluye la cuenta de cliente, nombre, correo, teléfono, contraseña protegida, identificador de acceso con Google, imagen de perfil y sesiones o enlaces de acceso asociados. También incluye direcciones, notas y otros datos personales de pedidos que no deban conservarse por las razones indicadas abajo. El acceso a la cuenta dejará de estar disponible.</p>
+  <p>Eliminar la cuenta de Massa e fuoco no elimina tu cuenta de Google.</p>
+
+  <h2>Datos que se conservan y plazos adicionales</h2>
+  <table>
+    <thead><tr><th>Datos</th><th>Motivo y plazo</th></tr></thead>
+    <tbody>
+      <tr><td>Cuenta y datos personales no sujetos a conservación</td><td>{{#if deletion.responsePeriod}}{{deletion.responsePeriod}}{{else}}Plazo de tramitación pendiente de definir por el titular.{{/if}}</td></tr>
+      <tr><td>Facturas y justificantes contables, con los datos mínimos necesarios</td><td>{{#if deletion.recordsPeriod}}{{deletion.recordsPeriod}}{{else}}Plazos de conservación y su fecha de inicio pendientes de definir por el titular.{{/if}} Los datos conservados no se utilizarán para publicidad.</td></tr>
+      <tr><td>Otros datos de pedidos y reclamaciones</td><td>Se eliminan o anonimizan dentro del plazo de eliminación de la cuenta cuando ya no sean necesarios. Solo se conservarán los datos mínimos necesarios para completar un pedido, cumplir una obligación legal o atender una reclamación. Si deben conservarse, la confirmación de tu solicitud detallará los datos, el motivo y el plazo aplicable. El plazo de 6 años de la documentación contable no se aplica a todos los datos de un pedido.</td></tr>
+      <tr><td>Copias de seguridad que contengan los datos eliminados</td><td>{{#if deletion.backupsPeriod}}{{deletion.backupsPeriod}}{{else}}Plazo pendiente de confirmar. El objetivo propuesto es un máximo de 90 días desde la eliminación en producción, pero la política de rotación todavía no permite garantizarlo.{{/if}}</td></tr>
+    </tbody>
+  </table>
+  <p>La eliminación de la cuenta no cancela pedidos en curso ni obligaciones de pago. Para resolver un pedido pendiente, contacta con el restaurante; el equipo te informará si afecta a la tramitación de tu solicitud.</p>
+  {{#unless deletion.ready}}
+    <p class="legal-data-warning" role="alert">Información pendiente de completar: esta página todavía no está lista para su declaración en Google Play. El titular debe confirmar el canal de atención y los plazos reales de eliminación, conservación y copias de seguridad.</p>
+  {{/unless}}
+  <p>Consulta también la <a href="/declaracion-de-privacidad">Declaración de privacidad</a> y la información sobre <a href="/proteccion-de-datos">Protección de datos</a>.</p>
+</article>

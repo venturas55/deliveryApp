@@ -29,6 +29,8 @@ const addressLimit = rateLimit({ windowMs: 60 * 1000, max: 30 });
 
 const legalPages = [
   { path: "/aviso-legal", title: "Aviso legal", view: "legal-notice" },
+  { path: "/eliminar-cuenta", title: "Eliminar cuenta", view: "legal-account-deletion" },
+  { path: "/eliminar-datos", title: "Eliminar datos sin cerrar la cuenta", view: "legal-data-deletion" },
   { path: "/politica-cancelaciones-devoluciones", title: "Cancelaciones y devoluciones", view: "legal-cancellations" },
   { path: "/politica-cookies", title: "Política de cookies", view: "legal-cookies" },
   { path: "/proteccion-de-datos", title: "Protección de datos", view: "legal-data-protection" },
@@ -60,6 +62,12 @@ for (const page of legalPages) {
       clientArea: true,
       legal,
       legalProfileReady,
+      deletion: {
+        responsePeriod: process.env.ACCOUNT_DELETION_RESPONSE_PERIOD || "Máximo 30 días naturales desde la recepción de la solicitud. Si existe una excepción justificada, te comunicaremos el motivo y el plazo adicional antes de que finalicen esos 30 días.",
+        recordsPeriod: process.env.ACCOUNT_DELETION_RECORDS_PERIOD || "6 años desde el último asiento realizado en los libros, como regla general para documentación contable. Si una obligación específica exige otro plazo, te informaremos de los datos afectados, el motivo y el plazo aplicable.",
+        backupsPeriod: process.env.ACCOUNT_DELETION_BACKUPS_PERIOD,
+        ready: Boolean(legal.legal_email && process.env.ACCOUNT_DELETION_BACKUPS_PERIOD),
+      },
     });
   });
 }

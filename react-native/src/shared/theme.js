@@ -1,3 +1,4 @@
+import { t } from "../i18n/index";
 import React from "react";
 import { Button } from "./ui";
 import { useTheme } from "./theme-context";

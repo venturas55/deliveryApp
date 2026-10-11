@@ -172,3 +172,18 @@ La pantalla de pedidos separa los pedidos en curso del historial (entregados y c
 Los pedidos pendientes o con pago fallido permiten pagar con tarjeta en el navegador mediante Redsys, incluidos los pedidos originalmente en efectivo o con tarjeta al recibir. Al iniciar el pago, el método cambia a online. Los pedidos cancelados, pagados o reembolsados no admiten esta acción.
 
 Despliega también los cambios del backend. Requiere `PUBLIC_URL`, `REDSYS_MERCHANT_CODE`, `REDSYS_SECRET_KEY` y la notificación pública de Redsys accesible. El enlace de pago caduca en diez minutos; vuelve a abrirlo desde el pedido si caduca. Desde la app, el retorno de Redsys abre la app y actualiza los pedidos; desde la web conserva el retorno a seguimiento web. Únicamente la notificación verificada de Redsys confirma el pago.
+
+
+### Idioma del dispositivo
+
+El cliente puede elegir idioma en **Mi cuenta** y ADMIN en **Ajustes**: idioma del dispositivo, Español o English. La elección se aplica inmediatamente y se guarda en AsyncStorage por instalación (`delivery-language`). CLIENT y ADMIN comparten preferencia cuando se usan desde una misma instalación; las variantes instaladas por separado tienen preferencias independientes. «Idioma del dispositivo» reactiva la selección automática. Cambiar idioma no modifica los datos de formularios abiertos; los formatos regionales siguen los del dispositivo.
+
+CLIENT y ADMIN detectan el idioma del dispositivo con `expo-localization`. Idiomas disponibles: espa?ol e ingl?s; el primer idioma compatible de las preferencias del dispositivo determina la interfaz. Si no hay ninguno compatible, se usa espa?ol. Moneda EUR, fechas y n?meros usan el formato regional del dispositivo.
+
+La interfaz se actualiza al volver a primer plano y cuando el sistema notifica un cambio de idioma. Los nombres de clientes, productos, categor?as, direcciones y mensajes escritos por usuarios mantienen su contenido original. Los mensajes desconocidos del servidor mantienen su texto original.
+
+Las traducciones viven en `src/i18n/en.js`, con espa?ol como texto de origen. Las variables usan `{{v0}}`, `{{v1}}`, etc.; se interpolan sin modificar sus valores.
+
+Se ha a?adido un m?dulo nativo: reconstruye e instala el cliente de desarrollo despu?s de actualizar dependencias. Desde esta carpeta: `npm run android`; en macOS, `npm run ios -- --device`. Conserva las variables `APP_VARIANT`, `APP_TARGET` y OAuth utilizadas para tu compilaci?n. Reiniciar Metro no incorpora `expo-localization` a un binario antiguo; esos binarios usan la detecci?n de idioma disponible en React Native/Intl como alternativa.
+
+Pruebas de localizaci?n desde la ra?z del proyecto: `node --test test/native-i18n.test.js`.

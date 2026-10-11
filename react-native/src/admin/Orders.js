@@ -1,7 +1,8 @@
+import { LocalizedAlert as Alert } from "../i18n/LocaleProvider";
+import { t } from "../i18n/index";
 import { useTheme } from "../shared/theme";
 import React, { useState } from "react";
 import {
-  Alert,
   FlatList,
   Linking,
   Pressable,
@@ -53,26 +54,17 @@ export function OrderCard({ order, onPress }) {
   return (
     <Card onPress={onPress}>
       <View style={s.row}>
-        <Text style={s.heading}>#{order.id}</Text>
-        <Text style={s.heading}>{money(order.total_cents)}</Text>
+        <Text style={s.heading}>{t("#{{v0}}", { v0: t(order.id) })}</Text>
+        <Text style={s.heading}>{t(money(order.total_cents))}</Text>
       </View>
       <Text style={s.text}>{order.customer_name}</Text>
       <Text
         style={[s.label, { color: color(colors[order.status] || "#53483e") }]}
-      >
-        {order.statusLabel}
-      </Text>
-      <Text style={s.muted}>
-        {order.delivery_method === "pickup" ? "Recogida" : "Reparto"} ·{" "}
-        {paymentName(order.payment_method)} ·{" "}
-        {paymentStatus(order.payment_status)}
-      </Text>
-      <Text style={s.muted}>
-        {date(order.created_at)} ·{" "}
-        {order.status === "delivered" || order.status === "cancelled"
+      >{t(order.statusLabel)}</Text>
+      <Text style={s.muted}>{t("{{v0}} · {{v1}} · {{v2}}", { v0: t(order.delivery_method === "pickup" ? "Recogida" : "Reparto"), v1: t(paymentName(order.payment_method)), v2: t(paymentStatus(order.payment_status)) })}</Text>
+      <Text style={s.muted}>{t("{{v0}} · {{v1}}", { v0: t(date(order.created_at)), v1: t(order.status === "delivered" || order.status === "cancelled"
           ? "Finalizado"
-          : `${minutes} min transcurridos`}
-      </Text>
+          : `${minutes} min transcurridos`) })}</Text>
     </Card>
   );
 }
@@ -103,7 +95,7 @@ export function Orders({ openOrder, initialStatus = "new" }) {
           {filters.map(([key, label]) => (
             <Button
               key={key}
-              title={label}
+              title={t(label)}
               chip
               selected={status === key}
               onPress={() => changeStatus(key)}
@@ -119,7 +111,7 @@ export function Orders({ openOrder, initialStatus = "new" }) {
         ].map(([key, label]) => (
           <Button
             key={key}
-            title={label}
+            title={t(label)}
             chip
             selected={delivery === key}
             onPress={() => {
@@ -130,9 +122,7 @@ export function Orders({ openOrder, initialStatus = "new" }) {
         ))}
       </View>
       {error ? (
-        <Text accessibilityRole="alert" style={s.error}>
-          {error}
-        </Text>
+        <Text accessibilityRole="alert" style={s.error}>{t(error)}</Text>
       ) : null}
       <FlatList
         key={columns}
@@ -155,7 +145,7 @@ export function Orders({ openOrder, initialStatus = "new" }) {
         )}
         ListEmptyComponent={
           !loading && !error ? (
-            <Text style={s.muted}>Sin pedidos en este estado.</Text>
+            <Text style={s.muted}>{t("Sin pedidos en este estado.")}</Text>
           ) : null
         }
         ListFooterComponent={
@@ -163,14 +153,14 @@ export function Orders({ openOrder, initialStatus = "new" }) {
             {data?.length === 200 && (
               <Button
                 secondary
-                title="Pedidos anteriores"
+                title={t("Pedidos anteriores")}
                 onPress={() => setBefore(String(data[data.length - 1].id))}
               />
             )}
             {before && (
               <Button
                 secondary
-                title="Volver a los recientes"
+                title={t("Volver a los recientes")}
                 onPress={() => setBefore("")}
               />
             )}
@@ -212,10 +202,8 @@ export function OrderDetail({ id }) {
   if (!order)
     return (
       <View style={s.content}>
-        <Text style={error ? s.error : s.muted}>
-          {error || "Cargando pedido…"}
-        </Text>
-        <Button secondary title="Reintentar" onPress={refresh} />
+        <Text style={error ? s.error : s.muted}>{t(error || "Cargando pedido…")}</Text>
+        <Button secondary title={t("Reintentar")} onPress={refresh} />
       </View>
     );
   const confirm = (title, text, callback) =>
@@ -232,31 +220,25 @@ export function OrderDetail({ id }) {
     >
       <OrderCard order={order} />
       {problem || error ? (
-        <Text accessibilityRole="alert" style={s.error}>
-          {problem || error}
-        </Text>
+        <Text accessibilityRole="alert" style={s.error}>{t(problem || error)}</Text>
       ) : null}
       <Grid minWidth={360} maxColumns={2}>
         <View style={{ gap: GRID_GAP }}>
           <Card>
-            <Text style={s.heading}>Artículos</Text>
+            <Text style={s.heading}>{t("Artículos")}</Text>
             {order.items.map((item) => (
               <View style={s.row} key={String(item.id)}>
-                <Text style={[s.text, { flex: 1 }]}>
-                  {item.quantity} × {item.product_name}
-                </Text>
-                <Text style={s.text}>
-                  {money(item.quantity * item.unit_price_cents)}
-                </Text>
+                <Text style={[s.text, { flex: 1 }]}>{t("{{v0}} × {{v1}}", { v0: t(item.quantity), v1: item.product_name })}</Text>
+                <Text style={s.text}>{t(money(item.quantity * item.unit_price_cents))}</Text>
               </View>
             ))}
           </Card>
           <Card>
-            <Text style={s.heading}>Cliente</Text>
+            <Text style={s.heading}>{t("Cliente")}</Text>
             <Text style={s.text}>{order.customer_name}</Text>
             <Button
               secondary
-              title={`Llamar: ${order.customer_phone || "sin teléfono"}`}
+              title={t("Llamar: {{v0}}", { v0: order.customer_phone || "sin teléfono" })}
               disabled={!order.customer_phone}
               onPress={() =>
                 Linking.openURL(`tel:${order.customer_phone}`).catch(
@@ -266,30 +248,27 @@ export function OrderDetail({ id }) {
             />
             <Text style={s.text}>{order.delivery_address}</Text>
             {order.delivery_apartment ? (
-              <Text style={s.text}>Piso: {order.delivery_apartment}</Text>
+              <Text style={s.text}>{t("Piso: {{v0}}", { v0: order.delivery_apartment })}</Text>
             ) : null}
             {order.delivery_patio ? (
-              <Text style={s.text}>Patio: {order.delivery_patio}</Text>
+              <Text style={s.text}>{t("Patio: {{v0}}", { v0: order.delivery_patio })}</Text>
             ) : null}
             {order.delivery_notes ? (
-              <Text style={s.text}>Observaciones: {order.delivery_notes}</Text>
+              <Text style={s.text}>{t("Observaciones: {{v0}}", { v0: order.delivery_notes })}</Text>
             ) : null}
           </Card>
         </View>
         <View style={{ gap: GRID_GAP }}>
           <Card>
-            <Text style={s.heading}>Importe y pago</Text>
-            <Text style={s.text}>Artículos: {money(order.subtotal_cents)}</Text>
-            <Text style={s.text}>Descuento: {money(order.discount_cents)}</Text>
-            <Text style={s.text}>Reparto: {money(order.delivery_cents)}</Text>
-            <Text style={s.heading}>Total: {money(order.total_cents)}</Text>
-            <Text style={s.text}>
-              {paymentName(order.payment_method)} ·{" "}
-              {paymentStatus(order.payment_status)}
-            </Text>
+            <Text style={s.heading}>{t("Importe y pago")}</Text>
+            <Text style={s.text}>{t("Artículos: {{v0}}", { v0: t(money(order.subtotal_cents)) })}</Text>
+            <Text style={s.text}>{t("Descuento: {{v0}}", { v0: t(money(order.discount_cents)) })}</Text>
+            <Text style={s.text}>{t("Reparto: {{v0}}", { v0: t(money(order.delivery_cents)) })}</Text>
+            <Text style={s.heading}>{t("Total: {{v0}}", { v0: t(money(order.total_cents)) })}</Text>
+            <Text style={s.text}>{t("{{v0}} · {{v1}}", { v0: t(paymentName(order.payment_method)), v1: t(paymentStatus(order.payment_status)) })}</Text>
             {order.canMarkPaid && (
               <Button
-                title="Marcar pago recibido"
+                title={t("Marcar pago recibido")}
                 disabled={busy}
                 onPress={() =>
                   confirm(
@@ -303,7 +282,7 @@ export function OrderDetail({ id }) {
           </Card>
           {order.nextStatus && (
             <Button
-              title={order.nextLabel}
+              title={t(order.nextLabel)}
               disabled={busy}
               onPress={() =>
                 action("/status", { status: order.nextStatus }, "PATCH")
@@ -312,7 +291,7 @@ export function OrderDetail({ id }) {
           )}
           {order.canCompletePickup && (
             <Button
-              title="Entregado al cliente"
+              title={t("Entregado al cliente")}
               disabled={busy}
               onPress={() =>
                 action("/status", { status: "delivered" }, "PATCH")
@@ -321,7 +300,7 @@ export function OrderDetail({ id }) {
           )}
           {order.canStartOwnDelivery && (
             <Button
-              title="Iniciar reparto propio"
+              title={t("Iniciar reparto propio")}
               disabled={busy}
               onPress={() =>
                 action("/status", { status: "out_for_delivery" }, "PATCH")
@@ -330,7 +309,7 @@ export function OrderDetail({ id }) {
           )}
           {order.canCompleteOwnDelivery && (
             <Button
-              title="Marcar entregado"
+              title={t("Marcar entregado")}
               disabled={busy}
               onPress={() =>
                 action("/status", { status: "delivered" }, "PATCH")
@@ -339,15 +318,12 @@ export function OrderDetail({ id }) {
           )}
           {order.delivery_method === "delivery" && (
             <Card>
-              <Text style={s.heading}>Reparto</Text>
-              <Text style={s.text}>
-                {order.provider || "Sin proveedor asignado"}{" "}
-                {order.provider_status || ""}
-              </Text>
+              <Text style={s.heading}>{t("Reparto")}</Text>
+              <Text style={s.text}>{t("{{v0}} {{v1}}", { v0: t(order.provider || "Sin proveedor asignado"), v1: t(order.provider_status || "") })}</Text>
               {order.delivery?.trackingUrl && (
                 <Button
                   secondary
-                  title="Abrir seguimiento"
+                  title={t("Abrir seguimiento")}
                   onPress={() =>
                     Linking.openURL(order.delivery.trackingUrl).catch(
                       (failure) => setProblem(failure.message),
@@ -358,7 +334,7 @@ export function OrderDetail({ id }) {
               {order.delivery?.canSync && (
                 <Button
                   secondary
-                  title="Consultar estado del proveedor"
+                  title={t("Consultar estado del proveedor")}
                   disabled={busy}
                   onPress={() => action("/delivery/sync")}
                 />
@@ -366,7 +342,7 @@ export function OrderDetail({ id }) {
               {order.canQuote && (
                 <Button
                   secondary
-                  title="Consultar precio de reparto"
+                  title={t("Consultar precio de reparto")}
                   disabled={busy}
                   onPress={() => action("/delivery/quote")}
                 />
@@ -377,7 +353,7 @@ export function OrderDetail({ id }) {
                   .map((quote) => (
                     <Button
                       key={quote.quoteId}
-                      title={`${quote.provider}: ${money(quote.feeCents)} · Solicitar`}
+                      title={t("{{v0}}: {{v1}} · Solicitar", { v0: t(quote.provider), v1: t(money(quote.feeCents)) })}
                       disabled={busy}
                       onPress={() =>
                         confirm(
@@ -397,7 +373,7 @@ export function OrderDetail({ id }) {
           {order.canCancel && (
             <Button
               danger
-              title="Cancelar pedido"
+              title={t("Cancelar pedido")}
               disabled={busy}
               onPress={() =>
                 confirm(
@@ -409,11 +385,9 @@ export function OrderDetail({ id }) {
             />
           )}
           <Card>
-            <Text style={s.heading}>Actividad</Text>
+            <Text style={s.heading}>{t("Actividad")}</Text>
             {order.events.map((event, index) => (
-              <Text key={index} style={s.muted}>
-                {date(event.created_at)} · {event.event_type}
-              </Text>
+              <Text key={index} style={s.muted}>{t("{{v0}} · {{v1}}", { v0: t(date(event.created_at)), v1: t(event.event_type) })}</Text>
             ))}
           </Card>
         </View>

@@ -1,3 +1,7 @@
+import { LocaleProvider, useLocale } from "./src/i18n/LocaleProvider";
+import { formatMoney } from "./src/i18n/index";
+import { LocalizedAlert as Alert } from "./src/i18n/LocaleProvider";
+import { t } from "./src/i18n/index";
 import {
   useTheme,
   useThemedStyles,
@@ -7,7 +11,6 @@ import {
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Linking,
@@ -42,8 +45,7 @@ import {
   isSuccessResponse,
 } from "react-native-nitro-google-signin";
 
-const money = (cents) =>
-  `${(Number(cents || 0) / 100).toFixed(2).replace(".", ",")} €`;
+const money = formatMoney;
 const Button = ({ title, onPress, secondary = false, disabled = false }) => {
   const styles = useThemedStyles(baseStyles);
   return (
@@ -56,9 +58,7 @@ const Button = ({ title, onPress, secondary = false, disabled = false }) => {
         disabled && { opacity: 0.5 },
       ]}
     >
-      <Text style={[styles.buttonText, secondary && styles.secondaryText]}>
-        {title}
-      </Text>
+      <Text style={[styles.buttonText, secondary && styles.secondaryText]}>{t(title)}</Text>
     </TouchableOpacity>
   );
 };
@@ -75,7 +75,7 @@ const Field = ({
     <TextInput
       value={value}
       onChangeText={onChangeText}
-      placeholder={placeholder}
+      placeholder={t(placeholder)}
       placeholderTextColor={color("#817d75", "placeholderTextColor")}
       secureTextEntry={secureTextEntry}
       keyboardType={keyboardType}
@@ -501,9 +501,7 @@ function ClientNavigator({ onAdminAccess }) {
             if (key === "orders") refreshOrders();
           }}
           style={[styles.navItem, screen === key && styles.navActive]}
-        >
-          {label}
-        </Text>
+        >{t(label)}</Text>
       ))}
     </View>
   );
@@ -522,7 +520,7 @@ function ClientNavigator({ onAdminAccess }) {
           {restaurantLogo && !logoFailed && (
             <Image
               source={{ uri: restaurantLogo }}
-              accessibilityLabel={`Logo de ${restaurant?.name || "restaurante"}`}
+              accessibilityLabel={t("Logo de {{v0}}", { v0: t(restaurant?.name || "restaurante") })}
               resizeMode="contain"
               onError={() => setLogoFailed(true)}
               style={styles.restaurantLogo}
@@ -531,14 +529,12 @@ function ClientNavigator({ onAdminAccess }) {
           <Text
             style={[styles.brand, { flex: 1, minWidth: 0, marginRight: 8 }]}
             numberOfLines={1}
-          >
-            {restaurant?.name || "Massa e fuoco Dev"}
-          </Text>
+          >{t(restaurant?.name || "Massa e fuoco Dev")}</Text>
 
           <ThemeToggle small />
         </View>
 
-        <Text style={styles.sub}>Pide tus pizzas favoritas.</Text>
+        <Text style={styles.sub}>{t("Pide tus pizzas favoritas.")}</Text>
 
         {!token && (
           <TouchableOpacity
@@ -546,7 +542,7 @@ function ClientNavigator({ onAdminAccess }) {
             onPress={onAdminAccess}
             style={{ paddingVertical: 12 }}
           >
-            <Text style={styles.sub}>Acceso restaurante</Text>
+            <Text style={styles.sub}>{t("Acceso restaurante")}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -576,9 +572,7 @@ function ClientNavigator({ onAdminAccess }) {
                       styles.categoryChipText,
                       active && styles.categoryChipTextActive,
                     ]}
-                  >
-                    {name}
-                  </Text>
+                  >{name === "Otros" ? t("Otros") : name}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -602,10 +596,10 @@ function ClientNavigator({ onAdminAccess }) {
           />
         }
       >
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={styles.error}>{t(error)}</Text> : null}
         {screen === "menu" && (
           <>
-            <Text style={styles.title}>Nuestra carta</Text>
+            <Text style={styles.title}>{t("Nuestra carta")}</Text>
             {menuCategories.map(({ name, products }) => (
               <View
                 key={name}
@@ -613,7 +607,7 @@ function ClientNavigator({ onAdminAccess }) {
                   categoryOffsets.current[name] = nativeEvent.layout.y;
                 }}
               >
-                <Text style={styles.categoryHeading}>{name}</Text>
+                <Text style={styles.categoryHeading}>{name === "Otros" ? t("Otros") : name}</Text>
                 {products.map((p) => (
                   <View style={styles.card} key={String(p.id)}>
                     {productImageUrl(p.image_url) && (
@@ -627,13 +621,11 @@ function ClientNavigator({ onAdminAccess }) {
                     <View style={styles.productRow}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.product}>{p.name}</Text>
-                        <Text style={styles.muted}>
-                          {p.description || p.category}
-                        </Text>
-                        <Text style={styles.price}>{money(p.price_cents)}</Text>
+                        <Text style={styles.muted}>{p.description || p.category}</Text>
+                        <Text style={styles.price}>{t(money(p.price_cents))}</Text>
                       </View>
                       <Button
-                        title={cart[p.id] ? `Añadir + ${cart[p.id]}` : "Añadir"}
+                        title={t(cart[p.id] ? `Añadir + ${cart[p.id]}` : "Añadir")}
                         onPress={() =>
                           setCart({ ...cart, [p.id]: (cart[p.id] || 0) + 1 })
                         }
@@ -647,49 +639,47 @@ function ClientNavigator({ onAdminAccess }) {
         )}
         {screen === "auth" && (
           <>
-            <Text style={styles.title}>
-              {authMode === "login" ? "Entrar" : "Crear cuenta"}
-            </Text>
+            <Text style={styles.title}>{t(authMode === "login" ? "Entrar" : "Crear cuenta")}</Text>
             {authMode === "register" && (
-              <Field value={name} onChangeText={setName} placeholder="Nombre" />
+              <Field value={name} onChangeText={setName} placeholder={t("Nombre")} />
             )}
             <Field
               value={email}
               onChangeText={setEmail}
-              placeholder="Correo electrónico"
+              placeholder={t("Correo electrónico")}
               keyboardType="email-address"
             />
             <Field
               value={password}
               onChangeText={setPassword}
-              placeholder="Contraseña (mínimo 8 caracteres)"
+              placeholder={t("Contraseña (mínimo 8 caracteres)")}
               secureTextEntry
             />
             <Button
               title={
-                busy
+                t(busy
                   ? "Conectando:"
                   : authMode === "login"
                     ? "Iniciar sesión"
-                    : "Registrarme"
+                    : "Registrarme")
               }
               onPress={authenticate}
               disabled={busy}
             />
             <Button
               secondary
-              title={authMode === "login" ? "Crear cuenta" : "Ya tengo cuenta"}
+              title={t(authMode === "login" ? "Crear cuenta" : "Ya tengo cuenta")}
               onPress={() =>
                 setAuthMode(authMode === "login" ? "register" : "login")
               }
             />
             {authMode === "login" && (
               <>
-                <Text style={styles.or}>o</Text>
+                <Text style={styles.or}>{t("o")}</Text>
                 <Button
                   secondary
                   title={
-                    busy ? "Conectando con Google?" : "Continuar con Google"
+                    t(busy ? "Conectando con Google?" : "Continuar con Google")
                   }
                   onPress={authenticateWithGoogle}
                   disabled={busy}
@@ -700,9 +690,9 @@ function ClientNavigator({ onAdminAccess }) {
         )}
         {screen === "cart" && (
           <>
-            <Text style={styles.title}>Tu pedido</Text>
+            <Text style={styles.title}>{t("Tu pedido")}</Text>
             {!quantities && (
-              <Text style={styles.muted}>Aún no has añadido pizzas.</Text>
+              <Text style={styles.muted}>{t("Aún no has añadido pizzas.")}</Text>
             )}
             {menu
               .filter((p) => cart[p.id])
@@ -718,46 +708,38 @@ function ClientNavigator({ onAdminAccess }) {
                         })
                       }
                       style={styles.step}
-                    >
-                      -
-                    </Text>
-                    <Text>{cart[p.id]}</Text>
+                    >{t("-")}</Text>
+                    <Text>{t(cart[p.id])}</Text>
                     <Text
                       onPress={() =>
                         setCart({ ...cart, [p.id]: cart[p.id] + 1 })
                       }
                       style={styles.step}
-                    >
-                      +
-                    </Text>
+                    >{t("+")}</Text>
                   </View>
-                  <Text>{money(p.price_cents * cart[p.id])}</Text>
+                  <Text>{t(money(p.price_cents * cart[p.id]))}</Text>
                 </View>
               ))}
-            <Text style={styles.total}>Subtotal {money(total)}</Text>
+            <Text style={styles.total}>{t("Subtotal {{v0}}", { v0: t(money(total)) })}</Text>
             {!!quantities && (
               <>
                 {!pickup && (
-                  <Text style={[styles.muted, { textAlign: "right" }]}>
-                    {deliveryCents === null
+                  <Text style={[styles.muted, { textAlign: "right" }]}>{t(deliveryCents === null
                       ? "Coste de env\u00edo no disponible"
-                      : `Env\u00edo ${money(deliveryCents)}`}
-                  </Text>
+                      : `Env\u00edo ${money(deliveryCents)}`)}</Text>
                 )}
                 {deliveryCents !== null && (
-                  <Text style={styles.total}>
-                    Total {money(total + deliveryCents)}
-                  </Text>
+                  <Text style={styles.total}>{t("Total {{v0}}", { v0: t(money(total + deliveryCents)) })}</Text>
                 )}
               </>
             )}
             {!!quantities && (
               <>
-                <Text style={styles.label}>Entrega</Text>
+                <Text style={styles.label}>{t("Entrega")}</Text>
                 <View style={styles.row}>
                   <Button
                     secondary={pickup}
-                    title="A domicilio"
+                    title={t("A domicilio")}
                     onPress={() => {
                       setPickup(false);
                       setPayment("online");
@@ -765,37 +747,33 @@ function ClientNavigator({ onAdminAccess }) {
                   />
                   <Button
                     secondary={!pickup}
-                    title="Recogida"
+                    title={t("Recogida")}
                     onPress={() => setPickup(true)}
                   />
                 </View>
-                <Text style={styles.muted}>
-                  {pickup
+                <Text style={styles.muted}>{t(pickup
                     ? "Recogerás el pedido en el local."
                     : profile?.delivery_formatted_address ||
-                      "Usaremos tu Dirección guardada en la cuenta."}
-                </Text>
-                <Text style={styles.label}>Pago</Text>
+                      "Usaremos tu Dirección guardada en la cuenta.")}</Text>
+                <Text style={styles.label}>{t("Pago")}</Text>
                 <View style={styles.row}>
                   <Button
                     secondary={payment !== "online"}
-                    title="Tarjeta"
+                    title={t("Tarjeta")}
                     onPress={() => setPayment("online")}
                   />
                   <Button
                     secondary={payment !== "card_on_delivery"}
-                    title="Al recoger"
+                    title={t("Al recoger")}
                     onPress={() => setPayment("card_on_delivery")}
                     disabled={!pickup || busy}
                   />
                 </View>
-                <Text style={styles.muted}>
-                  {payment === "online"
+                <Text style={styles.muted}>{t(payment === "online"
                     ? "Pago seguro con tarjeta en Redsys."
-                    : "Paga con tarjeta al recoger en el local."}
-                </Text>
+                    : "Paga con tarjeta al recoger en el local.")}</Text>
                 <Button
-                  title={busy ? "Enviando pedido" : "Confirmar pedido"}
+                  title={t(busy ? "Enviando pedido" : "Confirmar pedido")}
                   onPress={checkout}
                   disabled={busy}
                 />
@@ -806,12 +784,10 @@ function ClientNavigator({ onAdminAccess }) {
         {screen === "orders" && <OrdersPanel ref={ordersPanel} token={token} />}
         {screen === "order" && (
           <>
-            <Text style={styles.title}>Pedido enviado</Text>
-            <Text style={styles.muted}>
-              Puedes consultar el estado desde "Pedidos".
-            </Text>
+            <Text style={styles.title}>{t("Pedido enviado")}</Text>
+            <Text style={styles.muted}>{t("Puedes consultar el estado desde \"Pedidos\".")}</Text>
             <Button
-              title="Ver pedidos"
+              title={t("Ver pedidos")}
               onPress={() => {
                 setScreen("orders");
                 refreshOrders();
@@ -827,6 +803,7 @@ function ClientNavigator({ onAdminAccess }) {
   );
 }
 function AppContent() {
+  const { ready: localeReady } = useLocale();
   const { color } = useTheme();
   const styles = useThemedStyles(baseStyles);
   const { dark, ready } = useTheme();
@@ -848,7 +825,7 @@ function AppContent() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={dark ? "light-content" : "dark-content"} />
-      {!ready || mode === null ? (
+      {!ready || !localeReady || mode === null ? (
         <SafeAreaView style={styles.center}>
           <ActivityIndicator color={color("#9d3d24", "color")} />
         </SafeAreaView>
@@ -881,9 +858,11 @@ function statusName(status) {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
+    <LocaleProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </LocaleProvider>
   );
 }
 const baseStyles = StyleSheet.create({
