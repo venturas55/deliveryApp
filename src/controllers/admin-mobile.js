@@ -1,4 +1,5 @@
 import { saveRestaurantLogo } from "../services/restaurant-logo-upload.js";
+import { customerMembership } from "../services/restaurant-customers.js";
 import { query } from "../db.js";
 import * as admin from "./admin.js";
 import { httpError } from "../services/http-error.js";
@@ -93,17 +94,17 @@ export async function statistics(req) {
 export async function customers(req, detail = false) {
   const search = req.query.q ?? "";
   if (typeof search !== "string" || search.length > 120) throw httpError(400, "Búsqueda no válida");
-  const params = [req.user.restaurant_id];
+  const params = [req.user.restaurant_id, req.user.restaurant_id, req.user.restaurant_id];
   let where = "";
   if (detail) { where = " AND c.id=?"; params.push(req.params.id); }
   else if (search.trim()) {
     where = " AND (c.name LIKE ? OR c.email LIKE ? OR c.phone LIKE ?)";
     params.push(...Array(3).fill(`%${search.trim()}%`));
   }
-  const rows = await query(`SELECT c.id,c.name,c.email,c.phone,c.delivery_address,c.delivery_formatted_address,c.profile_image_url,COUNT(*) AS total_orders,
+  const rows = await query(`SELECT c.id,c.name,c.email,c.phone,c.delivery_address,c.delivery_formatted_address,c.profile_image_url,COUNT(o.id) AS total_orders,
     COALESCE(SUM(CASE WHEN o.status='delivered' AND o.payment_status<>'refunded' THEN o.total_cents ELSE 0 END),0) AS total_spent_cents
-    FROM customers c JOIN orders o ON o.customer_id=c.id AND o.restaurant_id=?
-    WHERE 1=1${where} GROUP BY c.id,c.name,c.email,c.phone,c.delivery_address,c.delivery_formatted_address,c.profile_image_url ORDER BY c.name,c.id LIMIT 100`, params);
+    FROM customers c LEFT JOIN orders o ON o.customer_id=c.id AND o.restaurant_id=?
+    WHERE ${customerMembership()}${where} GROUP BY c.id,c.name,c.email,c.phone,c.delivery_address,c.delivery_formatted_address,c.profile_image_url ORDER BY c.name,c.id`, params);
   const result = rows.map(row => ({ ...row, total_orders: Number(row.total_orders), total_spent_cents: Number(row.total_spent_cents) }));
   if (!detail) return result;
   if (!result[0]) throw httpError(404, "Cliente no encontrado en este restaurante");
@@ -125,7 +126,7 @@ export async function createOrder(req) {
   });
   if (new Set(cart.map(item => item.product_id)).size !== cart.length)
     throw httpError(400, "No repitas artículos");
-  // Customers are global accounts. Mobile only uses customers with orders in this restaurant.
+  // Customers are global accounts; membership grants restaurant access even without orders.
   await customers({ ...req, params: { id: body.customer_id }, query: {} }, true);
   const id = await admin.createAdminOrder(req, cart);
   return mobileOrder(await admin.adminOrder({ ...req, params: { id } }));

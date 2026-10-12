@@ -50,7 +50,7 @@ router.post("/auth/logout",authLimit,async(req,res)=>{
 router.post("/setup-admin",authLimit,async(req,res)=>{
   // Intended only for first local setup. Disable by setting SETUP_DISABLED=true.
   if(process.env.SETUP_DISABLED==="true")return res.status(404).end();
-  const r=await getRestaurant("demo"); if(!r)return res.status(500).json({error:"Restaurante no existe"});
+  const r=await getRestaurant(); if(!r)return res.status(500).json({error:"Restaurante no existe"});
   const email=process.env.ADMIN_EMAIL||"admin@pizzeria.local", password=process.env.ADMIN_PASSWORD||"change_me_now";
   const existing=await query("SELECT id FROM admins WHERE email=?",[email]);
   if(existing.length)return res.json({ok:true,message:"Admin ya creado"});

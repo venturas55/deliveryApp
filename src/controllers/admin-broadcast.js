@@ -1,4 +1,5 @@
 import { query } from "../db.js";
+import { customerMembership } from "../services/restaurant-customers.js";
 import { createEmailTransport, sendEmail } from "../services/email.js";
 import { customerEmailContent } from "../services/customer-email.js";
 
@@ -7,10 +8,11 @@ function broadcastError(status, message) {
 }
 
 export async function countBroadcastRecipients(restaurantId = null) {
+  if (!restaurantId) throw broadcastError(403, "Restaurante requerido");
   const rows = await query(
     `SELECT COUNT(DISTINCT LOWER(TRIM(email))) AS total FROM customers WHERE email IS NOT NULL AND TRIM(email) <> ''
-      ${restaurantId == null ? "" : "AND EXISTS (SELECT 1 FROM orders WHERE customer_id=customers.id AND restaurant_id=?)"}`,
-    restaurantId == null ? [] : [restaurantId],
+      AND ${customerMembership("customers")}`,
+    [restaurantId, restaurantId],
   );
   return Number(rows[0]?.total || 0);
 }
@@ -84,6 +86,7 @@ export async function sendCustomerEmail(customer, body = {}, image = null) {
  * Envía un correo a TODOS los clientes.
  */
 export async function sendCustomerBroadcast(body = {}, image = null, restaurantId = null) {
+  if (!restaurantId) throw broadcastError(403, "Restaurante requerido");
   const { subject, text } = validateCustomerEmail(body);
   const content = customerEmailContent(text, image);
 
@@ -97,9 +100,9 @@ export async function sendCustomerBroadcast(body = {}, image = null, restaurantI
     FROM customers
     WHERE email IS NOT NULL
       AND TRIM(email) <> ''
-      ${restaurantId == null ? "" : "AND EXISTS (SELECT 1 FROM orders WHERE customer_id=customers.id AND restaurant_id=?)"}
+      AND ${customerMembership("customers")}
     ORDER BY email
-  `, restaurantId == null ? [] : [restaurantId]);
+  `, [restaurantId, restaurantId]);
 
   if (!recipients.length) {
     return {

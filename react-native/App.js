@@ -33,7 +33,7 @@ import {
   setAuthLostHandler,
   getSessionRole,
 } from "./src/api";
-import { productImageUrl } from "./src/config";
+import { productImageUrl, RESTAURANT_ID } from "./src/config";
 import Constants from "expo-constants";
 import OrdersPanel from "./src/OrdersPanel";
 import CustomerAccount from "./src/CustomerAccount";
@@ -192,7 +192,7 @@ function ClientNavigator({ onAdminAccess }) {
     if (auth) setOrders(await api("/customer/orders?filter=all", {}, auth));
   }
   async function refreshMenu() {
-    const m = await api("/public/menu");
+    const m = await api(`/public/menu${RESTAURANT_ID ? `?restaurant_id=${encodeURIComponent(RESTAURANT_ID)}` : ""}`);
     setMenu(m.products || []);
     setRestaurant(m.restaurant);
     setDeliveryPricing(
@@ -281,12 +281,13 @@ function ClientNavigator({ onAdminAccess }) {
     setBusy(true);
     setError("");
     try {
+      if (!restaurant?.id) throw new Error("No se pudo cargar el restaurante. Recarga la carta.");
       const data = await api(`/customer-auth/${authMode}`, {
         method: "POST",
         body: JSON.stringify(
           authMode === "login"
-            ? { email, password }
-            : { name, email, password },
+            ? { email, password, restaurant_id: restaurant?.id }
+            : { name, email, password, restaurant_id: restaurant?.id },
         ),
       });
       const auth = await saveSession(data);
@@ -305,6 +306,7 @@ function ClientNavigator({ onAdminAccess }) {
     setError("");
 
     try {
+      if (!restaurant?.id) throw new Error("No se pudo cargar el restaurante. Recarga la carta.");
       const config = await api("/customer-auth/google/config");
 
       console.log("GOOGLE CONFIG:", {
@@ -378,6 +380,7 @@ function ClientNavigator({ onAdminAccess }) {
         body: JSON.stringify({
           credential,
           challenge: config.challenge,
+          restaurant_id: restaurant?.id,
         }),
       });
 
@@ -404,6 +407,7 @@ function ClientNavigator({ onAdminAccess }) {
     setBusy(true);
     setError("");
     try {
+      if (!restaurant?.id) throw new Error("No se pudo cargar el restaurante. Recarga la carta.");
       if (payment === "card_on_delivery" && !pickup)
         throw new Error("El pago al recoger requiere recogida en el local.");
       if (!phone.trim())
@@ -424,7 +428,7 @@ function ClientNavigator({ onAdminAccess }) {
           method: "POST",
           body: JSON.stringify({
             items,
-            slug: "demo",
+            restaurant_id: restaurant?.id,
             delivery_method: pickup ? "pickup" : "delivery",
             payment_method: payment,
             customer_name: profile.name,

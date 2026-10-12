@@ -44,13 +44,13 @@ router.get("/robots.txt",(req,res)=>{
 router.get("/sitemap.xml",async(req,res)=>{
   const origin=publicOrigin();
   if(!origin)return res.status(503).type("text/plain").send("PUBLIC_URL debe contener el origen público del sitio.");
-  const data=await clients.menu({query:{slug:"demo"}});
+  const data=await clients.menu({query:{}});
   res.type("application/xml").send(sitemapXml(["/",...legalPages.map(page=>page.path),...data.products.map(product=>`/product/${product.id}`)],origin));
 });
 
 for (const page of legalPages) {
   router.get(page.path, async (req, res) => {
-    const legal = await getRestaurant("demo");
+    const legal = await getRestaurant();
     if (!legal) throw httpError(404, "Restaurante no encontrado");
     const legalAddress = legal.legal_address || legal.delivery_formatted_address || legal.address;
     const legalProfileReady = Boolean(
@@ -268,7 +268,7 @@ router.get("/", async (req, res) => {
 router.get("/product/:id", async (req, res) => {
   //console.log(req.params.id);
   const product = await clients.product(req.params.id);
-  const restaurant=await getRestaurant("demo");
+  const restaurant=await getRestaurant();
   if(!product||!product.active||!restaurant||String(product.restaurant_id)!==String(restaurant.id))throw httpError(404,"Artículo no disponible");
   res.render("client/product", {
     title: product.name,
@@ -282,7 +282,7 @@ router.post("/cart", async (req, res) => {
     action = req.body.action;
   if (!Number.isInteger(id) || !["add", "decrease", "remove"].includes(action))
     throw httpError(400, "Operación de carrito no válida");
-  const data = await clients.menu({ query: { slug: "demo" } });
+  const data = await clients.menu({ query: {} });
   const cart = readCart(req).filter((item) =>
     data.products.some((p) => Number(p.id) === item.product_id),
   );
@@ -316,7 +316,7 @@ router.post("/cart/promo", validateCsrf, async (req, res) => {
     return res.redirect(303, "/#cartPanel");
   }
   try {
-    const data = await clients.menu({ query: { slug: "demo" } });
+    const data = await clients.menu({ query: {} });
     const products = new Map(
       data.products.map((product) => [Number(product.id), product]),
     );
@@ -339,7 +339,7 @@ router.post("/checkout", requireCustomer, async (req, res) => {
   req.body = {
     ...req.body,
     payment_method: checkoutMethod.paymentMethod,
-    slug: "demo",
+    restaurant_id: (await getRestaurant()).id,
     items: readCart(req),
     promo_code: readCartPromo(req),
   };
@@ -483,12 +483,12 @@ router.get("/client/login", (req, res) =>
   }),
 );
 router.post("/client/login", loginLimit, async (req, res) => {
-  const customer = await accounts.loginCustomer(req.body);
+  const customer = await accounts.loginCustomer({ ...req.body, restaurant_id: (await getRestaurant()).id });
   setSession(res, "customer", signCustomer(customer));
   res.redirect(303, safeNext(req.body.next, "/client/orders"));
 });
 router.post("/client/register", loginLimit, async (req, res) => {
-  const customer = await accounts.registerCustomer(req.body);
+  const customer = await accounts.registerCustomer({ ...req.body, restaurant_id: (await getRestaurant()).id });
   setSession(res, "customer", signCustomer(customer));
   res.redirect(303, safeNext(req.body.next, "/client/orders"));
 });

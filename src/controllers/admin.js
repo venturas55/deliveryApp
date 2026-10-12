@@ -1,4 +1,5 @@
 import { query, transaction } from "../db.js";
+import { associateCustomer, customerMembership } from "../services/restaurant-customers.js";
 import { randomUUID } from "node:crypto";
 import QRCode from "qrcode";
 import {
@@ -52,8 +53,8 @@ export async function telephoneCustomer(phone, restaurantId) {
   if (digits.startsWith("34") && digits.length === 11)
     candidates.push(digits.slice(2));
   const rows = await query(
-    `SELECT id,name,email,phone,profile_image_url,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id FROM customers WHERE REGEXP_REPLACE(phone,'[^0-9]','') IN (${candidates.map(() => "?").join(",")}) LIMIT 1`,
-    candidates,
+    `SELECT c.id,c.name,c.email,c.phone,c.profile_image_url,c.delivery_address,c.delivery_notes,c.delivery_formatted_address,c.delivery_street,c.delivery_number,c.delivery_city,c.delivery_province,c.delivery_postal_code,c.delivery_country,c.delivery_latitude,c.delivery_longitude,c.delivery_place_id FROM customers c WHERE ${customerMembership()} AND REGEXP_REPLACE(phone,'[^0-9]','') IN (${candidates.map(() => "?").join(",")}) LIMIT 1`,
+    [restaurantId, restaurantId, ...candidates],
   );
   if (!rows[0]) return null;
   return {
@@ -118,6 +119,7 @@ export async function createAdminCustomer(req) {
           tokenHash,
         ],
       );
+      await associateCustomer(Number(result.insertId), req.user.restaurant_id, c);
       await sendEmail({
           to: email,
           subject: "Establece la contraseña de tu cuenta",
@@ -180,8 +182,8 @@ export async function createAdminOrder(req, suppliedCart) {
     throw orderError(400, "Canal de pedido no válido");
   if (!["delivery", "pickup"].includes(deliveryMethod))
     throw orderError(400, "Tipo de pedido no válido");
-  const customerRows = await query("SELECT * FROM customers WHERE id=?", [
-    body.customer_id,
+  const customerRows = await query(`SELECT c.* FROM customers c WHERE c.id=? AND ${customerMembership()}`, [
+    body.customer_id, restaurantId, restaurantId,
   ]);
   if (!customerRows.length) throw orderError(404, "Cliente no encontrado");
   const customer = customerRows[0];
@@ -1225,13 +1227,14 @@ function extractByPrefix(row, prefix) {
   );
 }
 
-export async function getClientes(id = null) {
-  const params = [];
-  let where = "";
+export async function getClientes(id = null, restaurantId) {
+  if (!restaurantId) throw httpError(403, "Restaurante requerido");
+  const params = [restaurantId, restaurantId, restaurantId];
+  let where = `WHERE ${customerMembership()}`;
 
   // Si recibimos un ID, filtramos por ese cliente
   if (id !== null && id !== undefined) {
-    where = "WHERE c.id = ?";
+    where += " AND c.id = ?";
     params.push(id);
   }
 
@@ -1293,7 +1296,7 @@ export async function getClientes(id = null) {
     FROM customers c
 
     LEFT JOIN orders o
-      ON o.customer_id = c.id
+      ON o.customer_id = c.id AND o.restaurant_id = ?
 
     ${where}
 

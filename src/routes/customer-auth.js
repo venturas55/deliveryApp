@@ -10,6 +10,7 @@ import {OAuth2Client} from "google-auth-library";
 import {query} from "../db.js";
 import {signCustomer,customerAuth} from "../auth.js";
 import {createAuthSession} from "../services/auth-sessions.js";
+import {associateCustomer,customerRestaurant} from "../services/restaurant-customers.js";
 
 const router=Router();
 const google=new OAuth2Client();
@@ -127,6 +128,7 @@ router.post("/google",limit,async(req,res)=>{
   res.clearCookie("google_nonce",{path:"/api/customer-auth"});
   if(!result)return res.status(401).json({error:"No se pudo verificar el acceso con Google. Recarga e inténtalo de nuevo."});
   if(result.conflict)return res.status(409).json({error:"Ya existe una cuenta con este correo. Usa su m?todo de acceso original."});
+  await associateCustomer(result.customer.id,await customerRestaurant());
   return session(res,result.customer,result.created?201:200);
 });
 router.post("/google/native",limit,async(req,res)=>{
@@ -134,6 +136,7 @@ router.post("/google/native",limit,async(req,res)=>{
   const result=await customerFromGoogleCredential(req.body?.credential,req.body?.challenge,"native");
   if(!result)return res.status(401).json({error:"No se pudo verificar el acceso con Google. Recarga e inténtalo de nuevo (native)."});
   if(result.conflict)return res.status(409).json({error:"Ya existe una cuenta con este correo. Usa su m?todo de acceso original. (native)"});
+  await associateCustomer(result.customer.id,await customerRestaurant(req.body?.restaurant_id));
   return apiSession(res,result.customer,result.created?201:200);
 });
 export default router;

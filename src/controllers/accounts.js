@@ -1,4 +1,5 @@
-import {query} from "../db.js";
+import {query,transaction} from "../db.js";
+import {associateCustomer,customerRestaurant} from "../services/restaurant-customers.js";
 import {createHash,randomBytes} from "node:crypto";
 import {hashPassword,checkPassword} from "../auth.js";
 import {httpError} from "../services/http-error.js";
@@ -11,9 +12,14 @@ export async function registerCustomer(body={}){
   const {name,password}=body,email=emailValue(body.email);
   if(typeof name!=="string"||!name.trim()||name.trim().length>120||!validEmail(email)||typeof password!=="string"||password.length<8||Buffer.byteLength(password)>72)
     throw httpError(400,"Indica un nombre, un email válido y una contraseña de al menos 8 caracteres (máximo 72 bytes)");
+  const restaurantId=await customerRestaurant(body.restaurant_id);
+  const passwordHash=await hashPassword(password);
   try{
-    const result=await query("INSERT INTO customers(name,email,password_hash) VALUES(?,?,?)",[name.trim(),email,await hashPassword(password)]);
-    return {id:Number(result.insertId),name:name.trim(),email};
+    return await transaction(async connection=>{
+      const result=await connection.query("INSERT INTO customers(name,email,password_hash) VALUES(?,?,?)",[name.trim(),email,passwordHash]);
+      await associateCustomer(Number(result.insertId),restaurantId,connection);
+      return {id:Number(result.insertId),name:name.trim(),email};
+    });
   }catch(error){if(error.code==="ER_DUP_ENTRY")throw httpError(409,"Este correo ya tiene una cuenta. Inicia sesión.");throw error}
 }
 export async function loginCustomer(body={}){
@@ -21,6 +27,7 @@ export async function loginCustomer(body={}){
   if(!validEmail(email)||typeof password!=="string"||Buffer.byteLength(password)>72)throw httpError(400,"Email o contraseña no válidos");
   const rows=await query("SELECT * FROM customers WHERE email=?",[email]);
   if(!rows[0]?.password_hash||!await checkPassword(password,rows[0].password_hash))throw httpError(401,"Credenciales incorrectas");
+  await associateCustomer(rows[0].id,await customerRestaurant(body.restaurant_id));
   return rows[0];
 }
 export async function loginAdmin(body={}){

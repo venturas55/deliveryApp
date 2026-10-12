@@ -1,5 +1,6 @@
 // Change this to the reachable API URL for your device/emulator.
 export const API_BASE_URL = "https://massaefuoco.es/api";
+export const RESTAURANT_ID = process.env.EXPO_PUBLIC_RESTAURANT_ID;
 
 export function productImageUrl(imageUrl, apiBaseUrl = API_BASE_URL) {
   if (typeof imageUrl !== "string" || !imageUrl.trim()) return null;

@@ -450,7 +450,7 @@ router.post("/admin/configs", async (req, res) => {
 });
 
 router.get("/admin/clientes/difusion", async (req, res) => {
-  const total = await adminBroadcast.countBroadcastRecipients();
+  const total = await adminBroadcast.countBroadcastRecipients(req.user.restaurant_id);
   res.render("admin/customer-broadcast", {
     title: "Correo a clientes",
     clientesActive: true,
@@ -471,6 +471,7 @@ router.post(
       const result = await adminBroadcast.sendCustomerBroadcast(
         req.body,
         req.file,
+        req.user.restaurant_id,
       );
       res.redirect(
         303,
@@ -491,7 +492,7 @@ router.post(
 );
 
 router.get("/admin/clientes/email/:id", async (req, res) => {
-  const customer = await admin.getClientes(req.params.id);
+  const customer = await admin.getClientes(req.params.id, req.user.restaurant_id);
 
   res.render("admin/customer-email", {
     title: "Correo a cliente",
@@ -506,7 +507,7 @@ router.post(
   validateCsrf,
   async (req, res) => {
     try {
-      const customer = await admin.getClientes(req.params.id);
+      const customer = await admin.getClientes(req.params.id, req.user.restaurant_id);
       const result = await adminBroadcast.sendCustomerEmail(
         customer,
         req.body,
@@ -535,7 +536,7 @@ router.post(
   },
 );
 router.get("/admin/clientes", async (req, res) => {
-  const clientes = await admin.getClientes();
+  const clientes = await admin.getClientes(null, req.user.restaurant_id);
   //console.log(clientes);
   res.render("admin/clientes", {
     title: "Clientes",
@@ -545,7 +546,7 @@ router.get("/admin/clientes", async (req, res) => {
   });
 });
 router.get("/admin/cliente/:id", async (req, res) => {
-  const customer = await admin.getClientes(req.params.id);
+  const customer = await admin.getClientes(req.params.id, req.user.restaurant_id);
   //console.log(customer);
   res.render("admin/cliente", {
     title: "Cliente",

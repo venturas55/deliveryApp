@@ -1,6 +1,7 @@
 import {parseDetails,safeTrackingUrl} from "../services/delivery-tracking.js";
 import QRCode from "qrcode";
 import {query,transaction} from "../db.js";
+import {associateCustomer} from "../services/restaurant-customers.js";
 import {getRestaurant} from "../services/restaurants.js";
 import {logEvent} from "../services/order-events.js";
 import {httpError} from "../services/http-error.js";
@@ -38,7 +39,7 @@ async function syncCustomerDelivery(order,customerId){
 }
 
 export async function menu(req){
-  const r=await getRestaurant(req.query.slug||"demo"); if(!r)throw httpError(404,"Restaurante no encontrado");
+  const r=await getRestaurant(req.query.restaurant_id); if(!r)throw httpError(404,"Restaurante no encontrado");
   const products=await query("SELECT * FROM products WHERE restaurant_id=? AND active=1 ORDER BY category,sort_order,id",[r.id]);
   const zones=await query("SELECT * FROM delivery_zones WHERE restaurant_id=? AND active=1",[r.id]);
   return ({restaurant:r,products,zones,delivery_pricing:{base_cents:Number(r.delivery_base_cents ?? process.env.DELIVERY_BASE_CENTS ?? 399),free_from_cents:Number(r.free_delivery_from_cents ?? process.env.FREE_DELIVERY_FROM_CENTS ?? 3000)}});
@@ -61,8 +62,8 @@ export async function createOrder(req){
   let addressData=body.delivery_address_data;
   if(typeof addressData==="string"){try{addressData=JSON.parse(addressData)}catch{addressData=null}}
   if(!addressData&&profile.delivery_place_id)addressData={formatted_address:profile.delivery_formatted_address,street:profile.delivery_street,number:profile.delivery_number,city:profile.delivery_city,province:profile.delivery_province,postal_code:profile.delivery_postal_code,country:profile.delivery_country,latitude:profile.delivery_latitude,longitude:profile.delivery_longitude,place_id:profile.delivery_place_id};
-  const {slug="demo",customer_name=profile.name,customer_phone=profile.phone,delivery_notes=profile.delivery_notes,delivery_apartment=profile.delivery_apartment||"",delivery_patio=profile.delivery_patio||"",payment_method="cash",delivery_method="delivery",items=[]}=body;
-  const r=await getRestaurant(slug); if(!r)throw httpError(404,"Restaurante no encontrado");
+  const {restaurant_id,customer_name=profile.name,customer_phone=profile.phone,delivery_notes=profile.delivery_notes,delivery_apartment=profile.delivery_apartment||"",delivery_patio=profile.delivery_patio||"",payment_method="cash",delivery_method="delivery",items=[]}=body;
+  const r=await getRestaurant(restaurant_id); if(!r)throw httpError(404,"Restaurante no encontrado");
   const isPickup=delivery_method==="pickup";
   if(!['delivery','pickup'].includes(delivery_method))throw httpError(400,"El tipo de pedido no es válido");
   if(!isPickup){const addressError=validateAddress(addressData);if(addressError)throw httpError(400,addressError);}
@@ -87,6 +88,7 @@ export async function createOrder(req){
   const delivery=isPickup?0:subtotal>=Number(r.free_delivery_from_cents ?? process.env.FREE_DELIVERY_FROM_CENTS ?? 3000)?0:Number(r.delivery_base_cents ?? process.env.DELIVERY_BASE_CENTS ?? 399);
   const total=subtotal-promotion.discount_cents+delivery;
   const orderId=await transaction(async c=>{
+    await associateCustomer(req.customer.sub,r.id,c);
     const result=await c.query(`INSERT INTO orders(customer_id,restaurant_id,customer_name,customer_phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,delivery_apartment,delivery_patio,payment_method,delivery_method,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [req.customer.sub,r.id,customer_name,customer_phone,delivery_address,delivery_notes,address.formatted_address,address.street,address.number,address.city,address.province,address.postal_code,address.country,address.latitude,address.longitude,address.place_id,delivery_apartment,delivery_patio,payment_method,delivery_method,subtotal,promotion.code||null,promotion.discount_cents,delivery,total]);
     const id=Number(result.insertId);

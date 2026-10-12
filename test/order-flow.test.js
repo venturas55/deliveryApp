@@ -19,7 +19,7 @@ test("mock delivery: full lifecycle, isolation, duplicates and cancellation",{ti
     const product=await query("INSERT INTO products(restaurant_id,name,price_cents) VALUES(?,?,?)",[restaurantId,"Test pizza",950]);
     const listener=net.createServer();listener.listen(0,"127.0.0.1");await once(listener,"listening");
     const port=listener.address().port;await new Promise(resolve=>listener.close(resolve));
-    server=spawn(process.execPath,["src/server.js"],{env:{...process.env,PORT:String(port),DELIVERY_PROVIDER:"mock",GOOGLE_CLIENT_ID:"test-client.apps.googleusercontent.com"},stdio:["ignore","pipe","pipe"]});
+    server=spawn(process.execPath,["src/server.js"],{env:{...process.env,PORT:String(port),DEFAULT_RESTAURANT_ID:String(restaurantId),DELIVERY_PROVIDER:"mock",GOOGLE_CLIENT_ID:"test-client.apps.googleusercontent.com"},stdio:["ignore","pipe","pipe"]});
     await new Promise((resolve,reject)=>{
       const timer=setTimeout(()=>reject(new Error("Server startup timeout")),8000);
       server.stdout.on("data",chunk=>{if(String(chunk).includes("Pizzeria v0.2")){clearTimeout(timer);resolve()}});
@@ -80,9 +80,9 @@ test("mock delivery: full lifecycle, isolation, duplicates and cancellation",{ti
     await request("/api/customer/orders","GET",undefined,403,token);
     await request("/api/customer-auth/google","POST",{credential:"forged"},401,null);
     await request("/api/orders","POST",{},401,null);
-    const create=()=>request("/api/orders","POST",{slug,items:[{product_id:Number(product.insertId),quantity:2}]},201,clientToken);
+    const create=()=>request("/api/orders","POST",{restaurant_id:restaurantId,items:[{product_id:Number(product.insertId),quantity:2}]},201,clientToken);
     const order=await create();
-    const pickupOrder=await request("/api/orders","POST",{slug,items:[{product_id:Number(product.insertId),quantity:1}],delivery_method:"pickup"},201,clientToken);
+    const pickupOrder=await request("/api/orders","POST",{restaurant_id:restaurantId,items:[{product_id:Number(product.insertId),quantity:1}],delivery_method:"pickup"},201,clientToken);
     assert.equal(pickupOrder.delivery_method,"pickup");
     assert.equal((await request(`/api/customer/orders/${pickupOrder.id}`,"GET",undefined,200,clientToken)).delivery_method,"pickup");
     await request("/api/customer-auth/me","PATCH",{delivery_address:"New address"},200,clientToken);
@@ -161,10 +161,10 @@ test("mock delivery: full lifecycle, isolation, duplicates and cancellation",{ti
     await request(articlePath,"PATCH",{name:"x".repeat(121)},400);
     await request(articlePath,"PATCH",{active:"false"},400);
     await request(articlePath,"PATCH",{name:"Updated pizza",price_cents:1350,active:0});
-    let menu=await request(`/api/public/menu?slug=${slug}`);
+    let menu=await request(`/api/public/menu?restaurant_id=${restaurantId}`);
     assert.ok(!menu.products.some(p=>Number(p.id)===article.id));
     await request(articlePath,"PATCH",{active:1});
-    menu=await request(`/api/public/menu?slug=${slug}`);
+    menu=await request(`/api/public/menu?restaurant_id=${restaurantId}`);
     assert.equal(menu.products.find(p=>Number(p.id)===article.id).price_cents,1350);
     await request(articlePath,"DELETE");
     await request(articlePath,"DELETE",undefined,404);

@@ -90,7 +90,7 @@ curl -X POST http://localhost:7007/api/setup-admin
 ```
 
 El endpoint lee `ADMIN_EMAIL` y `ADMIN_PASSWORD` desde `.env` y crea el
-administrador para el restaurante demo. En Windows PowerShell puedes usar:
+administrador para el restaurante seleccionado por ID. En Windows PowerShell puedes usar:
 
 ```powershell
 Invoke-RestMethod -Method Post -Uri http://localhost:7007/api/setup-admin -ContentType "application/json" -Body "{}"

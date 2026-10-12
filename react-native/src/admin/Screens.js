@@ -191,12 +191,7 @@ export function Customers({ openCustomer, selectCustomer }) {
         )}
         ListEmptyComponent={
           !resource.loading && !resource.error ? (
-            <Text style={s.muted}>{t("Sin clientes con pedidos en este restaurante.")}</Text>
-          ) : null
-        }
-        ListFooterComponent={
-          resource.data?.length === 100 ? (
-            <Text style={s.muted}>{t("Mostrando 100 clientes. Afina la búsqueda.")}</Text>
+            <Text style={s.muted}>{t("Sin clientes asociados a este restaurante.")}</Text>
           ) : null
         }
       />
@@ -682,7 +677,7 @@ function RestaurantEditor({ restaurant }) {
     setMessage("");
   }, [restaurant.id]);
   useEffect(() => {
-    console.log("ESTADO LOGO:", logo);
+    /* console.log("ESTADO LOGO:", logo); */
   }, [logo]);
   const field = (key, label, maxLength, props = {}) => (
     <Field
@@ -933,7 +928,7 @@ function RestaurantEditor({ restaurant }) {
             autoCorrect: false,
           })}
         </Grid>
-        <Text style={s.muted}>{t("Identificador utilizado internamente en la URL del negocio.")}</Text>
+        <Text style={s.muted}>{t("Alias del negocio. Cambiarlo no modifica las rutas ni la asociación de clientes.")}</Text>
         {readOnly("Cuenta creada", restaurant.created_at)}
       </Card>
       <Text style={s.muted}>{t("Los cambios se aplicarán a la configuración actual del restaurante.")}</Text>

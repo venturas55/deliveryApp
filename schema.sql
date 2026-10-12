@@ -174,7 +174,7 @@ INSERT INTO restaurants(name,slug,phone,address)
 SELECT 'Pizzería Demo','demo','+34000000000','Dirección pendiente'
 WHERE NOT EXISTS (SELECT 1 FROM restaurants);
 
-SET @rid=(SELECT id FROM restaurants WHERE slug='demo' LIMIT 1);
+SET @rid=(SELECT id FROM restaurants ORDER BY id LIMIT 1);
 
 INSERT INTO products(restaurant_id,category,name,description,price_cents,sort_order)
 SELECT @rid,'Pizzas','Margarita','Tomate, mozzarella y albahaca',950,10
@@ -224,6 +224,24 @@ CREATE TABLE IF NOT EXISTS customers (
   delivery_patio VARCHAR(120) NOT NULL DEFAULT '',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS restaurant_customers (
+  restaurant_id INT NOT NULL,
+  customer_id INT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (restaurant_id, customer_id),
+  INDEX idx_restaurant_customers_customer (customer_id),
+  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+
+INSERT IGNORE INTO restaurant_customers (restaurant_id, customer_id)
+SELECT DISTINCT restaurant_id, customer_id FROM orders WHERE customer_id IS NOT NULL;
+
+INSERT IGNORE INTO restaurant_customers (restaurant_id, customer_id)
+SELECT r.id, c.id FROM customers c CROSS JOIN restaurants r
+WHERE (SELECT COUNT(*) FROM restaurants)=1
+AND NOT EXISTS (SELECT 1 FROM restaurant_customers rc WHERE rc.customer_id=c.id);
 
 CREATE TABLE IF NOT EXISTS auth_refresh_tokens (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

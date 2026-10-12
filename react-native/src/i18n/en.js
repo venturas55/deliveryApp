@@ -1,4 +1,7 @@
 export default {
+  "Sin clientes asociados a este restaurante.": "No customers associated with this restaurant.",
+  "Alias del negocio. Cambiarlo no modifica las rutas ni la asociación de clientes.": "Business alias. Changing it does not affect routes or customer membership.",
+  "No se pudo cargar el restaurante. Recarga la carta.": "Could not load the restaurant. Reload the menu.",
   "Idioma de la interfaz": "Interface language", "Idioma del dispositivo": "Device language",
   "Se guarda en esta aplicación en este dispositivo.": "Saved in this app on this device.",
   "No se pudo recuperar el idioma guardado.": "Could not restore the saved language.",

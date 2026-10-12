@@ -86,7 +86,7 @@ test("mobile auth issues, rotates, revokes and scopes refresh sessions", { timeo
     await post("/api/auth/refresh", { refreshToken: "invalid" }, 400);
     const registered = await post(
       "/api/customer-auth/register",
-      { name: "Auth test customer", email, password },
+      { name: "Auth test customer", email, password, restaurant_id: restaurantId },
       201,
     );
     customerIds.push(Number(registered.customer.id));
@@ -144,7 +144,7 @@ test("mobile auth issues, rotates, revokes and scopes refresh sessions", { timeo
 
     const logoutSession = await post(
       "/api/customer-auth/login",
-      { email, password },
+      { email, password, restaurant_id: restaurantId },
       200,
     );
     await post(
@@ -170,7 +170,7 @@ test("mobile auth issues, rotates, revokes and scopes refresh sessions", { timeo
 
     const expiredSession = await post(
       "/api/customer-auth/login",
-      { email, password },
+      { email, password, restaurant_id: restaurantId },
       200,
     );
     const expiredHash = createHash("sha256")
@@ -188,7 +188,7 @@ test("mobile auth issues, rotates, revokes and scopes refresh sessions", { timeo
 
     const concurrentSession = await post(
       "/api/customer-auth/login",
-      { email, password },
+      { email, password, restaurant_id: restaurantId },
       200,
     );
     const concurrent = await Promise.all([

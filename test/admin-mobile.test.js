@@ -9,6 +9,9 @@ import { query, pool } from "../src/db.js";
 import { signAdmin, signCustomer } from "../src/auth.js";
 import apiRoutes from "../src/routes/api.js";
 import { mobileOrder } from "../src/controllers/admin-mobile.js";
+import { getClientes, telephoneCustomer } from "../src/controllers/admin.js";
+import { countBroadcastRecipients } from "../src/controllers/admin-broadcast.js";
+import { registerCustomer, loginCustomer } from "../src/controllers/accounts.js";
 
 test("mobile order projection excludes provider payloads and payment references", () => {
   const dto = mobileOrder({ id: 1, status: "ready", delivery_method: "pickup", redsys_order: "secret", delivery_details_json: JSON.stringify({ secret: "private" }), events: [{ event_type: "delivery.requested", payload_json: '{"token":"secret"}' }], items: [] });
@@ -35,6 +38,9 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
       customers.push(Number(result.insertId));
     }
     await query("UPDATE customers SET profile_image_url=? WHERE id=?", ["/uploads/customers/test-avatar.png", customers[0]]);
+    const noOrders = await query("INSERT INTO customers(name,email,phone) VALUES(?,?,?)", ["Zero orders", `zero-${suffix}@example.invalid`, "900001234"]);
+    customers.push(Number(noOrders.insertId));
+    await query("INSERT INTO restaurant_customers(restaurant_id,customer_id) VALUES(?,?)", [restaurants[0], customers[2]]);
     const product = await query("INSERT INTO products(restaurant_id,name,price_cents) VALUES(?,?,?)", [restaurants[0], "Mobile product", 1234]);
     productId = Number(product.insertId);
     const orderIds = [];
@@ -67,7 +73,15 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
     await request(`/orders/${orderIds[1]}/status`, { method: "PATCH", body: { status: "cancelled" }, status: 404 });
     const [untouched] = await query("SELECT status,payment_status FROM orders WHERE id=?", [orderIds[1]]);
     assert.equal(untouched.status, "new"); assert.equal(untouched.payment_status, "paid");
-    const customerList = await request("/customers"); assert.equal(customerList.length, 1); assert.equal(customerList[0].id, customers[0]); assert.equal(customerList[0].delivery_address, "Address 0"); assert.equal(customerList[0].delivery_formatted_address, "Formatted address 0");
+    const customerList = await request("/customers"); assert.equal(customerList.length, 2); assert.equal(customerList[0].id, customers[0]); assert.equal(customerList[0].delivery_address, "Address 0"); assert.equal(customerList[0].delivery_formatted_address, "Formatted address 0");
+    const zero = await request(`/customers/${customers[2]}`);
+    assert.equal(zero.total_orders, 0); assert.equal(zero.total_spent_cents, 0); assert.deepEqual(zero.orders, []);
+    assert.equal((await request("/customers?q=Zero")).length, 1);
+    assert.equal((await getClientes(null, restaurants[0])).length, 2);
+    assert.equal(await getClientes(customers[1], restaurants[0]), null);
+    assert.equal((await telephoneCustomer("900001234", restaurants[0])).id, customers[2]);
+    assert.equal(await telephoneCustomer("900001234", restaurants[1]), null);
+    assert.equal(await countBroadcastRecipients(restaurants[0]), 2);
     assert.equal((await request("/customers?q=missing")).length, 0);
     await request(`/customers/${customers[1]}`, { status: 404 });
     const detail = await request(`/customers/${customers[0]}`); assert.equal(detail.orders.length, 1); assert.equal(detail.delivery_address, "Address 0"); assert.equal(detail.delivery_formatted_address, "Formatted address 0"); assert.equal(detail.password_hash, undefined);
@@ -102,6 +116,11 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
     const customerCards = await request("/customers");
     assert.equal(customerCards.find(customer => Number(customer.id) === customers[0]).profile_image_url, "/uploads/customers/test-avatar.png");
     assert.ok(!customerCards.some(customer => Number(customer.id) === customers[1]));
+    assert.equal(customerCards.find(customer => Number(customer.id) === customers[2]).total_orders, 0);
+    const firstOrder = await request("/orders", { method: "POST", status: 201, body: { customer_id: customers[2], channel: "counter", delivery_method: "pickup", payment_method: "cash", items: [{ product_id: productId, quantity: 1 }] } });
+    assert.equal(firstOrder.customer_id, customers[2]);
+    const [firstOrderScope] = await query("SELECT restaurant_id FROM orders WHERE id=?", [firstOrder.id]);
+    assert.equal(firstOrderScope.restaurant_id, restaurants[0]);
     const order = await request("/orders", { method: "POST", status: 201, body: { restaurant_id: restaurants[1], customer_id: customers[0], channel: "telephone", delivery_method: "pickup", payment_method: "cash", total_cents: 1, items: [{ product_id: productId, quantity: 2 }] } });
     assert.equal(order.total_cents, 2468); assert.equal(order.items[0].quantity, 2);
     await request("/orders", { method: "POST", status: 404, body: { customer_id: customers[1], channel: "telephone", delivery_method: "pickup", payment_method: "cash", items: [{ product_id: productId, quantity: 1 }] } });
@@ -139,6 +158,17 @@ test("admin mobile uses real database, enforces restaurant scope and shares orde
     const cursor = await request("/order-notifications");
     await request(`/order-notifications?afterId=${cursor.cursor.afterId}&since=${encodeURIComponent(cursor.cursor.since)}`);
     await request("/order-notifications?afterId=bad&since=bad", { status: 400 });
+    const account = { name: "Registered without orders", email: `registered-${suffix}@example.invalid`, password: "Test-password-123", restaurant_id: restaurants[0] };
+    const registered = await registerCustomer(account);
+    customers.push(registered.id);
+    assert.equal((await request(`/customers/${registered.id}`)).total_orders, 0);
+    assert.equal(await getClientes(registered.id, restaurants[1]), null);
+    await assert.rejects(loginCustomer({ ...account, password: "incorrect", restaurant_id: restaurants[1] }), error=>error.status===401);
+    assert.equal(await getClientes(registered.id, restaurants[1]), null);
+    await loginCustomer({ ...account, restaurant_id: restaurants[1] });
+    assert.equal((await getClientes(registered.id, restaurants[1])).id, registered.id);
+    assert.equal((await getClientes(registered.id, restaurants[0])).id, registered.id);
+    await assert.rejects(registerCustomer({ ...account, email: `invalid-${suffix}@example.invalid`, restaurant_id: 2147483647 }), error=>error.status===404);
   } finally {
     if (server) await new Promise(resolve => server.close(resolve));
     if (productId) {
