@@ -15,7 +15,7 @@ web-build/
 /react-native/android/
 /react-native/ios/
 /react-native/node_modules/
-
+/react-native/builds/
 # =========================
 # Native generated projects
 # Si usamos Expo Prebuild / CNG

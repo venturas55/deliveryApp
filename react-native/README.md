@@ -147,6 +147,18 @@ Para subirla a App Store Connect:
         npx expo config --type public
         npx eas-cli@latest build --platform android --profile production
 
+### Optimización DEX y ofuscación del AAB
+
+`app.config.js` activa R8 (`enableMinifyInReleaseBuilds`) y la reducción de recursos (`enableShrinkResourcesInReleaseBuilds`) para builds Android release, CLIENT y ADMIN. El plugin `plugins/with-android-release-optimization.js` selecciona `proguard-android-optimize.txt` durante prebuild. Las builds debug conservan su comportamiento; no se añaden reglas globales que impidan la ofuscación.
+
+Genera un AAB nuevo con el comando de producción anterior. Los directorios nativos se generan desde la configuración en EAS; si compilas con un proyecto Android local ya generado, ejecuta antes `npx expo prebuild --platform android --no-install`. No basta con exportar el bundle JavaScript ni reiniciar Metro.
+
+El porcentaje de Play corresponde al código DEX de Java/Kotlin, no al bundle JavaScript ni al bytecode Hermes. Activar R8 corrige la configuración, pero no garantiza superar el 30 %: hay que medir el AAB resultante. Android vitals utiliza `BUNDLE-METADATA/com.android.tools/r8.json` cuando está disponible; en builds anteriores puede usar el mapping o heurísticas. Conserva el mapping generado para desofuscar errores.
+
+Antes de publicar, instala una build release y prueba inicio, Google, audio de avisos, selección/subida de archivos y navegación CLIENT/ADMIN. Estas integraciones contienen código nativo que debe funcionar con R8 activo. Si la nueva medición sigue por debajo del objetivo, revisa las reglas `keep` del AAB real; no elimines reglas JNI/reflexión indiscriminadamente.
+
+Documentación: [Android vitals: optimización DEX](https://developer.android.com/google/play/vitals/code-optimization), [activar R8](https://developer.android.com/topic/performance/app-optimization/enable-app-optimization), [Expo BuildProperties](https://docs.expo.dev/versions/latest/sdk/build-properties/).
+
 
 
 El retorno de Redsys usa enlaces profundos (`massaefuoco://` en producción y

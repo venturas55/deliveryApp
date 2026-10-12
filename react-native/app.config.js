@@ -68,7 +68,14 @@ module.exports = ({ config }) => {
 
       "expo-secure-store",
       ["expo-localization", { supportedLocales: { ios: ["es", "en"], android: ["es", "en"] } }],
-      ["expo-build-properties", { ios: { enableSceneSupport: true } }],
+      ["expo-build-properties", {
+        android: {
+          enableMinifyInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
+        },
+        ios: { enableSceneSupport: true },
+      }],
+      "./plugins/with-android-release-optimization",
     ],
 
     extra: {
