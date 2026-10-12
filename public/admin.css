@@ -11,6 +11,7 @@
   --admin-green: #15803d;
   --admin-green-dark: #166534;
   --admin-danger: #b91c1c;
+  --admin-radius-xs: 4px;
   --admin-radius-sm: 8px;
   --admin-radius-md: 10px;
   --admin-radius-lg: 14px;
@@ -22,7 +23,10 @@
 
 .admin-brand-logo {
   display: block;
-  object-fit: contain;
+  /* object-fit: contain; */
+  height: 100%;
+  width: 100%;
+  border-radius: var(--admin-radius-xs);
 }
 
 .settings-business-logo {
