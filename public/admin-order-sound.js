@@ -1,8 +1,8 @@
 (() => {
   const panel=document.querySelector("[data-order-sound]");
   if(!panel)return;
-  const button=panel.querySelector("[data-sound-toggle]");
-  const status=panel.querySelector("[data-sound-status]");
+  const button=panel.matches?.("[data-sound-toggle]")?panel:panel.querySelector("[data-sound-toggle]");
+  const status=panel.querySelector("[data-sound-status]")||{textContent:""};
   const badge=document.querySelector("[data-order-notification-count]");
   const initial=JSON.parse(panel.dataset.notificationSnapshot);
   const storageKey="delivery-admin-order-notifications:"+panel.dataset.restaurantId;
@@ -16,7 +16,10 @@
   let context,enabled=saved?.enabled!==false,busy=false,stopped=false;
   const pending=Array.isArray(saved?.pending)?saved.pending.filter(kind=>kind==="cash"||kind==="card"):[];
   function sync(){
-    button.textContent=enabled?"Silenciar avisos":"Activar sonido";
+    const label=enabled?"Silenciar avisos":"Activar sonido";
+    button.innerHTML=enabled?'<span aria-hidden="true">🔊</span>':'<span aria-hidden="true">🔇</span>';
+    button.setAttribute("aria-label",label);
+    button.setAttribute("title",label);
     button.setAttribute("aria-pressed",String(enabled));
     if(badge){
       const count=unread.size;

@@ -103,6 +103,9 @@
         ◐
         <span class="action-text">Tema</span>
       </button>
+      {{#if adminLoggedIn}}{{#if orderNotificationSnapshot}}
+      <button class="theme-toggle" type="button" data-order-sound data-sound-toggle data-restaurant-id="{{adminRestaurantId}}" data-notification-snapshot="{{orderNotificationSnapshot}}" aria-pressed="true" aria-label="Silenciar avisos" title="Silenciar avisos"><span aria-hidden="true">🔊</span></button>
+      {{/if}}{{/if}}
 
       <form method="post" action="/admin/logout">
         {{> csrf}}
