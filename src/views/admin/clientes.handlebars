@@ -43,13 +43,9 @@
               {{/if}}
               </span>
               <div>
-                <span class="order-info-label">Cliente</span>
-                <strong>{{name}}</strong>
-                <p>{{delivery_address}}
-                  n{{delivery_number}}
-                  {{delivery_patio}}</p>
-                <p></p>
-                <span>{{phone}}</span>
+                <span class="order-info-label">Cliente: <strong>{{name}}</strong></span>
+                <p>{{delivery_address}} n{{delivery_number}}   {{#if delivery_patio}}puerta {{delivery_patio}}{{/if}}</p>
+                <span>✆ {{phone}}</span>
               </div>
             </div>
             <div class="order-info-row">
