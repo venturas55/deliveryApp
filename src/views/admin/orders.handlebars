@@ -1,215 +1,47 @@
-
-<section id="adminMain" class="orders-page section-page admin-page">
-  <header class="orders-header admin-page-header">
-    <div>
-      <span class="orders-eyebrow">GESTIÓN DE PEDIDOS</span>
-      <h1>Pedidos</h1>
-      <p>Consulta y gestiona los pedidos recibidos en el restaurante.</p>
-    </div>
-
-    <div class="orders-counter">
-      <strong>{{orders.length}}</strong>
-      <span>pedidos</span>
-    </div>
+<section id="adminMain" class="orders-page section-page admin-page orders-native">
+  <header class="admin-page-header">
+    <div><h1>Pedidos</h1><p>{{orders.length}} pedidos · {{#if refresh}}Actualización automática{{else}}Historial{{/if}}</p></div>
+    <a class="orders-chip" href="{{refreshUrl}}">Actualizar</a>
   </header>
-
-
-  <div class="orders-toolbar">
-    <form method="get" action="/admin/orders" class="orders-filter" data-orders-filter>
-      <label for="orders-filter">Estado</label>
-
-      <select id="orders-filter" name="filter">
-        <option value="all" {{#if (eq filter "all")}}selected{{/if}}>
-          Todos los pedidos
-        </option>
-
-        <option value="pending" {{#if (eq filter "pending")}}selected{{/if}}>
-          Pendientes
-        </option>
-
-        <option value="in_progress" {{#if (eq filter "in_progress")}}selected{{/if}}>
-          En curso
-        </option>
-
-        <option value="delivered" {{#if (eq filter "delivered")}}selected{{/if}}>
-          Entregados
-        </option>
-
-        <option value="cancelled" {{#if (eq filter "cancelled")}}selected{{/if}}>
-          Cancelados
-        </option>
-      </select>
-
-      <label for="orders-delivery-filter">Entrega</label>
-      <select id="orders-delivery-filter" name="delivery_method">
-        <option value="all" {{#if (eq deliveryFilter "all")}}selected{{/if}}>Todas las entregas</option>
-        <option value="delivery" {{#if (eq deliveryFilter "delivery")}}selected{{/if}}>A domicilio</option>
-        <option value="pickup" {{#if (eq deliveryFilter "pickup")}}selected{{/if}}>Recoger en local</option>
-      </select>
+  <nav class="orders-status-chips" aria-label="Estado del pedido">
+    {{#each statusFilters}}<a class="orders-chip {{#if selected}}is-selected{{/if}}" href="{{href}}" {{#if selected}}aria-current="page"{{/if}}>{{label}}</a>{{/each}}
+  </nav>
+  <div class="orders-native-toolbar">
+    <nav class="orders-delivery-chips" aria-label="Tipo de entrega">
+      {{#each deliveryFilters}}<a class="orders-chip {{#if selected}}is-selected{{/if}}" href="{{href}}" {{#if selected}}aria-current="page"{{/if}}>{{label}}</a>{{/each}}
+    </nav>
+    <form method="get" action="/admin/orders" data-orders-filter class="orders-native-payment">
+      <input type="hidden" name="filter" value="{{filter}}">
+      {{#unless (eq status "all")}}<input type="hidden" name="status" value="{{status}}">{{/unless}}
+      <input type="hidden" name="delivery_method" value="{{deliveryFilter}}">
       <label for="orders-payment-filter">Pago</label>
       <select id="orders-payment-filter" name="payment_method">
         <option value="all" {{#if (eq paymentFilter "all")}}selected{{/if}}>Todos los pagos</option>
         <option value="card" {{#if (eq paymentFilter "card")}}selected{{/if}}>Tarjeta</option>
         <option value="cash" {{#if (eq paymentFilter "cash")}}selected{{/if}}>Efectivo</option>
       </select>
+      <noscript><button type="submit">Filtrar</button></noscript>
     </form>
-
-    <span class="orders-limit">
-      Máximo 200 pedidos por filtro
-    </span>
-
   </div>
-
-
   <div id="orders" class="orders-grid">
-
     {{#each orders}}
-
-      <article class="order-card">
-        <header class="order-card-header">
-
-          <div class="order-number">
-            <span>Pedido</span>
-            <h2>#{{id}}</h2>
-          </div>
-
-          <span class="order-status order-status--{{status}}">
-            {{statusLabel}}
-          </span>
-
-        </header>
-
-
-        <div class="order-card-body">
-
-          <div class="order-payment">
-
-            {{#if (eq delivery_method "pickup")}}
-              <span class="payment-method-badge order-delivery-badge">Recoger en local</span>
-            {{else}}
-              <span class="payment-method-badge order-delivery-badge">A domicilio</span>
-            {{/if}}
-
-            {{#if (eq payment_method "online")}}
-              <span class="payment-method-badge">
-                💳 Tarjeta online
-              </span>
-
-            {{else if (eq payment_method "cash")}}
-              <span class="payment-method-badge">
-                💶 Efectivo
-              </span>
-
-            {{else if (eq payment_method "card_on_delivery")}}
-              <span class="payment-method-badge">
-                💳 Tarjeta al repartidor
-              </span>
-            {{/if}}
-
-
-            {{#if (eq payment_status "paid")}}
-
-              <span class="payment-badge payment-badge--paid">
-                ✓ Pagado
-              </span>
-
-            {{else if (eq payment_status "pending")}}
-
-              <span class="payment-badge payment-badge--pending">
-                ⏱ Pendiente de pago
-              </span>
-
-            {{else if (eq payment_status "failed")}}
-
-              <span class="payment-badge payment-badge--failed">
-                ✕ Pago fallido
-              </span>
-
-            {{else if (eq payment_status "cancelled")}}
-
-              <span class="payment-badge payment-badge--cancelled">
-                ✕ Cancelado
-              </span>
-
-            {{else if (eq payment_status "refund_pending")}}
-
-              <span class="payment-badge payment-badge--pending">
-                ↩ Devolución en curso
-              </span>
-
-            {{else if (eq payment_status "refunded")}}
-
-              <span class="payment-badge payment-badge--refunded">
-                ↩ Reembolsado
-              </span>
-
-            {{/if}}
-
-          </div>
-          <div class="order-customer">
-            <div class="order-info-row">
-              <span class="order-info-icon" aria-hidden="true">⌖</span>
-              <div>
-                <span class="order-info-label">Entrega</span>
-                <strong>{{delivery_address}}</strong>
-              </div>
-            </div>
-            <div class="order-info-row">
-              <span class="order-customer-avatar" aria-hidden="true">
-                {{#if customer_profile_image_url}}
-                  <img src="{{customer_profile_image_url}}" alt="" loading="lazy" referrerpolicy="no-referrer">
-                {{else}}
-                  {{customer_initials}}
-                {{/if}}
-              </span>
-              <div>
-                <span class="order-info-label">Cliente</span>
-                <strong>{{customer_name}}</strong>
-                <span>{{customer_phone}}</span>
-              </div>
-            </div>
-            {{#if delivery_notes}}
-              <div class="order-notes">
-                <span>Nota del cliente</span>
-                <p>{{delivery_notes}}</p>
-              </div>
-            {{/if}}
-
-          </div>
-
-        </div>
-
-
-        <footer class="order-card-footer">
-
-          <div class="order-total">
-            <span>Total</span>
-            <strong>{{money total_cents}}</strong>
-          </div>
-
-          <div class="order-date">
-            {{date created_at}}
-          </div>
-
-          <a class="order-manage-button" href="/admin/orders/{{id}}">
-            Gestionar
-            <span aria-hidden="true">→</span>
-          </a>
-
-        </footer>
-
-      </article>
-
-    {{else}}
-
-      <div class="orders-empty">
-        <div class="orders-empty-icon">▤</div>
-        <h2>No hay pedidos</h2>
-        <p>No hay pedidos para el filtro seleccionado.</p>
+    <a class="order-card orders-native-card" href="/admin/orders/{{id}}" aria-label="Gestionar pedido #{{id}} de {{customer_name}}">
+      <div class="orders-native-card-top"><h2>#{{id}}</h2><strong>{{money total_cents}}</strong></div>
+      <div class="orders-native-customer">
+        <span class="order-customer-avatar" aria-hidden="true">{{#if customer_profile_image_url}}<img src="{{customer_profile_image_url}}" alt="" loading="lazy" referrerpolicy="no-referrer">{{else}}{{customer_initials}}{{/if}}</span>
+        <span>{{customer_name}}</span>
       </div>
-
+      <span class="order-status order-status--{{status}}">{{statusLabel}}</span>
+      <p class="orders-native-meta">{{#if (eq delivery_method "pickup")}}Recogida{{else}}Reparto{{/if}} · {{#if (eq payment_method "online")}}Tarjeta online{{else if (eq payment_method "cash")}}Efectivo{{else}}Tarjeta al repartidor{{/if}} · <span class="orders-native-payment--{{payment_status}}">{{#if (eq payment_status "paid")}}Pagado{{else if (eq payment_status "refunded")}}Reembolsado{{else if (eq payment_status "refund_pending")}}Devolución en curso{{else if (eq payment_status "failed")}}Pago fallido{{else if (eq payment_status "cancelled")}}Pago cancelado{{else}}Pendiente de pago{{/if}}</span></p>
+      <p class="orders-native-meta">{{date created_at}} · {{#if finished}}Finalizado{{else}}{{elapsedMinutes}} min transcurridos{{/if}}</p>
+      {{#if delivery_notes}}<p class="orders-native-note">{{delivery_notes}}</p>{{/if}}
+    </a>
+    {{else}}
+    <div class="orders-empty"><h2>Sin pedidos en este estado</h2><p>Cambia los filtros para consultar otros pedidos.</p></div>
     {{/each}}
-
   </div>
-
+  <nav class="orders-pagination" aria-label="Paginación de pedidos">
+    {{#if previousUrl}}<a class="orders-chip" href="{{previousUrl}}">Pedidos anteriores</a>{{/if}}
+    {{#if recentUrl}}<a class="orders-chip" href="{{recentUrl}}">Volver a los recientes</a>{{/if}}
+  </nav>
 </section>

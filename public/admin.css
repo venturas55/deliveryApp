@@ -2906,3 +2906,31 @@ html[data-theme="dark"] .admin-area select {
 .admin-order-sound button { padding:.45rem .7rem; border:1px solid var(--admin-border); border-radius:var(--admin-radius-sm); background:var(--admin-surface); color:var(--admin-text); font:inherit; cursor:pointer; }
 .admin-navigation__badge { display:inline-flex; align-items:center; justify-content:center; min-width:1.25rem; height:1.25rem; margin-left:.35rem; padding:0 .3rem; border-radius:999px; background:var(--admin-danger); color:#fff; font-size:.75rem; font-weight:750; line-height:1; }
 .admin-navigation__badge[hidden] { display:none; }
+/* Order list mirrors the compact native cards and horizontally scrolling filters. */
+.orders-native .admin-page-header { align-items: center; }
+.orders-status-chips, .orders-delivery-chips, .orders-pagination { display: flex; gap: .5rem; }
+.orders-status-chips { overflow-x: auto; padding: .25rem .15rem .85rem; }
+.orders-native .orders-chip { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; min-height: 44px; box-sizing: border-box; padding: .55rem 1rem; border: 1px solid var(--admin-border); border-radius: 999px; background: var(--admin-surface); color: var(--admin-text); font-size: .875rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.orders-native .orders-chip:hover { background: var(--admin-surface-soft); }
+.orders-native .orders-chip.is-selected { background: #923a25; border-color: #923a25; color: #fff; }
+.orders-native :is(.orders-chip, .orders-native-card, select):focus-visible { outline: 3px solid var(--admin-green); outline-offset: 3px; }
+.orders-native-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem; margin: .25rem 0 1rem; }
+.orders-native-payment { display: flex; align-items: center; gap: .5rem; margin: 0; }
+.orders-native-payment label { color: var(--admin-muted); font-size: .875rem; }
+.orders-native-payment select { width: auto; min-height: 44px; margin: 0; padding: .5rem; border: 1px solid var(--admin-border); border-radius: 10px; background: var(--admin-surface); color: var(--admin-text); }
+.orders-native .orders-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.orders-native .orders-native-card { padding: 1.1rem; gap: .65rem; text-decoration: none; color: var(--admin-text); border-radius: 14px; box-shadow: var(--admin-shadow-sm); }
+.orders-native-card-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.orders-native-card-top h2, .orders-native-card-top strong { margin: 0; font-size: 1.2rem; color: var(--admin-text); }
+.orders-native-customer { display: flex; align-items: center; gap: .65rem; overflow-wrap: anywhere; }
+.orders-native .order-status { align-self: flex-start; font-weight: 700; }
+.orders-native .orders-native-meta { margin: 0; color: var(--admin-muted); font-size: .875rem; line-height: 1.6; overflow-wrap: anywhere; }
+.orders-native .orders-native-note { margin: 0; padding-top: .65rem; border-top: 1px solid var(--admin-border); color: var(--admin-text); font-size: .875rem; overflow-wrap: anywhere; }
+.orders-native-payment--failed { color: var(--admin-danger); font-weight: 700; }
+.orders-pagination { flex-wrap: wrap; margin-top: 1rem; }
+html[data-theme="dark"] .orders-native .orders-native-payment--failed { color: #fca5a5; }
+@media (max-width: 700px) {
+  .orders-native .orders-grid { grid-template-columns: minmax(0, 1fr); }
+  .orders-native-toolbar { align-items: flex-start; }
+  .orders-native-payment { flex-wrap: wrap; }
+}

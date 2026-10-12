@@ -97,15 +97,32 @@ router.get("/admin/address-search", addressLimit, async (req, res) => {
   }
 });
 router.get("/admin/orders", async (req, res) => {
-  const orders = await admin.adminOrders(req);
+  // Match the native initial view while retaining bookmarked grouped filters.
+  const query = { ...req.query };
+  if (query.status === undefined && query.filter === undefined) query.status = "new";
+  const orders = await admin.adminOrders({ user: req.user, query });
+  const status = query.status || "all";
+  const filter = req.query.filter || "all";
+  const delivery = req.query.delivery_method || "all";
+  const payment = req.query.payment_method || "all";
+  const url = (changes = {}) => {
+    const values = { filter, status, delivery_method: delivery, payment_method: payment, ...changes };
+    return "/admin/orders?" + new URLSearchParams(Object.entries(values).filter(([key, value]) => (key === "filter" || value !== "all") && value !== undefined));
+  };
+  const statusFilters = [["new", "Nuevos"], ["accepted", "Aceptados"], ["preparing", "Preparación"], ["ready", "Listos"], ["delivery_requested", "Buscando reparto"], ["courier_assigned", "Asignados"], ["out_for_delivery", "En reparto"], ["delivered", "Entregados"], ["cancelled", "Cancelados"], ["all", "Todos"]]
+    .map(([value, label]) => ({ label, selected: status === value && filter === "all", href: url({ status: value, filter: "all" }) }));
   res.render("admin/orders", {
     title: "Pedidos",
     ordersActive: true,
-    filter: req.query.filter || "pending",
-    deliveryFilter: req.query.delivery_method || "all",
-    paymentFilter: req.query.payment_method || "all",
-    orders: orders.map(presentOrder),
-    refresh: true,
+    filter, status, statusFilters, deliveryFilter: delivery,
+    deliveryFilters: [["all", "Todos"], ["pickup", "Recogida"], ["delivery", "Reparto"]]
+      .map(([value, label]) => ({ label, selected: delivery === value, href: url({ delivery_method: value }) })),
+    paymentFilter: payment,
+    refreshUrl: url({ before_id: req.query.before_id }),
+    recentUrl: req.query.before_id ? url() : undefined,
+    previousUrl: orders.length === 200 ? url({ before_id: String(orders.at(-1).id) }) : undefined,
+    orders: orders.map(order => ({ ...presentOrder(order), elapsedMinutes: Math.max(0, Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000)) })),
+    refresh: !req.query.before_id && !["delivered", "cancelled"].includes(status) && !["delivered", "cancelled"].includes(filter),
   });
 });
 router.get("/admin/order-notifications", async (req, res) => {

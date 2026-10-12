@@ -38,7 +38,14 @@ if(document.body.dataset.refresh)setInterval(async()=>{
       if(!response.ok||response.redirected)return;
       const page=new DOMParser().parseFromString(await response.text(),"text/html");
       const updated=page.querySelector("#adminMain");
-      if(updated&&!dirty&&!submitting&&!document.activeElement?.closest("form"))document.querySelector("#adminMain")?.replaceWith(updated);
+      if(updated&&!dirty&&!submitting&&!document.hidden&&!document.activeElement?.closest("#adminMain, form")){
+        const current=document.querySelector("#adminMain");
+        const chips=current?.querySelector(".orders-status-chips");
+        const scrollLeft=chips?.scrollLeft||0;
+        current?.replaceWith(updated);
+        const updatedChips=updated.querySelector(".orders-status-chips");
+        if(updatedChips)updatedChips.scrollLeft=scrollLeft;
+      }
     }catch{}finally{refreshingOrders=false;}
   }else location.reload();
 },Number(document.body.dataset.refresh));
