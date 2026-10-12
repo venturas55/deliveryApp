@@ -38,6 +38,54 @@
   background: var(--admin-surface-soft);
 }
 
+.settings-logo-layout {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.settings-logo-preview {
+  flex: 0 0 120px;
+}
+
+.settings-logo-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border: 1px dashed var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-surface-soft);
+  color: var(--admin-muted);
+}
+
+.settings-page .settings-logo-form {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  width: min(100%, 380px);
+  min-width: 0;
+  margin: 0;
+}
+
+.settings-logo-form .form-field {
+  width: 100%;
+  min-width: 0;
+}
+
+.settings-logo-form input[type="file"] {
+  box-sizing: border-box;
+  max-width: 100%;
+  font-size: 0.875rem;
+}
+
+.settings-logo-form .settings-save {
+  width: auto;
+  min-width: 0;
+}
+
 /* Admin navigation and nested tabs share one restrained visual system. */
 .admin-navigation {
   box-sizing: border-box;
