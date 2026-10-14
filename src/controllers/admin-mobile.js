@@ -14,6 +14,7 @@ export function mobileOrder(row) {
   const view = presentOrder(row);
   return {
     ...pick(row, orderFields),
+    timing_mode: row.scheduled_for ? "scheduled" : "asap",
     ...pick(view, ["scheduleLabel", "statusLabel", "nextStatus", "nextLabel", "canCancel", "canQuote", "canStartOwnDelivery", "canCompletePickup", "canCompleteOwnDelivery"]),
     canQuote: view.canQuote && !row.provider_order_id,
     canMarkPaid: ["cash", "card_on_delivery"].includes(row.payment_method) &&

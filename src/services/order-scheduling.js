@@ -37,3 +37,9 @@ export function scheduleLabel(value) {
   const p = parts(date);
   return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
 }
+export function orderSchedule(order) {
+  return {
+    timing_mode: order.scheduled_for ? "scheduled" : "asap",
+    scheduleLabel: scheduleLabel(order.scheduled_for),
+  };
+}

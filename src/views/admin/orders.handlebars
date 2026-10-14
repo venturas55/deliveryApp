@@ -34,7 +34,11 @@
       <span class="order-status order-status--{{status}}">{{statusLabel}}</span>
       <p class="orders-native-meta">{{#if (eq delivery_method "pickup")}}Recogida{{else}}Reparto{{/if}} · {{#if (eq payment_method "online")}}Tarjeta online{{else if (eq payment_method "cash")}}Efectivo{{else}}Tarjeta al repartidor{{/if}} · <span class="orders-native-payment--{{payment_status}}">{{#if (eq payment_status "paid")}}Pagado{{else if (eq payment_status "refunded")}}Reembolsado{{else if (eq payment_status "refund_pending")}}Devolución en curso{{else if (eq payment_status "failed")}}Pago fallido{{else if (eq payment_status "cancelled")}}Pago cancelado{{else}}Pendiente de pago{{/if}}</span></p>
       <p class="orders-native-meta">{{date created_at}} · {{#if finished}}Finalizado{{else}}{{elapsedMinutes}} min transcurridos{{/if}}</p>
-      <p class="orders-native-meta"><strong>Hora solicitada: {{scheduleLabel}}</strong></p>
+      <div class="order-timing {{#if scheduled_for}}order-timing--scheduled{{/if}}">
+        <span>Hora solicitada</span>
+        <strong>{{#if scheduled_for}}Programado{{else}}Lo antes posible{{/if}}</strong>
+        {{#if scheduled_for}}<time datetime="{{scheduled_for}}">{{scheduleLabel}} · Europe/Madrid</time>{{/if}}
+      </div>
       {{#if delivery_notes}}<p class="orders-native-note">{{delivery_notes}}</p>{{/if}}
     </a>
     {{else}}

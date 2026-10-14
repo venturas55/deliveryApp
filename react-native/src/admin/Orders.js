@@ -44,6 +44,23 @@ const colors = {
   cancelled: "#8b2c2c",
 };
 
+function OrderTiming({ order }) {
+  const { color } = useTheme();
+  const s = useStyles();
+  const scheduled = !!order.scheduled_for;
+  const time = scheduled ? order.scheduleLabel || new Intl.DateTimeFormat("es-ES", {
+    timeZone: "Europe/Madrid", day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  }).format(new Date(order.scheduled_for)) : null;
+  return (
+    <View style={{ borderWidth: 1, borderColor: color("#9d3d24"), borderRadius: 10, padding: 12, gap: 4 }}>
+      <Text style={s.muted}>{t("Hora solicitada")}</Text>
+      <Text style={s.heading}>{t(scheduled ? "Programado" : "Lo antes posible")}</Text>
+      {scheduled && <Text style={s.text}>{t("{{v0}} · {{v1}}", {v0: time, v1: "Europe/Madrid"})}</Text>}
+    </View>
+  );
+}
+
 export function OrderCard({ order, onPress }) {
   const { color } = useTheme();
   const s = useStyles();
@@ -58,8 +75,7 @@ export function OrderCard({ order, onPress }) {
         <Text style={s.heading}>{t(money(order.total_cents))}</Text>
       </View>
       <Text style={s.text}>{order.customer_name}</Text>
-      <Text style={s.label}>{t("Hora solicitada: {{v0}}", {v0: order.scheduled_for ? order.scheduleLabel : t("Lo antes posible")})}</Text>
-      {!!order.scheduled_for && <Text style={s.muted}>{t("Europe/Madrid")}</Text>}
+      <OrderTiming order={order} />
       <Text
         style={[s.label, { color: color(colors[order.status] || "#53483e") }]}
       >{t(order.statusLabel)}</Text>
@@ -238,8 +254,6 @@ export function OrderDetail({ id }) {
           <Card>
             <Text style={s.heading}>{t("Cliente")}</Text>
             <Text style={s.text}>{order.customer_name}</Text>
-      <Text style={s.label}>{t("Hora solicitada: {{v0}}", {v0: order.scheduled_for ? order.scheduleLabel : t("Lo antes posible")})}</Text>
-      {!!order.scheduled_for && <Text style={s.muted}>{t("Europe/Madrid")}</Text>}
             <Button
               secondary
               title={t("Llamar: {{v0}}", { v0: order.customer_phone || "sin teléfono" })}

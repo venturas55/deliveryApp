@@ -2263,6 +2263,11 @@ html[data-theme="dark"] .admin-area select {
 .orders-native-customer { display: flex; align-items: center; gap: .65rem; overflow-wrap: anywhere; }
 .orders-native .order-status { align-self: flex-start; font-weight: 700; }
 .orders-native .orders-native-meta { margin: 0; color: var(--admin-muted); font-size: .875rem; line-height: 1.6; overflow-wrap: anywhere; }
+.admin-area .order-timing { display: grid; gap: 4px; padding: 12px; margin: 8px 0; border: 1px solid var(--admin-border); border-radius: 10px; background: var(--admin-surface); color: var(--admin-text); overflow-wrap: anywhere; }
+.admin-area .order-timing > span { font-size: .8rem; color: var(--admin-muted); }
+.admin-area .order-timing > strong { font-size: 1rem; }
+.admin-area .order-timing--scheduled { border-left: 4px solid #9d3d24; }
+html[data-theme="dark"] .admin-area .order-timing--scheduled { border-left-color: #f5b09a; }
 .orders-native .orders-native-note { margin: 0; padding-top: .65rem; border-top: 1px solid var(--admin-border); color: var(--admin-text); font-size: .875rem; overflow-wrap: anywhere; }
 .orders-native-payment--failed { color: var(--admin-danger); font-weight: 700; }
 .orders-pagination { flex-wrap: wrap; margin-top: 1rem; }

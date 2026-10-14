@@ -1,5 +1,6 @@
 export default {
   "Hora solicitada": "Requested time", "Lo antes posible": "As soon as possible",
+  "Programado": "Scheduled",
   "Hoy · Europe/Madrid": "Today · Europe/Madrid", "Europe/Madrid": "Europe/Madrid",
   "Actualizar horas": "Refresh times", "Hora solicitada: {{v0}}": "Requested time: {{v0}}",
   "Selecciona una hora futura de hoy en intervalos de 15 minutos.": "Select a future time today in 15-minute intervals.",

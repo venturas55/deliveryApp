@@ -1,6 +1,10 @@
 <section class="card">
   <h1>Pedido #{{order.id}}</h1>
-  <p><strong>Hora solicitada: {{order.scheduleLabel}} · Europe/Madrid</strong></p>
+  <div class="order-timing {{#if order.scheduled_for}}order-timing--scheduled{{/if}}">
+    <span>Hora solicitada</span>
+    <strong>{{#if order.scheduled_for}}Programado{{else}}Lo antes posible{{/if}}</strong>
+    {{#if order.scheduled_for}}<time datetime="{{order.scheduled_for}}">{{order.scheduleLabel}} · Europe/Madrid</time>{{/if}}
+  </div>
 
   <div class="order-status-header">
     <h2>{{order.statusLabel}}</h2>

@@ -87,6 +87,9 @@ test("MariaDB preserves UTC schedule and legacy orders; ADMIN scope stays isolat
     const asap=await createOrder(req);
     const legacy=await adminOrder({user:{restaurant_id:restaurantId},params:{id:asap.id}});
     assert.equal(legacy.scheduled_for,null);
+    assert.equal(legacy.timing_mode,"asap");
+    assert.equal(legacy.scheduleLabel,"Lo antes posible");
+    assert.equal(mobileOrder(legacy).timing_mode,"asap");
     assert.equal(mobileOrder(legacy).scheduleLabel,"Lo antes posible");
     const slot=orderTimeSlots()[0];
     if(slot) {
@@ -94,9 +97,13 @@ test("MariaDB preserves UTC schedule and legacy orders; ADMIN scope stays isolat
       const adminReq={user:{restaurant_id:restaurantId},params:{id:scheduled.id},query:{filter:"all"}};
       const detail=await adminOrder(adminReq);
       assert.equal(detail.scheduled_for,slot.value.replace(".000Z","Z"));
+      assert.equal(detail.timing_mode,"scheduled");
+      assert.equal(detail.scheduleLabel,scheduleLabel(slot.value));
+      assert.equal(mobileOrder(detail).timing_mode,"scheduled");
       assert.equal(mobileOrder(detail).scheduleLabel,scheduleLabel(slot.value));
       const list=await adminOrders(adminReq);
       assert.equal(list.find(order=>Number(order.id)===scheduled.id).scheduled_for,detail.scheduled_for);
+      assert.equal(list.find(order=>Number(order.id)===scheduled.id).scheduleLabel,detail.scheduleLabel);
       const customer=await customerOrder({customer:req.customer,params:{id:scheduled.id}});
       assert.equal(customer.scheduled_for,detail.scheduled_for);
       assert.equal(customer.scheduleLabel,scheduleLabel(slot.value));

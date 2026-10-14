@@ -1,4 +1,5 @@
 import { query, transaction } from "../db.js";
+import { orderSchedule } from "../services/order-scheduling.js";
 import { associateCustomer, customerMembership } from "../services/restaurant-customers.js";
 import { randomUUID } from "node:crypto";
 import QRCode from "qrcode";
@@ -527,6 +528,7 @@ export async function adminOrders(req) {
   return orders.map(({scheduled_for_utc,...order}) => ({
     ...order,
     scheduled_for: scheduled_for_utc,
+    ...orderSchedule({scheduled_for: scheduled_for_utc}),
     customer_initials: String(order.customer_name || "?")
       .trim().split(/\s+/).slice(0, 2).map((part) => Array.from(part)[0] || "?").join("").toUpperCase(),
   }));
@@ -633,7 +635,7 @@ export async function adminOrder(req) {
     [req.params.id],
   );
   const {scheduled_for_utc,...order}=rows[0];
-  return { ...order, scheduled_for: scheduled_for_utc, items, events };
+  return { ...order, scheduled_for: scheduled_for_utc, ...orderSchedule({scheduled_for: scheduled_for_utc}), items, events };
 }
 
 export async function markOrderPaid(req) {
