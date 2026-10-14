@@ -98,6 +98,7 @@ const OrdersPanel = forwardRef(function OrdersPanel({token}, ref) {
         accessibilityLabel={t("Ver pedido {{v0}}", { v0: t(order.id) })} onPress={()=>open(order)} style={s.card}>
         <View style={s.line}><Text style={s.title}>{t("Pedido #{{v0}}", { v0: t(order.id) })}</Text><Text style={s.title}>{t(money(order.total_cents))}</Text></View>
         <Text style={s.muted}>{t(date(order.created_at))}</Text>
+        <Text style={s.muted}>{t("Hora solicitada: {{v0}}", {v0: order.scheduled_for ? order.scheduleLabel : t("Lo antes posible")})}</Text>
         <View style={s.line}><Text style={s.badge}>{t(statuses[order.status] || order.status)}</Text>
           <Text style={order.payment_status==="paid"?s.paid:s.pending}>{t(payments[order.payment_status] || "Pendiente de pago")}</Text></View>
         <Text style={s.muted}>{t("{{v0}} · Ver detalle ›", { v0: t(order.delivery_method==="pickup"?"Recogida en local":"A domicilio") })}</Text>
@@ -112,6 +113,7 @@ const OrdersPanel = forwardRef(function OrdersPanel({token}, ref) {
           {!detail ? <><ActivityIndicator color={color("#9d3d24", "color")}/><Action title={t("Reintentar")} secondary onPress={refresh}/></> : <>
             <Text style={s.badge}>{t(statuses[detail.status] || detail.status)}</Text>
             <Text style={s.muted}>{t(date(detail.created_at))}</Text>
+            <Text style={s.muted}>{t("Hora solicitada: {{v0}}", {v0: detail.scheduled_for ? detail.scheduleLabel : t("Lo antes posible")})}</Text>
             <View style={s.card}><Text style={s.title}>{t("Productos")}</Text>
               {detail.items.map((item,index)=><View key={index} style={s.line}>
                 <Text style={s.item}>{t("{{v0}} × {{v1}}", { v0: t(item.quantity), v1: item.product_name })}</Text>

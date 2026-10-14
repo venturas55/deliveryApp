@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS orders (
   delivery_notes VARCHAR(500),
   payment_method ENUM('cash','card_on_delivery','online') NOT NULL DEFAULT 'cash',
   delivery_method ENUM('delivery','pickup') NOT NULL DEFAULT 'delivery',
+  scheduled_for DATETIME NULL DEFAULT NULL,
   sales_channel ENUM('web','phone','telephone','counter') NOT NULL DEFAULT 'web',
   status ENUM('new','accepted','preparing','ready','delivery_requested','courier_assigned','out_for_delivery','delivered','cancelled') NOT NULL DEFAULT 'new',
   subtotal_cents INT NOT NULL,

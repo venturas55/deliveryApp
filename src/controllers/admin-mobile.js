@@ -8,13 +8,13 @@ import { presentOrder } from "../services/order-presenter.js";
 const pick = (row, fields) => Object.fromEntries(fields.map(key => [key, row[key] ?? null]));
 const editableRestaurantFields = ["name", "phone", "slug", "legal_name", "tax_id", "legal_address", "legal_email", "legal_registration", "delivery_base_cents", "free_delivery_from_cents", "delivery_address_data"];
 const restaurantFields = ["logo_url", "id", "name", "phone", "address", "city", "slug", "created_at", "delivery_city", "delivery_number", "legal_name", "tax_id", "legal_address", "legal_email", "legal_registration", "delivery_base_cents", "free_delivery_from_cents"];
-const orderFields = ["id", "customer_id", "customer_name", "customer_phone", "delivery_address", "delivery_notes", "delivery_apartment", "delivery_patio", "payment_method", "payment_status", "delivery_method", "sales_channel", "status", "subtotal_cents", "discount_cents", "delivery_cents", "total_cents", "provider", "provider_status", "created_at", "updated_at", "paid_at"];
+const orderFields = ["id", "customer_id", "customer_name", "customer_phone", "delivery_address", "delivery_notes", "delivery_apartment", "delivery_patio", "payment_method", "payment_status", "delivery_method", "scheduled_for", "sales_channel", "status", "subtotal_cents", "discount_cents", "delivery_cents", "total_cents", "provider", "provider_status", "created_at", "updated_at", "paid_at"];
 
 export function mobileOrder(row) {
   const view = presentOrder(row);
   return {
     ...pick(row, orderFields),
-    ...pick(view, ["statusLabel", "nextStatus", "nextLabel", "canCancel", "canQuote", "canStartOwnDelivery", "canCompletePickup", "canCompleteOwnDelivery"]),
+    ...pick(view, ["scheduleLabel", "statusLabel", "nextStatus", "nextLabel", "canCancel", "canQuote", "canStartOwnDelivery", "canCompletePickup", "canCompleteOwnDelivery"]),
     canQuote: view.canQuote && !row.provider_order_id,
     canMarkPaid: ["cash", "card_on_delivery"].includes(row.payment_method) &&
       !["paid", "cancelled", "refunded"].includes(row.payment_status) && row.status !== "cancelled",

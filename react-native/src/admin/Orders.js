@@ -58,6 +58,8 @@ export function OrderCard({ order, onPress }) {
         <Text style={s.heading}>{t(money(order.total_cents))}</Text>
       </View>
       <Text style={s.text}>{order.customer_name}</Text>
+      <Text style={s.label}>{t("Hora solicitada: {{v0}}", {v0: order.scheduled_for ? order.scheduleLabel : t("Lo antes posible")})}</Text>
+      {!!order.scheduled_for && <Text style={s.muted}>{t("Europe/Madrid")}</Text>}
       <Text
         style={[s.label, { color: color(colors[order.status] || "#53483e") }]}
       >{t(order.statusLabel)}</Text>
@@ -236,6 +238,8 @@ export function OrderDetail({ id }) {
           <Card>
             <Text style={s.heading}>{t("Cliente")}</Text>
             <Text style={s.text}>{order.customer_name}</Text>
+      <Text style={s.label}>{t("Hora solicitada: {{v0}}", {v0: order.scheduled_for ? order.scheduleLabel : t("Lo antes posible")})}</Text>
+      {!!order.scheduled_for && <Text style={s.muted}>{t("Europe/Madrid")}</Text>}
             <Button
               secondary
               title={t("Llamar: {{v0}}", { v0: order.customer_phone || "sin teléfono" })}

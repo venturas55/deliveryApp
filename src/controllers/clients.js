@@ -1,4 +1,5 @@
 import {parseDetails,safeTrackingUrl} from "../services/delivery-tracking.js";
+import {orderTimeSlots,parseOrderSchedule,scheduleLabel} from "../services/order-scheduling.js";
 import QRCode from "qrcode";
 import {query,transaction} from "../db.js";
 import {associateCustomer} from "../services/restaurant-customers.js";
@@ -42,7 +43,7 @@ export async function menu(req){
   const r=await getRestaurant(req.query.restaurant_id); if(!r)throw httpError(404,"Restaurante no encontrado");
   const products=await query("SELECT * FROM products WHERE restaurant_id=? AND active=1 ORDER BY category,sort_order,id",[r.id]);
   const zones=await query("SELECT * FROM delivery_zones WHERE restaurant_id=? AND active=1",[r.id]);
-  return ({restaurant:r,products,zones,delivery_pricing:{base_cents:Number(r.delivery_base_cents ?? process.env.DELIVERY_BASE_CENTS ?? 399),free_from_cents:Number(r.free_delivery_from_cents ?? process.env.FREE_DELIVERY_FROM_CENTS ?? 3000)}});
+  return ({restaurant:r,products,zones,time_slots:orderTimeSlots(),order_timezone:"Europe/Madrid",delivery_pricing:{base_cents:Number(r.delivery_base_cents ?? process.env.DELIVERY_BASE_CENTS ?? 399),free_from_cents:Number(r.free_delivery_from_cents ?? process.env.FREE_DELIVERY_FROM_CENTS ?? 3000)}});
 }
 
 export async function product(id) {
@@ -59,6 +60,7 @@ export async function createOrder(req){
   if(!profiles.length)throw httpError(401,"Cuenta no disponible");
   const profile=profiles[0];
   const body=req.body||{};
+  const scheduledFor=parseOrderSchedule(body);
   let addressData=body.delivery_address_data;
   if(typeof addressData==="string"){try{addressData=JSON.parse(addressData)}catch{addressData=null}}
   if(!addressData&&profile.delivery_place_id)addressData={formatted_address:profile.delivery_formatted_address,street:profile.delivery_street,number:profile.delivery_number,city:profile.delivery_city,province:profile.delivery_province,postal_code:profile.delivery_postal_code,country:profile.delivery_country,latitude:profile.delivery_latitude,longitude:profile.delivery_longitude,place_id:profile.delivery_place_id};
@@ -89,33 +91,33 @@ export async function createOrder(req){
   const total=subtotal-promotion.discount_cents+delivery;
   const orderId=await transaction(async c=>{
     await associateCustomer(req.customer.sub,r.id,c);
-    const result=await c.query(`INSERT INTO orders(customer_id,restaurant_id,customer_name,customer_phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,delivery_apartment,delivery_patio,payment_method,delivery_method,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [req.customer.sub,r.id,customer_name,customer_phone,delivery_address,delivery_notes,address.formatted_address,address.street,address.number,address.city,address.province,address.postal_code,address.country,address.latitude,address.longitude,address.place_id,delivery_apartment,delivery_patio,payment_method,delivery_method,subtotal,promotion.code||null,promotion.discount_cents,delivery,total]);
+    const result=await c.query(`INSERT INTO orders(customer_id,restaurant_id,customer_name,customer_phone,delivery_address,delivery_notes,delivery_formatted_address,delivery_street,delivery_number,delivery_city,delivery_province,delivery_postal_code,delivery_country,delivery_latitude,delivery_longitude,delivery_place_id,delivery_apartment,delivery_patio,payment_method,delivery_method,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents,scheduled_for) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [req.customer.sub,r.id,customer_name,customer_phone,delivery_address,delivery_notes,address.formatted_address,address.street,address.number,address.city,address.province,address.postal_code,address.country,address.latitude,address.longitude,address.place_id,delivery_apartment,delivery_patio,payment_method,delivery_method,subtotal,promotion.code||null,promotion.discount_cents,delivery,total,scheduledFor]);
     const id=Number(result.insertId);
     for(const i of normalized)await c.query("INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price_cents) VALUES(?,?,?,?,?)",[id,i.product_id,i.product_name,i.quantity,i.unit_price_cents]);
     await logEvent(c,id,"order.created",{status:"new"});
     return id;
   });
-  return ({id:orderId,total_cents:total,status:"new",delivery_method,discount_cents:promotion.discount_cents,promo_code:promotion.code||null});
+  return ({id:orderId,total_cents:total,status:"new",delivery_method,scheduled_for:scheduledFor?scheduledFor.replace(" ","T")+"Z":null,discount_cents:promotion.discount_cents,promo_code:promotion.code||null});
 }
 
 export async function customerOrders(req){
   const filter=req.query.filter||"active";
   if(!["active","history","all"].includes(filter))throw httpError(400,"Filtro no valido");
   const clause=filter==="active"?" AND status NOT IN ('delivered','cancelled')":filter==="history"?" AND status IN ('delivered','cancelled')":"";
-  return (await query(`SELECT id,status,total_cents,payment_method,payment_status,delivery_method,created_at FROM orders WHERE customer_id=?${clause} ORDER BY id DESC LIMIT 200`,[req.customer.sub]));
+  return (await query(`SELECT id,status,total_cents,payment_method,payment_status,delivery_method,DATE_FORMAT(scheduled_for,'%Y-%m-%dT%H:%i:%sZ') AS scheduled_for,created_at FROM orders WHERE customer_id=?${clause} ORDER BY id DESC LIMIT 200`,[req.customer.sub])).map(order=>({...order,scheduleLabel:scheduleLabel(order.scheduled_for)}));
 }
 
 export async function customerOrder(req){
-  const rows=await query("SELECT id,restaurant_id,customer_name,delivery_address,delivery_method,status,payment_method,payment_status,paid_at,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents,provider,provider_order_id,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
+  const rows=await query("SELECT id,restaurant_id,customer_name,delivery_address,delivery_method,status,payment_method,payment_status,paid_at,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents,provider,provider_order_id,provider_status,delivery_details_json,delivery_verification_code,DATE_FORMAT(scheduled_for,'%Y-%m-%dT%H:%i:%sZ') AS scheduled_for,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
   if(!rows.length)throw httpError(404,"Pedido no encontrado");
   await syncCustomerDelivery(rows[0],req.customer.sub);
-  const refreshed=await query("SELECT id,customer_name,delivery_address,delivery_method,status,payment_method,payment_status,paid_at,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents,provider,provider_status,delivery_details_json,delivery_verification_code,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
+  const refreshed=await query("SELECT id,customer_name,delivery_address,delivery_method,status,payment_method,payment_status,paid_at,subtotal_cents,promo_code,discount_cents,delivery_cents,total_cents,provider,provider_status,delivery_details_json,delivery_verification_code,DATE_FORMAT(scheduled_for,'%Y-%m-%dT%H:%i:%sZ') AS scheduled_for,created_at,updated_at FROM orders WHERE id=? AND customer_id=?",[req.params.id,req.customer.sub]);
   const current=refreshed[0]||rows[0];
   const items=await query("SELECT product_name,quantity,unit_price_cents FROM order_items WHERE order_id=?",[req.params.id]);
   const {delivery_details_json,delivery_verification_code,...order}=current,details=parseDetails(delivery_details_json);
   // Pickup secrets, courier contact data and raw events remain restaurant-only.
-  return ({...order,canPay:canPayOrder(order),items,trackingUrl:safeTrackingUrl(details.trackingUrl),dropoffEta:details.dropoffEta||null,dropoffVerification:details.dropoffVerification||null,hasDeliveryVerificationQr:!!delivery_verification_code&&order.status==="out_for_delivery",returnPending:!!details.returnPending});
+  return ({...order,scheduleLabel:scheduleLabel(order.scheduled_for),canPay:canPayOrder(order),items,trackingUrl:safeTrackingUrl(details.trackingUrl),dropoffEta:details.dropoffEta||null,dropoffVerification:details.dropoffVerification||null,hasDeliveryVerificationQr:!!delivery_verification_code&&order.status==="out_for_delivery",returnPending:!!details.returnPending});
 }
 
 export async function startCustomerOrderPayment(req){

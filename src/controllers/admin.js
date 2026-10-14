@@ -519,13 +519,14 @@ export async function adminOrders(req) {
     params.push(...methods);
   }
   const orders = await query(
-    `SELECT orders.*,
+    `SELECT orders.*,DATE_FORMAT(scheduled_for,'%Y-%m-%dT%H:%i:%sZ') AS scheduled_for_utc,
       (SELECT c.profile_image_url FROM customers c WHERE c.id=orders.customer_id) AS customer_profile_image_url
     FROM orders WHERE restaurant_id=?${clause} ORDER BY id DESC LIMIT 200`,
     params,
   );
-  return orders.map((order) => ({
+  return orders.map(({scheduled_for_utc,...order}) => ({
     ...order,
+    scheduled_for: scheduled_for_utc,
     customer_initials: String(order.customer_name || "?")
       .trim().split(/\s+/).slice(0, 2).map((part) => Array.from(part)[0] || "?").join("").toUpperCase(),
   }));
@@ -620,7 +621,7 @@ export async function adminOrderStats(req) {
 
 export async function adminOrder(req) {
   const rows = await query(
-    "SELECT * FROM orders WHERE id=? AND restaurant_id=?",
+    "SELECT orders.*,DATE_FORMAT(scheduled_for,'%Y-%m-%dT%H:%i:%sZ') AS scheduled_for_utc FROM orders WHERE id=? AND restaurant_id=?",
     [req.params.id, req.user.restaurant_id],
   );
   if (!rows.length) throw httpError(404, "Pedido no encontrado");
@@ -631,7 +632,8 @@ export async function adminOrder(req) {
     "SELECT event_type,payload_json,created_at FROM order_events WHERE order_id=? ORDER BY id DESC",
     [req.params.id],
   );
-  return { ...rows[0], items, events };
+  const {scheduled_for_utc,...order}=rows[0];
+  return { ...order, scheduled_for: scheduled_for_utc, items, events };
 }
 
 export async function markOrderPaid(req) {

@@ -166,6 +166,12 @@
         <div data-delivery-address>
           {{> client/address-picker}}
         </div>
+        <label>Hora solicitada (hoy · Europe/Madrid)
+          <select name="scheduled_for">
+            <option value="">Lo antes posible</option>
+            {{#each timeSlots}}<option value="{{value}}">{{label}}</option>{{/each}}
+          </select>
+        </label>
         <label>Forma de pago
           <select name="payment_method">
             <option value="online">Tarjeta</option>

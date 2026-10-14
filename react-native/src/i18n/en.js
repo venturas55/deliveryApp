@@ -1,4 +1,8 @@
 export default {
+  "Hora solicitada": "Requested time", "Lo antes posible": "As soon as possible",
+  "Hoy · Europe/Madrid": "Today · Europe/Madrid", "Europe/Madrid": "Europe/Madrid",
+  "Actualizar horas": "Refresh times", "Hora solicitada: {{v0}}": "Requested time: {{v0}}",
+  "Selecciona una hora futura de hoy en intervalos de 15 minutos.": "Select a future time today in 15-minute intervals.",
   "Sin clientes asociados a este restaurante.": "No customers associated with this restaurant.",
   "Alias del negocio. Cambiarlo no modifica las rutas ni la asociación de clientes.": "Business alias. Changing it does not affect routes or customer membership.",
   "No se pudo cargar el restaurante. Recarga la carta.": "Could not load the restaurant. Reload the menu.",

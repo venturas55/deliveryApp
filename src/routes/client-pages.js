@@ -249,6 +249,7 @@ router.get("/", async (req, res) => {
     }),
     title: "Carta",
     walletsEnabled: redsysWalletsEnabled(),
+    timeSlots: data.time_slots,
     cartActive: true,
     restaurant: data.restaurant,
     restaurantContact,

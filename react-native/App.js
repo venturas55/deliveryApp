@@ -103,6 +103,17 @@ function ClientNavigator({ onAdminAccess }) {
     [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [name, setName] = useState("");
+  const [timeSlots, setTimeSlots] = useState([]);
+  const [scheduledFor, setScheduledFor] = useState("");
+  const [timeSlotsLoading, setTimeSlotsLoading] = useState(false);
+  async function refreshTimeSlots() {
+    setTimeSlotsLoading(true);
+    try {
+      const data = await api(`/public/menu?restaurant_id=${encodeURIComponent(restaurant?.id || RESTAURANT_ID || "")}`);
+      setTimeSlots(data.time_slots || []);
+    } catch (e) { setError(e.message); }
+    finally { setTimeSlotsLoading(false); }
+  }
   const [pickup, setPickup] = useState(false),
     [payment, setPayment] = useState("online"),
     [phone, setPhone] = useState(""),
@@ -195,6 +206,7 @@ function ClientNavigator({ onAdminAccess }) {
     const m = await api(`/public/menu${RESTAURANT_ID ? `?restaurant_id=${encodeURIComponent(RESTAURANT_ID)}` : ""}`);
     setMenu(m.products || []);
     setRestaurant(m.restaurant);
+    setTimeSlots(m.time_slots || []);
     setDeliveryPricing(
       m.delivery_pricing ||
         (m.restaurant
@@ -431,6 +443,8 @@ function ClientNavigator({ onAdminAccess }) {
             restaurant_id: restaurant?.id,
             delivery_method: pickup ? "pickup" : "delivery",
             payment_method: payment,
+            timing_mode: scheduledFor ? "scheduled" : "asap",
+            scheduled_for: scheduledFor,
             customer_name: profile.name,
             customer_phone: phone,
             delivery_notes: notes,
@@ -439,6 +453,7 @@ function ClientNavigator({ onAdminAccess }) {
         token,
       );
       setCart({});
+      setScheduledFor("");
       setScreen("order");
       if (payment === "online") {
         const { url } = await api(
@@ -759,6 +774,18 @@ function ClientNavigator({ onAdminAccess }) {
                     ? "Recogerás el pedido en el local."
                     : profile?.delivery_formatted_address ||
                       "Usaremos tu Dirección guardada en la cuenta.")}</Text>
+                <Text style={styles.label}>{t("Hora solicitada")}</Text>
+                <Text style={styles.muted}>{t("Hoy · Europe/Madrid")}</Text>
+                <Button secondary={!!scheduledFor} title={t("Lo antes posible")}
+                  onPress={() => setScheduledFor("")} />
+                <Button secondary title={t("Actualizar horas")} onPress={refreshTimeSlots} disabled={timeSlotsLoading} />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.row}>
+                    {timeSlots.map(slot => <Button key={slot.value} title={slot.label}
+                      secondary={scheduledFor !== slot.value} onPress={() => setScheduledFor(slot.value)} />)}
+                  </View>
+                </ScrollView>
+                {!!scheduledFor && <Text style={styles.muted}>{t("Hora solicitada: {{v0}}", {v0: timeSlots.find(slot => slot.value === scheduledFor)?.label || t("Actualizar horas")})}</Text>}
                 <Text style={styles.label}>{t("Pago")}</Text>
                 <View style={styles.row}>
                   <Button
